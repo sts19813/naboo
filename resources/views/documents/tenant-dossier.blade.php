@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Expediente de Inquilino | SuWork')
+@section('title', 'Expediente de Inquilino | Naboo')
 
 @section('content')
     @include('documents.partials.dossier-drive', [

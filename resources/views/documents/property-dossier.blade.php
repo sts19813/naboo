@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Expediente de Propiedad | SuWork')
+@section('title', 'Expediente de Propiedad | Naboo')
 
 @section('content')
     @include('documents.partials.dossier-drive', [

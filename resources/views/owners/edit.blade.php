@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Editar Propietario | SuWork')
+@section('title', 'Editar Propietario | Naboo')
 
 @section('content')
     <div class="py-10 property-module">

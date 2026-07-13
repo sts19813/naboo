@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Verificar correo | ' . config('app.name', 'SuWork'))
+@section('title', 'Verificar correo | ' . config('app.name', 'Naboo'))
 
 @section('content')
     <div class="text-center mb-11">

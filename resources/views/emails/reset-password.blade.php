@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Restablece tu contraseña</title>
 </head>
-<body style="margin:0; padding:0; background:#f4f6f8; font-family:Arial, Helvetica, sans-serif; color:#172033;">
+<body style="margin:0; padding:0; background:#f6f7f8; font-family:Arial, Helvetica, sans-serif; color:#1F2632;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8; padding:32px 16px;">
         <tr>
             <td align="center">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 10px 30px rgba(20, 31, 50, .08);">
                     <tr>
                         <td align="center" style="padding:34px 32px 22px; background:#fbfaf8;">
-                            <img src="{{ $logoUrl }}" width="170" alt="SuHomes" style="display:block; max-width:170px; height:auto;">
+                            <img src="{{ $logoUrl }}" width="170" alt="Naboo" style="display:block; max-width:170px; height:auto;">
                         </td>
                     </tr>
                     <tr>
@@ -27,7 +27,7 @@
 
                             <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto 30px;">
                                 <tr>
-                                    <td align="center" bgcolor="#a42800" style="border-radius:8px;">
+                                    <td align="center" bgcolor="#FF3364" style="border-radius:8px;">
                                         <a href="{{ $resetUrl }}" style="display:inline-block; padding:14px 24px; color:#ffffff; font-size:15px; font-weight:700; text-decoration:none; border-radius:8px;">
                                             Restablecer contraseña
                                         </a>
@@ -49,7 +49,7 @@
                             <p style="margin:0 0 10px; font-size:13px; line-height:1.6; color:#7a8291;">
                                 Si el botón no funciona, copia y pega este enlace en tu navegador:
                             </p>
-                            <a href="{{ $resetUrl }}" style="font-size:13px; line-height:1.6; color:#a42800; word-break:break-all;">{{ $resetUrl }}</a>
+                            <a href="{{ $resetUrl }}" style="font-size:13px; line-height:1.6; color:#FF3364; word-break:break-all;">{{ $resetUrl }}</a>
                             <p style="margin:22px 0 0; font-size:14px; line-height:1.6; color:#4b5565;">
                                 Saludos,<br>
                                 Equipo {{ $appName }}

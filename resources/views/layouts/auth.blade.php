@@ -2,35 +2,24 @@
 <html lang="{{ app()->getLocale() }}">
 <head>
     <base href="{{ asset('/') }}">
-    <title>@yield('title', config('app.name', 'SuWork') . ' | Auth')</title>
+    <title>@yield('title', config('app.name', 'Naboo') . ' | Acceso')</title>
 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <link rel="shortcut icon" href="{{ asset('metronic/assets/media/logos/favicon.ico') }}" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700" />
+    <link rel="icon" type="image/svg+xml" href="{{ asset('assets/img/naboo-mark.svg') }}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
 
     <link href="{{ asset('metronic/assets/plugins/global/plugins.bundle.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('metronic/assets/css/style.bundle.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('assets/css/app.css') }}" rel="stylesheet" type="text/css" />
 
-    <style>
-        .auth-brand-strip {
-            background-image: linear-gradient(230deg, var(--sw-primary) 0%, var(--sw-primary-hover) 45%, var(--sw-primary-hover) 100%);
-        }
-
-        .btn-primary,
-        .btn.btn-primary {
-            background-color: var(--sw-primary) !important;
-            border-color: var(--sw-primary-border) !important;
-            color: #fff !important;
-        }
-    </style>
-
     @stack('styles')
 </head>
-<body id="kt_body" @include('partials.suwork-flash-attrs') class="app-blank">
+<body id="kt_body" @include('partials.suwork-flash-attrs') class="app-blank naboo-auth">
     <script>
         var defaultThemeMode = "light";
         var themeMode;
@@ -52,39 +41,42 @@
         }
     </script>
 
-    <div class="d-flex flex-column flex-root" id="kt_app_root">
-        <div class="d-flex flex-column flex-lg-row flex-column-fluid">
-            <div class="d-flex flex-column flex-lg-row-fluid w-lg-50 p-10 order-2 order-lg-1 bg-body">
-                <div class="d-flex flex-center flex-column flex-lg-row-fluid">
-                    <div class="w-lg-500px p-10 p-lg-15">
+    <div class="d-flex flex-column flex-root min-vh-100" id="kt_app_root">
+        <div class="naboo-auth-shell">
+            <aside class="naboo-auth-brand">
+                <a href="{{ url('/') }}" class="naboo-auth-logo" aria-label="Ir al inicio de Naboo">
+                    <img alt="Naboo" src="{{ asset('assets/img/naboo-logo-white.svg') }}" />
+                </a>
+
+                <div class="naboo-auth-brand-copy">
+                    <span class="naboo-auth-kicker">Administración inmobiliaria</span>
+                    <h2>Todo tu portafolio.<br>Un solo lugar.</h2>
+                    <p>Propiedades, expedientes, cobranza, inventarios y mantenimiento con una experiencia clara y ordenada.</p>
+                </div>
+
+                <div class="naboo-auth-brand-footer">
+                    <span class="naboo-auth-brand-dot"></span>
+                    <span>Control simple. Decisiones claras.</span>
+                </div>
+            </aside>
+
+            <main class="naboo-auth-main">
+                <div class="naboo-auth-mobile-brand">
+                    <a href="{{ url('/') }}" aria-label="Ir al inicio de Naboo">
+                        <img alt="Naboo" src="{{ asset('assets/img/naboo-logo.svg') }}" />
+                    </a>
+                </div>
+
+                <div class="naboo-auth-form-wrap">
+                    <div class="naboo-auth-card">
                         @yield('content')
                     </div>
                 </div>
 
-                <div class="d-flex flex-center px-10 mx-auto w-100">
-                    <div class="text-gray-500 fs-7 fw-semibold">&copy; {{ now()->year }} {{ config('app.name', 'SuWork') }}</div>
+                <div class="naboo-auth-copyright">
+                    &copy; {{ now()->year }} {{ config('app.name', 'Naboo') }}
                 </div>
-            </div>
-
-            <div class="d-flex flex-lg-row-fluid w-lg-50 bgi-size-cover bgi-position-center order-1 order-lg-2"
-                style="background-image: url('{{ asset('metronic/assets/media/misc/auth-bg.png') }}');">
-                <div class="d-flex flex-column flex-center py-10 py-lg-15 px-5 px-md-15 w-100 auth-brand-strip bg-opacity-75">
-                    <a href="{{ url('/') }}" class="mb-8 mb-lg-12">
-                        <img alt="Logo SuHomes" src="{{ asset('assets/img/suhomes-app-logo.svg') }}" class="h-60px h-lg-75px" />
-                    </a>
-
-                    <img class="d-none d-lg-block mx-auto w-275px w-md-50 w-xl-500px mb-10 mb-lg-20"
-                        src="{{ asset('metronic/assets/media/misc/auth-screens.png') }}" alt="SuHomes" />
-
-                    <h1 class="d-none d-lg-block text-white fs-2qx fw-bolder text-center mb-7">
-                        Gestiona tus propiedades con control total
-                    </h1>
-
-                    <div class="d-none d-lg-block text-white fs-base text-center opacity-90">
-                        Expedientes, inquilinos, cobranza e inventarios en una sola plataforma.
-                    </div>
-                </div>
-            </div>
+            </main>
         </div>
     </div>
 

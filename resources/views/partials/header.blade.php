@@ -13,7 +13,7 @@
     $canConfigureDossiers = $user->can('expedientes.configurar') || $user->hasRole('administrador') || $user->hasRole('admin');
     $canConfigureNotifications = $user->can('notificaciones.configurar') || $user->hasRole('administrador') || $user->hasRole('admin');
     $homeRoute = ($isTenant || $isTechnician) ? 'maintenance.index' : 'dashboard';
-    $roleLabel = $isTenant ? 'Panel de inquilino' : ($isTechnician ? 'Panel técnico' : 'Panel SuWork');
+    $roleLabel = $isTenant ? 'Panel de inquilino' : ($isTechnician ? 'Panel técnico' : 'Panel Naboo');
     $currentHour = now()->hour;
     $greeting = $currentHour < 12 ? 'Buenos días' : ($currentHour < 19 ? 'Buenas tardes' : 'Buenas noches');
     $menuItems = $isTenant
@@ -136,7 +136,7 @@
                                 <img src="{{ $user->profilePhotoUrl() }}" class="symbol-label" alt="avatar">
                             @else
                                 <div class="symbol-label fw-bold d-flex justify-content-center align-items-center text-white"
-                                    style="background:#0d6efd;">
+                                    style="background:#FF3364;">
                                     {{ $initials }}
                                 </div>
                             @endif
@@ -164,7 +164,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm py-0 su-desktop-header">
     <div class="container-fluid px-4">
         <a href="{{ route($homeRoute) }}" class="d-flex align-items-center py-2 me-8">
-            <img src="{{ asset('assets/img/suhomes-app-logo.svg') }}" alt="Logo SuHomes" height="45">
+            <img src="{{ asset('assets/img/naboo-logo.svg') }}" alt="Naboo" height="45">
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainHeaderNav"
@@ -214,7 +214,7 @@
                             style="object-fit: cover;">
                     @else
                         <div class="symbol-label fw-bold d-flex justify-content-center align-items-center text-white"
-                            style="background:#0d6efd;">
+                            style="background:#FF3364;">
                             {{ $initials }}
                         </div>
                     @endif
@@ -229,7 +229,7 @@
                                 <img src="{{ $user->profilePhotoUrl() }}" class="symbol-label" alt="avatar">
                             @else
                                 <div class="symbol-label fw-bold d-flex justify-content-center align-items-center text-white"
-                                    style="background:#0d6efd;">
+                                    style="background:#FF3364;">
                                     {{ $initials }}
                                 </div>
                             @endif

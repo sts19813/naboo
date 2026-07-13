@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Administración de técnicos | SuWork')
+@section('title', 'Administración de técnicos | Naboo')
 
 @section('content')
     <div class="py-10">

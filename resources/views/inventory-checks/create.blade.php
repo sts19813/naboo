@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($type === 'entry' ? 'Check de Entrada' : 'Check de Salida') . ' | ' . $property->internal_name . ' | SuWork')
+@section('title', ($type === 'entry' ? 'Check de Entrada' : 'Check de Salida') . ' | ' . $property->internal_name . ' | Naboo')
 
 @section('content')
     <div class="py-10 inventory-check-create">

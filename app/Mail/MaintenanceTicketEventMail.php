@@ -36,8 +36,8 @@ class MaintenanceTicketEventMail extends Mailable
                 'event' => $this->event,
                 'ticketUrl' => route('maintenance.show', $this->ticket),
                 'loginUrl' => url('/login'),
-                'logoUrl' => asset('assets/img/suhomes-app-logo.png'),
-                'appName' => 'SuHomes',
+                'logoUrl' => asset('assets/img/naboo-logo.png'),
+                'appName' => config('app.name', 'Naboo'),
             ],
         );
     }

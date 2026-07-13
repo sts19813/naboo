@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $owner->name . ' | SuWork')
+@section('title', $owner->name . ' | Naboo')
 
 @push('styles')
     <style>

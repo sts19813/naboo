@@ -15,12 +15,12 @@ class ResetPasswordNotification extends ResetPassword
         ], false));
 
         return (new MailMessage)
-            ->subject('Restablece tu contraseña de SuHomes')
+            ->subject('Restablece tu contraseña de '.config('app.name', 'Naboo'))
             ->view('emails.reset-password', [
                 'resetUrl' => $resetUrl,
                 'expirationMinutes' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire'),
-                'logoUrl' => asset('assets/img/suhomes-app-logo.png'),
-                'appName' => 'SuHomes',
+                'logoUrl' => asset('assets/img/naboo-logo.png'),
+                'appName' => config('app.name', 'Naboo'),
             ]);
     }
 }

@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Restablecer contraseña | ' . config('app.name', 'SuWork'))
+@section('title', 'Restablecer contraseña | ' . config('app.name', 'Naboo'))
 
 @section('content')
     <div class="text-center mb-11">

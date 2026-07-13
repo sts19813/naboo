@@ -5,7 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Pago') | SuWork</title>
+    <title>@yield('title', 'Pago') | Naboo</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('assets/img/naboo-mark.svg') }}">
 
     <link href="{{ asset('/metronic/assets/plugins/global/plugins.bundle.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('/metronic/assets/css/style.bundle.css') }}" rel="stylesheet" type="text/css" />
@@ -19,7 +20,7 @@
         <header class="py-8">
             <div class="container">
                 <a href="#" class="d-inline-flex align-items-center text-decoration-none text-dark">
-                    <img src="{{ asset('assets/img/Logo.png') }}" alt="SuWork" height="42">
+                    <img src="{{ asset('assets/img/naboo-logo.svg') }}" alt="Naboo" height="48">
                 </a>
             </div>
         </header>

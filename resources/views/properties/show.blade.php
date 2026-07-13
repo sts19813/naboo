@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $property->internal_name . ' | SuWork')
+@section('title', $property->internal_name . ' | Naboo')
 
 @section('content')
 

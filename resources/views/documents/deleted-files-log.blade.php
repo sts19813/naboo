@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Bitácora de Archivos Eliminados | SuWork')
+@section('title', 'Bitácora de Archivos Eliminados | Naboo')
 
 @section('content')
     <div class="py-10 property-module">

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Configuración de Notificaciones | SuWork')
+@section('title', 'Configuración de Notificaciones | Naboo')
 
 @push('styles')
     <style>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', (($isEdit ?? false) ? 'Editar Propiedad' : 'Nueva Propiedad') . ' | SuWork')
+@section('title', (($isEdit ?? false) ? 'Editar Propiedad' : 'Nueva Propiedad') . ' | Naboo')
 
 @section('content')
     @php

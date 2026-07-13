@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Iniciar sesión | ' . config('app.name', 'SuWork'))
+@section('title', 'Iniciar sesión | ' . config('app.name', 'Naboo'))
 
 @section('content')
     <form class="form w-100" method="POST" action="{{ route('login') }}" novalidate>
@@ -8,7 +8,8 @@
 
         <div class="text-center mb-11">
             <h1 class="text-gray-900 fw-bolder mb-3">Iniciar sesión</h1>
-            <div class="text-gray-500 fw-semibold fs-6">Accede a tu cuenta de {{ config('app.name', 'SuWork') }}</div>
+            <img src="{{ asset('assets/img/naboo-logo.png') }}" alt="Naboo" class="naboo-login-logo">
+            <div class="text-gray-500 fw-semibold fs-6">Accede a tu cuenta de {{ config('app.name', 'Naboo') }}</div>
         </div>
 
         @if (session('status'))

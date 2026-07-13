@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Detalle de cargo | SuWork')
+@section('title', 'Detalle de cargo | Naboo')
 
 @section('content')
     <div class="py-10 charges-module">

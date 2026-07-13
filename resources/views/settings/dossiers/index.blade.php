@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Configuración de Expedientes | SuWork')
+@section('title', 'Configuración de Expedientes | Naboo')
 
 @push('styles')
     <style>

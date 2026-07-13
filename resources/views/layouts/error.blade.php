@@ -3,16 +3,17 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>@yield('title', 'Error') | Videre</title>
+    <title>@yield('title', 'Error') | Naboo</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('assets/img/naboo-mark.svg') }}">
 
     <style>
         body {
             margin: 0;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background: #ffffff;
-            color: #1e1e2d;
+            color: #1F2632;
         }
 
         .error-wrapper {
@@ -23,7 +24,7 @@
 
         .error-header {
             padding: 20px 40px;
-            border-bottom: 1px solid #eef0f4;
+            border-bottom: 1px solid #eceef1;
             text-align: center;
         }
 
@@ -51,7 +52,7 @@
         .error-code {
             font-size: 180px;
             font-weight: 800;
-            color: #eef2f6;
+            color: #ffe1e9;
             line-height: 1;
         }
 
@@ -68,10 +69,10 @@
         .error-text a {
             display: inline-block;
             padding: 10px 18px;
-            background: #000;
+            background: #FF3364;
             color: #fff;
             text-decoration: none;
-            border-radius: 20px;
+            border-radius: 10px;
             font-size: 14px;
         }
 
@@ -97,7 +98,7 @@
     <div class="error-wrapper">
 
         <div class="error-header">
-            <img src="{{ asset('assets/img/videre-logo.png') }}" alt="Videre">
+            <img src="{{ asset('assets/img/naboo-logo.svg') }}" alt="Naboo">
         </div>
 
         <div class="error-content">

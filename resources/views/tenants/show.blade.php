@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $tenant->full_name . ' | SuWork')
+@section('title', $tenant->full_name . ' | Naboo')
 
 @php
     $initials = collect(preg_split('/\s+/', trim((string) $tenant->full_name)))

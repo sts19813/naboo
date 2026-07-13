@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Crear cuenta | Videre')
+@section('title', 'Crear cuenta | Naboo')
 
 @section('content')
     <div class="d-flex flex-column-fluid flex-lg-row-auto justify-content-center justify-content-lg-end p-12 p-lg-20">
@@ -26,7 +26,7 @@
                             Crear cuenta
                         </h1>
                         <div class="text-gray-500 fw-semibold fs-6">
-                            Únete a la red de proveedores Videre
+                            Únete a la red de proveedores Naboo
                         </div>
                     </div>
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $event === 'nuevo_reporte' ? 'Nuevo ticket de mantenimiento' : 'Actualización de mantenimiento' }}</title>
 </head>
-<body style="margin:0; padding:0; background:#f4f6f8; font-family:Arial, Helvetica, sans-serif; color:#172033;">
+<body style="margin:0; padding:0; background:#f6f7f8; font-family:Arial, Helvetica, sans-serif; color:#1F2632;">
     @php
         $statusLabel = \App\Models\MaintenanceTicket::STATUS_LABELS[$ticket->status] ?? $ticket->status;
         $priorityLabel = \App\Models\MaintenanceTicket::PRIORITY_LABELS[$ticket->priority] ?? $ticket->priority;
@@ -30,12 +30,12 @@
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 10px 30px rgba(20, 31, 50, .08);">
                     <tr>
                         <td align="center" style="padding:34px 32px 22px; background:#fbfaf8;">
-                            <img src="{{ $logoUrl }}" width="170" alt="SuHomes" style="display:block; max-width:170px; height:auto;">
+                            <img src="{{ $logoUrl }}" width="170" alt="Naboo" style="display:block; max-width:170px; height:auto;">
                         </td>
                     </tr>
                     <tr>
                         <td style="padding:34px 42px 18px;">
-                            <p style="margin:0 0 10px; font-size:13px; line-height:1.4; color:#a42800; font-weight:700; text-transform:uppercase; letter-spacing:.04em;">
+                            <p style="margin:0 0 10px; font-size:13px; line-height:1.4; color:#FF3364; font-weight:700; text-transform:uppercase; letter-spacing:.04em;">
                                 Folio #{{ $ticket->display_reference }}
                             </p>
                             <h1 style="margin:0 0 14px; font-size:24px; line-height:1.3; color:#0f1f3d;">{{ $eventTitle }}</h1>
@@ -90,7 +90,7 @@
 
                             <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto 30px;">
                                 <tr>
-                                    <td align="center" bgcolor="#a42800" style="border-radius:8px;">
+                                    <td align="center" bgcolor="#FF3364" style="border-radius:8px;">
                                         <a href="{{ $ticketUrl }}" style="display:inline-block; padding:14px 24px; color:#ffffff; font-size:15px; font-weight:700; text-decoration:none; border-radius:8px;">
                                             Abrir ticket en {{ $appName }}
                                         </a>
@@ -109,9 +109,9 @@
                             <p style="margin:0 0 10px; font-size:13px; line-height:1.6; color:#7a8291;">
                                 Si el botón no funciona, copia y pega este enlace en tu navegador:
                             </p>
-                            <a href="{{ $ticketUrl }}" style="font-size:13px; line-height:1.6; color:#a42800; word-break:break-all;">{{ $ticketUrl }}</a>
+                            <a href="{{ $ticketUrl }}" style="font-size:13px; line-height:1.6; color:#FF3364; word-break:break-all;">{{ $ticketUrl }}</a>
                             <p style="margin:16px 0 0; font-size:13px; line-height:1.6; color:#7a8291;">
-                                Acceso al sistema: <a href="{{ $loginUrl }}" style="color:#a42800; text-decoration:none;">{{ $loginUrl }}</a>
+                                Acceso al sistema: <a href="{{ $loginUrl }}" style="color:#FF3364; text-decoration:none;">{{ $loginUrl }}</a>
                             </p>
                             <p style="margin:22px 0 0; font-size:14px; line-height:1.6; color:#4b5565;">
                                 Saludos,<br>

@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Crear cuenta | ' . config('app.name', 'SuWork'))
+@section('title', 'Crear cuenta | ' . config('app.name', 'Naboo'))
 
 @section('content')
     <form class="form w-100" method="POST" action="{{ route('register') }}" novalidate>
@@ -8,7 +8,7 @@
 
         <div class="text-center mb-11">
             <h1 class="text-gray-900 fw-bolder mb-3">Crear cuenta</h1>
-            <div class="text-gray-500 fw-semibold fs-6">Regístrate para usar {{ config('app.name', 'SuWork') }}</div>
+            <div class="text-gray-500 fw-semibold fs-6">Regístrate para usar {{ config('app.name', 'Naboo') }}</div>
         </div>
 
         @if ($errors->any())

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Pendientes | SuWork')
+@section('title', 'Pendientes | Naboo')
 
 @php
     $isAdministrative = $isAdministrative ?? false;

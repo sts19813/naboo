@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Mantenimiento | SuWork')
+@section('title', 'Mantenimiento | Naboo')
 
 @section('content')
     <div class="maintenance-module py-8">
@@ -77,13 +77,13 @@
                 ['label' => 'Total', 'value' => number_format((int) ($metrics['total'] ?? 0)), 'sub' => 'Incidencias visibles', 'tone' => '#334155'],
                 ['label' => 'Pendientes', 'value' => number_format((int) ($metrics['pending'] ?? 0)), 'sub' => 'Por atender', 'tone' => '#b45309'],
                 ['label' => 'Urgentes', 'value' => number_format((int) ($metrics['urgent'] ?? 0)), 'sub' => 'Prioridad urgente', 'tone' => '#b42318'],
-                ['label' => 'En proceso', 'value' => number_format((int) ($metrics['in_progress'] ?? 0)), 'sub' => 'Trabajo activo', 'tone' => '#6d28d9'],
+                ['label' => 'En proceso', 'value' => number_format((int) ($metrics['in_progress'] ?? 0)), 'sub' => 'Trabajo activo', 'tone' => '#FF3364'],
                 ['label' => 'Completados', 'value' => number_format((int) ($metrics['completed'] ?? 0)), 'sub' => 'Histórico filtrado', 'tone' => '#15803d'],
                 [
                     'label' => 'Resolución',
                     'value' => $metrics['avg_resolution_hours'] !== null ? number_format((float) $metrics['avg_resolution_hours'], 2) . 'h' : '-',
                     'sub' => 'Promedio',
-                    'tone' => '#1d4ed8',
+                    'tone' => '#1F2632',
                 ],
             ];
         @endphp

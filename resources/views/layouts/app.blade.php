@@ -4,9 +4,14 @@
 
 <head>
     <meta charset="utf-8">
-    <title>@yield('title', 'SuWork')</title>
+    <title>@yield('title', 'Naboo')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <link rel="icon" type="image/svg+xml" href="{{ asset('assets/img/naboo-mark.svg') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Vendor Stylesheets (para páginas específicas, opcional) -->
     <link href="{{ asset('/metronic/assets/plugins/custom/fullcalendar/fullcalendar.bundle.css') }}" rel="stylesheet"
@@ -36,7 +41,7 @@
 </head>
 
 @php
-    $isSidebarMinimized = request()->cookie('sidebar_minimize_state', 'on') === 'on';
+    $isSidebarMinimized = request()->cookie('naboo_sidebar_minimize_state_v2', 'off') === 'on';
     $viewErrors = $errors ?? new \Illuminate\Support\ViewErrorBag;
 @endphp
 
@@ -143,7 +148,7 @@
                 sidebarToggle.addEventListener('click', function () {
                     setTimeout(function () {
                         var isMinimized = document.body.getAttribute('data-kt-app-sidebar-minimize') === 'on';
-                        document.cookie = 'sidebar_minimize_state=' + (isMinimized ? 'on' : 'off') + '; path=/; max-age=31536000; SameSite=Lax';
+                        document.cookie = 'naboo_sidebar_minimize_state_v2=' + (isMinimized ? 'on' : 'off') + '; path=/; max-age=31536000; SameSite=Lax';
                     }, 80);
                 });
             }

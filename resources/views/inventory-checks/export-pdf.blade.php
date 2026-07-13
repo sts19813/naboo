@@ -11,13 +11,13 @@
 
         body {
             font-family: DejaVu Sans, sans-serif;
-            color: #2b2f3a;
+            color: #1F2632;
             font-size: 11px;
             line-height: 1.35;
         }
 
         .header {
-            border-bottom: 2px solid #a52800;
+            border-bottom: 2px solid #FF3364;
             padding-bottom: 12px;
             margin-bottom: 16px;
         }
@@ -38,7 +38,7 @@
         .title {
             font-size: 20px;
             font-weight: bold;
-            color: #a52800;
+            color: #FF3364;
             margin: 0;
         }
 
@@ -74,7 +74,7 @@
         .section-title {
             margin: 16px 0 8px 0;
             font-size: 14px;
-            color: #a52800;
+            color: #FF3364;
         }
 
         .area-card {
@@ -197,7 +197,7 @@
 
 <body>
     @php
-        $logoPath = file_exists(public_path('assets/img/Logo.png')) ? public_path('assets/img/Logo.png') : public_path('assets/img/logo.jpg');
+        $logoPath = public_path('assets/img/naboo-logo.png');
         $statusLabels = [
             'ok' => 'OK',
             'damaged' => 'Danado',
@@ -235,7 +235,7 @@
                 </td>
                 <td>
                     <p class="title">Reporte de Inventario</p>
-                    <p class="subtitle">SuWork | Documento generado el {{ $generatedAt->format('d/m/Y H:i') }}</p>
+                    <p class="subtitle">Naboo | Documento generado el {{ $generatedAt->format('d/m/Y H:i') }}</p>
                 </td>
             </tr>
         </table>

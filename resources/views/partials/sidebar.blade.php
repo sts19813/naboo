@@ -15,7 +15,7 @@
     $canConfigureDossiers = $user->can('expedientes.configurar') || $user->hasRole('administrador') || $user->hasRole('admin');
     $canConfigureNotifications = $user->can('notificaciones.configurar') || $user->hasRole('administrador') || $user->hasRole('admin');
     $homeRoute = $isAdvisor ? 'advisor.tasks.index' : (($isTenant || $isTechnician) ? 'maintenance.index' : 'dashboard');
-    $roleLabel = $isTenant ? 'Panel de inquilino' : ($isTechnician ? 'Panel técnico' : ($isAdvisor ? 'Panel de asesor' : 'Panel SuWork'));
+    $roleLabel = $isTenant ? 'Panel de inquilino' : ($isTechnician ? 'Panel técnico' : ($isAdvisor ? 'Panel de asesor' : 'Panel Naboo'));
     $currentHour = now()->hour;
     $greeting = $currentHour < 12 ? 'Buenos días' : ($currentHour < 19 ? 'Buenas tardes' : 'Buenas noches');
     $menuItems = $isTenant
@@ -115,10 +115,15 @@
 
 <div class="su-mobile-topbar">
     <div class="su-mobile-topbar__content">
-        <div class="su-mobile-topbar__copy">
-            <span class="su-mobile-topbar__eyebrow">{{ $greeting }}, {{ $firstName }}</span>
-            <strong class="su-mobile-topbar__title">{{ $currentSection }}</strong>
-            <span class="su-mobile-topbar__subtitle">{{ $roleLabel }}</span>
+        <div class="su-mobile-topbar__identity">
+            <a href="{{ route($homeRoute) }}" class="su-mobile-brand-mark" aria-label="Ir al inicio de Naboo">
+                <img src="{{ asset('assets/img/naboo-mark.svg') }}" alt="Naboo">
+            </a>
+            <div class="su-mobile-topbar__copy">
+                <span class="su-mobile-topbar__eyebrow">{{ $greeting }}, {{ $firstName }}</span>
+                <strong class="su-mobile-topbar__title">{{ $currentSection }}</strong>
+                <span class="su-mobile-topbar__subtitle">{{ $roleLabel }}</span>
+            </div>
         </div>
 
         <div class="su-mobile-topbar__actions">
@@ -182,8 +187,7 @@
                 </button>
 
                 <a href="{{ route($homeRoute) }}" class="sidebar-brand-link text-decoration-none">
-                    <span class="sidebar-brand-mark">SW</span>
-                    <span class="sidebar-brand-wordmark">SuWork</span>
+                    <img src="{{ asset('assets/img/naboo-logo-white.svg') }}" alt="Naboo" class="sidebar-brand-logo">
                 </a>
             </div>
 

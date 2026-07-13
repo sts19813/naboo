@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Propiedades | SuWork')
+@section('title', 'Propiedades | Naboo')
 
 @push('styles')
     <style>

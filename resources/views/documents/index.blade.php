@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Documentos | SuWork')
+@section('title', 'Documentos | Naboo')
 
 @section('content')
     @php

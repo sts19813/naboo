@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Control de Propiedades | SuWork')
+@section('title', 'Control de Propiedades | Naboo')
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('/assets/css/propiedades.css') }}">
@@ -8,19 +8,19 @@
         .property-control-module {
             --pc-surface: #ffffff;
             --pc-bg: #f5f7fb;
-            --pc-ink: #172033;
+            --pc-ink: #1F2632;
             --pc-text: #334155;
             --pc-muted: #7b879d;
             --pc-line: #e5eaf3;
-            --pc-accent: #b54708;
-            --pc-accent-strong: #9a3412;
-            --pc-accent-soft: #fff1e8;
-            --pc-success: #15803d;
+            --pc-accent: #FF3364;
+            --pc-accent-strong: #e52252;
+            --pc-accent-soft: #fff0f4;
+            --pc-success: #3FB549;
             --pc-success-soft: #edfdf3;
-            --pc-danger: #c2410c;
-            --pc-danger-soft: #fff3ee;
-            --pc-warning: #b45309;
-            --pc-warning-soft: #fff7e8;
+            --pc-danger: #d92d20;
+            --pc-danger-soft: #fff1f0;
+            --pc-warning: #8a7400;
+            --pc-warning-soft: #fffbe8;
             --pc-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             color: var(--pc-text);
         }
@@ -44,13 +44,18 @@
         .property-control-module .property-tabs-nav .nav-link:hover {
             background: var(--pc-accent-soft);
             color: var(--pc-accent);
-            border-color: rgba(181, 71, 8, 0.15);
+            border-color: rgba(255, 51, 100, 0.2);
         }
 
         .property-control-module .property-tabs-nav .nav-link.active {
             background: var(--pc-accent);
             color: #fff !important;
-            box-shadow: 0 12px 28px rgba(181, 71, 8, 0.22);
+            box-shadow: 0 12px 28px rgba(255, 51, 100, 0.24);
+        }
+
+        .property-control-module .property-tabs-nav .nav-link.active:hover {
+            background: var(--pc-accent-strong);
+            border-color: var(--pc-accent-strong);
         }
 
         .property-control-module .property-tabs-nav__count {
@@ -76,7 +81,7 @@
             overflow: hidden;
             background:
                 radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 34%),
-                linear-gradient(135deg, #111827 0%, #9a3412 100%);
+                linear-gradient(135deg, #1F2632 0%, #FF3364 100%);
             box-shadow: var(--pc-shadow);
         }
 
@@ -85,7 +90,7 @@
         }
 
         .property-control-hero__eyebrow {
-            color: var(--pc-muted);
+            color: rgba(255, 255, 255, 0.82);
             font-size: 0.95rem;
             font-weight: 700;
             letter-spacing: 0.02em;
@@ -98,7 +103,7 @@
             padding: 10px 14px;
             border-radius: 18px;
             background: rgba(255, 255, 255, 0.12);
-            color: var(--pc-muted);
+            color: #ffffff;
             line-height: 1;
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
         }
@@ -116,7 +121,7 @@
         }
 
         .property-control-hero__description {
-            color: var(--pc-muted);
+            color: rgba(255, 255, 255, 0.82);
             font-size: 1rem;
             max-width: 22rem;
         }
@@ -131,7 +136,7 @@
             align-items: center;
             justify-content: center;
             background: rgba(255, 255, 255, 0.08);
-            color: var(--pc-muted);
+            color: #ffffff;
             font-weight: 800;
             font-size: 1.1rem;
             flex-shrink: 0;
@@ -211,8 +216,8 @@
         }
 
         .property-control-search .form-control:focus {
-            border-color: rgba(181, 71, 8, 0.35);
-            box-shadow: 0 0 0 4px rgba(181, 71, 8, 0.08);
+            border-color: rgba(255, 51, 100, 0.42);
+            box-shadow: 0 0 0 4px rgba(255, 51, 100, 0.1);
         }
 
         .property-control-results {
@@ -265,11 +270,11 @@
         }
 
         .property-control-row:hover td {
-            background: #fcf8f6;
+            background: #fff8fa;
         }
 
         .property-control-row.is-expanded td {
-            background: #fff8f2;
+            background: #fff3f6;
         }
 
         .property-control-property {
@@ -295,7 +300,7 @@
         .property-control-row:hover .property-control-expander,
         .property-control-row.is-expanded .property-control-expander {
             color: var(--pc-accent);
-            border-color: rgba(181, 71, 8, 0.18);
+            border-color: rgba(255, 51, 100, 0.22);
             background: var(--pc-accent-soft);
         }
 
@@ -387,7 +392,7 @@
         .property-control-child-row td {
             padding: 0 !important;
             border-top: 0 !important;
-            background: #fffaf5 !important;
+            background: #fff8fa !important;
         }
 
         .property-control-child {
@@ -395,9 +400,9 @@
         }
 
         .property-control-detail {
-            border: 1px solid rgba(181, 71, 8, 0.12);
+            border: 1px solid rgba(255, 51, 100, 0.14);
             border-radius: 20px;
-            background: linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+            background: linear-gradient(180deg, #ffffff 0%, #fff8fa 100%);
             padding: 24px;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
         }
@@ -431,7 +436,7 @@
         .property-control-check.is-missing {
             border-color: rgba(148, 163, 184, 0.14);
             color: var(--pc-text);
-            background: #fffaf5;
+            background: #fff8fa;
         }
 
         .property-control-table-card .dataTables_info,
@@ -834,7 +839,7 @@
                 border: 1px solid #e8eef7;
                 border-top: 0;
                 border-radius: 0 0 var(--pc-card-radius) var(--pc-card-radius);
-                background: #fffaf5 !important;
+                background: #fff8fa !important;
                 overflow: hidden;
                 box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
             }

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Histórico de Checks | ' . $property->internal_name . ' | SuWork')
+@section('title', 'Histórico de Checks | ' . $property->internal_name . ' | Naboo')
 
 @section('content')
     <div class="py-10 inventory-checks-history">

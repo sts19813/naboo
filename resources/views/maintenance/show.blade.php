@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Ticket mantenimiento | SuWork')
+@section('title', 'Ticket mantenimiento | Naboo')
 
 @section('content')
     <div class="maintenance-module py-8">

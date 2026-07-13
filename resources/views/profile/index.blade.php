@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Mi perfil | SuWork')
+@section('title', 'Mi perfil | Naboo')
 
 @php
     $name = trim((string) $user->name);

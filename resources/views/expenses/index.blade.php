@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Gastos | SuWork')
+@section('title', 'Gastos | Naboo')
 
 @push('styles')
     <style>
