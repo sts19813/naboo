@@ -279,6 +279,45 @@
             min-width: 0;
         }
 
+        .dossier-drive .table .btn.btn-light.btn-active-light-primary {
+            color: var(--sw-primary) !important;
+            background-color: var(--sw-primary-light) !important;
+            border-color: #ffc2d2 !important;
+        }
+
+        .dossier-drive .table .btn.btn-light.btn-active-light-primary:hover,
+        .dossier-drive .table .btn.btn-light.btn-active-light-primary:focus {
+            color: #fff !important;
+            background-color: var(--sw-primary-hover) !important;
+            border-color: var(--sw-primary-hover) !important;
+        }
+
+        .dossier-drive .table .btn.btn-light.btn-active-light-warning {
+            color: var(--sw-secondary) !important;
+            background-color: #fffbe8 !important;
+            border-color: #f3df78 !important;
+        }
+
+        .dossier-drive .table .btn.btn-light.btn-active-light-warning:hover,
+        .dossier-drive .table .btn.btn-light.btn-active-light-warning:focus {
+            color: var(--sw-secondary) !important;
+            background-color: var(--naboo-yellow) !important;
+            border-color: var(--naboo-yellow-hover) !important;
+        }
+
+        .dossier-drive .table .btn.btn-light.btn-active-light-danger {
+            color: #f1416c !important;
+            background-color: #fff5f8 !important;
+            border-color: #f7c7d3 !important;
+        }
+
+        .dossier-drive .table .btn.btn-light.btn-active-light-danger:hover,
+        .dossier-drive .table .btn.btn-light.btn-active-light-danger:focus {
+            color: #fff !important;
+            background-color: #f1416c !important;
+            border-color: #f1416c !important;
+        }
+
         .dossier-drive .dossier-upload-panel {
             border-top: 1px dashed var(--bs-gray-300);
             margin-top: 1.5rem;

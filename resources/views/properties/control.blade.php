@@ -76,12 +76,10 @@
             background: rgba(255, 255, 255, 0.18);
         }
 
-        .property-control-hero {
-            border: 0;
+        .property-control-module .property-control-hero {
+            border: 1px solid var(--pc-line);
             overflow: hidden;
-            background:
-                radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 34%),
-                linear-gradient(135deg, #1F2632 0%, #FF3364 100%);
+            background: var(--pc-surface);
             box-shadow: var(--pc-shadow);
         }
 
@@ -90,7 +88,7 @@
         }
 
         .property-control-hero__eyebrow {
-            color: rgba(255, 255, 255, 0.82);
+            color: var(--pc-text);
             font-size: 0.95rem;
             font-weight: 700;
             letter-spacing: 0.02em;
@@ -102,10 +100,10 @@
             gap: 4px;
             padding: 10px 14px;
             border-radius: 18px;
-            background: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
+            background: #f8fafc;
+            color: var(--pc-ink);
             line-height: 1;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 0 0 1px var(--pc-line);
         }
 
         .property-control-hero__percent strong {
@@ -121,7 +119,7 @@
         }
 
         .property-control-hero__description {
-            color: rgba(255, 255, 255, 0.82);
+            color: var(--pc-text);
             font-size: 1rem;
             max-width: 22rem;
         }
@@ -149,14 +147,14 @@
             box-shadow: var(--pc-shadow);
         }
 
-        .property-control-summary-card.is-success {
-            background: linear-gradient(180deg, #ffffff 0%, #f4fbf7 100%);
-            border-color: rgba(21, 128, 61, 0.18);
+        .property-control-module .property-control-summary-card.is-success {
+            background: var(--pc-surface);
+            border-color: var(--pc-line);
         }
 
-        .property-control-summary-card.is-danger {
-            background: linear-gradient(180deg, #ffffff 0%, #fff7f2 100%);
-            border-color: rgba(194, 65, 12, 0.18);
+        .property-control-module .property-control-summary-card.is-danger {
+            background: var(--pc-surface);
+            border-color: var(--pc-line);
         }
 
         .property-control-summary-card__label {
@@ -402,7 +400,7 @@
         .property-control-detail {
             border: 1px solid rgba(255, 51, 100, 0.14);
             border-radius: 20px;
-            background: linear-gradient(180deg, #ffffff 0%, #fff8fa 100%);
+            background: var(--pc-surface);
             padding: 24px;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
         }
@@ -933,7 +931,7 @@
                 <div class="card h-100 property-control-summary-card is-success">
                     <div class="card-body p-7">
                         <div class="property-control-summary-card__label mb-3">Completas</div>
-                        <div class="property-control-summary-card__value text-success">{{ $summary['complete'] }}</div>
+                        <div class="property-control-summary-card__value">{{ $summary['complete'] }}</div>
                         <div class="property-control-summary-card__note mt-3">Sin pendientes críticos</div>
                     </div>
                 </div>
@@ -943,7 +941,7 @@
                 <div class="card h-100 property-control-summary-card is-danger">
                     <div class="card-body p-7">
                         <div class="property-control-summary-card__label mb-3">Incompletas</div>
-                        <div class="property-control-summary-card__value text-danger">{{ $summary['incomplete'] }}</div>
+                        <div class="property-control-summary-card__value">{{ $summary['incomplete'] }}</div>
                         <div class="property-control-summary-card__note mt-3">
                             {{ $summary['without_advisor'] }} propiedades aún sin asesor asignado
                         </div>

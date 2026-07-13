@@ -10,8 +10,8 @@
             --os-text: #334155;
             --os-muted: #7b879d;
             --os-line: #e5eaf3;
-            --os-accent: #b54708;
-            --os-accent-soft: #fff1e8;
+            --os-accent: #FF3364;
+            --os-accent-soft: #fff0f4;
             --os-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             color: var(--os-text);
         }

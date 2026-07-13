@@ -10,8 +10,8 @@
             --tc-text: #334155;
             --tc-muted: #7b879d;
             --tc-line: #e5eaf3;
-            --tc-accent: #b54708;
-            --tc-accent-soft: #fff1e8;
+            --tc-accent: #FF3364;
+            --tc-accent-soft: #fff0f4;
             --tc-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             color: var(--tc-text);
         }
@@ -53,8 +53,8 @@
         }
 
         .tenant-control-search .form-control:focus {
-            border-color: rgba(181, 71, 8, 0.35);
-            box-shadow: 0 0 0 4px rgba(181, 71, 8, 0.08);
+            border-color: rgba(255, 51, 100, 0.35);
+            box-shadow: 0 0 0 4px rgba(255, 51, 100, 0.08);
         }
 
         .tenant-control-results {

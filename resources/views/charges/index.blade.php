@@ -10,8 +10,8 @@
             --cl-text: #334155;
             --cl-muted: #7b879d;
             --cl-line: #e5eaf3;
-            --cl-accent: #b54708;
-            --cl-accent-soft: #fff1e8;
+            --cl-accent: #FF3364;
+            --cl-accent-soft: #fff0f4;
             --cl-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             color: var(--cl-text);
         }
@@ -53,8 +53,8 @@
         }
 
         .charges-list-search .form-control:focus {
-            border-color: rgba(181, 71, 8, 0.35);
-            box-shadow: 0 0 0 4px rgba(181, 71, 8, 0.08);
+            border-color: rgba(255, 51, 100, 0.35);
+            box-shadow: 0 0 0 4px rgba(255, 51, 100, 0.08);
         }
 
         .charges-list-results {
@@ -84,13 +84,13 @@
         .charges-list-tabs .nav-link:hover {
             background: var(--cl-accent-soft);
             color: var(--cl-accent);
-            border-color: rgba(181, 71, 8, 0.15);
+            border-color: rgba(255, 51, 100, 0.15);
         }
 
         .charges-list-tabs .nav-link.active {
             background: var(--cl-accent);
             color: #fff !important;
-            box-shadow: 0 12px 28px rgba(181, 71, 8, 0.22);
+            box-shadow: 0 12px 28px rgba(255, 51, 100, 0.22);
         }
 
         .charges-list-tabs__count {

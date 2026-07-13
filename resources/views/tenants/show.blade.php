@@ -18,8 +18,8 @@
             --ts-text: #334155;
             --ts-muted: #7b879d;
             --ts-line: #e5eaf3;
-            --ts-accent: #b54708;
-            --ts-accent-soft: #fff1e8;
+            --ts-accent: #FF3364;
+            --ts-accent-soft: #fff0f4;
             --ts-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             color: var(--ts-text);
         }

@@ -868,7 +868,7 @@
                                     Cancelar
                                 </button>
 
-                                <button type="submit" class="btn btn-danger fw-bold">
+                                <button type="submit" class="btn btn-secondary fw-bold">
                                     Eliminar
                                 </button>
 

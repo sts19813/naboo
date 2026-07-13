@@ -28,8 +28,8 @@
                 --dl-text: #334155;
                 --dl-muted: #7b879d;
                 --dl-line: #e5eaf3;
-                --dl-accent: #b54708;
-                --dl-accent-soft: #fff1e8;
+                --dl-accent: #FF3364;
+                --dl-accent-soft: #fff0f4;
                 --dl-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
                 color: var(--dl-text);
             }
@@ -93,8 +93,8 @@
             }
 
             .documents-list-search .form-control:focus {
-                border-color: rgba(181, 71, 8, 0.35);
-                box-shadow: 0 0 0 4px rgba(181, 71, 8, 0.08);
+                border-color: rgba(255, 51, 100, 0.35);
+                box-shadow: 0 0 0 4px rgba(255, 51, 100, 0.08);
             }
 
             .documents-list-results {
@@ -124,13 +124,13 @@
             .documents-list-tabs .nav-link:hover {
                 background: var(--dl-accent-soft);
                 color: var(--dl-accent);
-                border-color: rgba(181, 71, 8, 0.15);
+                border-color: rgba(255, 51, 100, 0.15);
             }
 
             .documents-list-tabs .nav-link.active {
                 background: var(--dl-accent);
                 color: #fff !important;
-                box-shadow: 0 12px 28px rgba(181, 71, 8, 0.22);
+                box-shadow: 0 12px 28px rgba(255, 51, 100, 0.22);
             }
 
             .documents-list-tabs__count {

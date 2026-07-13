@@ -10,7 +10,7 @@
             --pl-text: #334155;
             --pl-muted: #7b879d;
             --pl-line: #e5eaf3;
-            --pl-accent: #b54708;
+            --pl-accent: #FF3364;
             --pl-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             color: var(--pl-text);
         }
@@ -52,8 +52,8 @@
         }
 
         .property-list-search .form-control:focus {
-            border-color: rgba(181, 71, 8, 0.35);
-            box-shadow: 0 0 0 4px rgba(181, 71, 8, 0.08);
+            border-color: rgba(255, 51, 100, 0.35);
+            box-shadow: 0 0 0 4px rgba(255, 51, 100, 0.08);
         }
 
         .property-list-results {

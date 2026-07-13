@@ -337,7 +337,7 @@
                                                 @csrf
 
                                                 <button type="submit"
-                                                    class="btn btn-sm btn-secondary">
+                                                    class="btn btn-sm btn-primary">
                                                     Marcar pagado
                                                 </button>
                                             </form>
