@@ -60,7 +60,7 @@ class PropertyController extends Controller
         $properties = Property::query()
             ->with(['type', 'zone', 'tenant', 'advisor', 'advisors:id,name,email'])
             ->withCount([
-                'documents as incidents_count' => fn ($query) => $query->where('status', PropertyDocument::STATUS_PENDING),
+                'documents as incidents_count' => fn($query) => $query->where('status', PropertyDocument::STATUS_PENDING),
             ])
             ->latest()
             ->get();
@@ -146,7 +146,7 @@ class PropertyController extends Controller
         ]);
 
         $advisorIds = collect($validated['advisor_user_ids'] ?? [])
-            ->map(fn ($advisorId) => (int) $advisorId)
+            ->map(fn($advisorId) => (int) $advisorId)
             ->filter()
             ->unique()
             ->values();
@@ -162,8 +162,8 @@ class PropertyController extends Controller
                     ],
                 ], 422)
                 : redirect()
-                    ->back()
-                    ->withErrors(['advisor_user_ids' => 'Solo puedes asignar usuarios con rol de asesor o administrador.']);
+                ->back()
+                ->withErrors(['advisor_user_ids' => 'Solo puedes asignar usuarios con rol de asesor o administrador.']);
         }
 
         $property->advisors()->sync($advisorIds->all());
@@ -188,8 +188,6 @@ class PropertyController extends Controller
 
     public function updateTenant(Request $request, Property $property): RedirectResponse
     {
-        $this->ensureAdvisorIsReadOnly($request);
-
         $request->validate([
             'tenant_id' => ['nullable', 'integer', 'exists:tenants,id'],
             'force_assignment' => ['nullable', 'boolean'],
@@ -198,8 +196,8 @@ class PropertyController extends Controller
         $tenantId = $request->input('tenant_id');
         $tenant = $tenantId
             ? Tenant::query()
-                ->with(['documents' => fn ($query) => $query->whereIn('document_type', array_keys($this->requirements->labelsForEntity('tenant')))])
-                ->find($tenantId)
+            ->with(['documents' => fn($query) => $query->whereIn('document_type', array_keys($this->requirements->labelsForEntity('tenant')))])
+            ->find($tenantId)
             : null;
         $requestedTenantId = $tenant?->id;
         $isChangingTenant = (int) ($property->tenant_id ?? 0) !== (int) ($requestedTenantId ?? 0);
@@ -302,7 +300,7 @@ class PropertyController extends Controller
         }
 
         $tenants = Tenant::query()
-            ->with(['documents' => fn ($query) => $query->whereIn('document_type', array_keys($tenantRequiredDocuments))])
+            ->with(['documents' => fn($query) => $query->whereIn('document_type', array_keys($tenantRequiredDocuments))])
             ->orderBy('full_name')
             ->get();
 
@@ -407,13 +405,13 @@ class PropertyController extends Controller
                 ->whereDate('due_date', '<', now()->toDateString())
                 ->sum('paid_amount');
         $propertyCollectedMonthAmount = (float) ChargePayment::query()
-            ->whereHas('charge', fn ($query) => $query->where('property_id', $property->id))
+            ->whereHas('charge', fn($query) => $query->where('property_id', $property->id))
             ->where('status', ChargePayment::STATUS_SUCCEEDED)
             ->whereYear('paid_at', now()->year)
             ->whereMonth('paid_at', now()->month)
             ->sum('amount');
         $propertyPendingValidationCount = ChargePayment::query()
-            ->whereHas('charge', fn ($query) => $query->where('property_id', $property->id))
+            ->whereHas('charge', fn($query) => $query->where('property_id', $property->id))
             ->where('status', ChargePayment::STATUS_PENDING_VALIDATION)
             ->count();
         $propertyOpenChargesCount = Charge::query()
@@ -422,7 +420,7 @@ class PropertyController extends Controller
             ->count();
         $canRemoveTenant = (bool) $property->tenant_id && $propertyOpenChargesCount === 0 && (int) $chargesVencidos === 0;
         $canReassignTenant = ! $property->tenant_id || $canRemoveTenant;
-        $expenseBaseQuery = fn () => Expense::query()->includedInTotals()->where('property_id', $property->id);
+        $expenseBaseQuery = fn() => Expense::query()->includedInTotals()->where('property_id', $property->id);
         $propertyExpenseSummary = [
             'pending_total' => (float) $expenseBaseQuery()->pending()->sum('amount'),
             'paid_total' => (float) $expenseBaseQuery()->paid()->sum('amount'),
@@ -544,8 +542,8 @@ class PropertyController extends Controller
             'availableAdvisors' => $this->availableAdvisors(),
             'customPropertyDocuments' => $property
                 ? $property->documents
-                    ->whereNotIn('document_type', array_keys($this->requirements->labelsForEntity('property')))
-                    ->values()
+                ->whereNotIn('document_type', array_keys($this->requirements->labelsForEntity('property')))
+                ->values()
                 : collect(),
             'existingFacadePhoto' => $property ? $property->facade_photo_path : null,
             'property' => $property,
@@ -630,7 +628,7 @@ class PropertyController extends Controller
     {
         return User::query()
             ->where('is_active', true)
-            ->whereHas('roles', fn ($query) => $query->whereIn('name', [
+            ->whereHas('roles', fn($query) => $query->whereIn('name', [
                 'asesores',
                 'asesor',
                 'advisor',
@@ -699,9 +697,9 @@ class PropertyController extends Controller
         $documentsByType = $tenant->relationLoaded('documents')
             ? $tenant->documents->keyBy('document_type')
             : $tenant->documents()
-                ->whereIn('document_type', array_keys($this->requirements->labelsForEntity('tenant')))
-                ->get()
-                ->keyBy('document_type');
+            ->whereIn('document_type', array_keys($this->requirements->labelsForEntity('tenant')))
+            ->get()
+            ->keyBy('document_type');
 
         foreach ($this->requirements->labelsForEntity('tenant') as $documentType => $label) {
             $document = $documentsByType->get($documentType);
@@ -713,7 +711,7 @@ class PropertyController extends Controller
             );
 
             if (! $hasUploadedFile || $isRejectedOrExpired) {
-                $missing[] = 'Documento: '.$label;
+                $missing[] = 'Documento: ' . $label;
             }
         }
 
@@ -736,7 +734,7 @@ class PropertyController extends Controller
         }
 
         $planRows = collect($property->rent_charge_plan ?? [])
-            ->filter(fn ($row) => is_array($row))
+            ->filter(fn($row) => is_array($row))
             ->values();
 
         foreach ($planRows as $row) {
@@ -796,16 +794,16 @@ class PropertyController extends Controller
         $rentPrice = (float) ($validated['monthly_rent_price'] ?? 0);
 
         $submittedRows = collect($validated['rent_charge_plan'] ?? [])
-            ->filter(fn ($row) => is_array($row))
-            ->map(fn (array $row) => $this->normalizeRentChargePlanRow($row))
+            ->filter(fn($row) => is_array($row))
+            ->map(fn(array $row) => $this->normalizeRentChargePlanRow($row))
             ->filter()
-            ->keyBy(fn (array $row) => $this->chargePlanPeriodKey((int) $row['period_year'], (int) $row['period_month']));
+            ->keyBy(fn(array $row) => $this->chargePlanPeriodKey((int) $row['period_year'], (int) $row['period_month']));
 
         $existingRows = collect($property?->rent_charge_plan ?? [])
-            ->filter(fn ($row) => is_array($row))
-            ->map(fn (array $row) => $this->normalizeRentChargePlanRow($row))
+            ->filter(fn($row) => is_array($row))
+            ->map(fn(array $row) => $this->normalizeRentChargePlanRow($row))
             ->filter()
-            ->keyBy(fn (array $row) => $this->chargePlanPeriodKey((int) $row['period_year'], (int) $row['period_month']));
+            ->keyBy(fn(array $row) => $this->chargePlanPeriodKey((int) $row['period_year'], (int) $row['period_month']));
 
         $rows = [];
         $cursor = $startsAt->copy();
@@ -937,18 +935,18 @@ class PropertyController extends Controller
             12 => 'Diciembre',
         ];
 
-        return 'Renta '.($monthNames[$periodMonth] ?? (string) $periodMonth).' '.$periodYear;
+        return 'Renta ' . ($monthNames[$periodMonth] ?? (string) $periodMonth) . ' ' . $periodYear;
     }
 
     private function syncOwners(Property $property, array $ownerIds, array $newOwners): void
     {
         $selectedOwnerIds = collect($ownerIds)
-            ->filter(fn ($ownerId) => filled($ownerId))
-            ->map(fn ($ownerId) => (int) $ownerId)
+            ->filter(fn($ownerId) => filled($ownerId))
+            ->map(fn($ownerId) => (int) $ownerId)
             ->values();
 
         foreach ($newOwners as $ownerData) {
-            $hasAnyData = collect($ownerData)->contains(fn ($value) => filled($value));
+            $hasAnyData = collect($ownerData)->contains(fn($value) => filled($value));
             if (! $hasAnyData) {
                 continue;
             }
@@ -1117,7 +1115,7 @@ class PropertyController extends Controller
 
     private function buildCustomDocumentType(Property $property, string $label): string
     {
-        $base = 'custom_'.Str::slug($label, '_');
+        $base = 'custom_' . Str::slug($label, '_');
         if ($base === 'custom_') {
             $base = 'custom_documento';
         }
@@ -1126,7 +1124,7 @@ class PropertyController extends Controller
         $suffix = 2;
 
         while ($property->documents()->where('document_type', $candidate)->exists()) {
-            $candidate = $base.'_'.$suffix;
+            $candidate = $base . '_' . $suffix;
             $suffix++;
         }
 
@@ -1136,12 +1134,12 @@ class PropertyController extends Controller
     private function syncInventory(Property $property, array $inventoryAreas, StorePropertyRequest $request): void
     {
         $removedAreaPhotoIds = collect((array) $request->input('removed_area_photo_ids', []))
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->filter()
             ->values()
             ->all();
         $removedItemPhotoIds = collect((array) $request->input('removed_item_photo_ids', []))
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->filter()
             ->values()
             ->all();
@@ -1156,7 +1154,7 @@ class PropertyController extends Controller
             $area = $property->inventoryAreas()->updateOrCreate(
                 ['id' => $areaData['id'] ?? null],
                 [
-                    'name' => $areaData['name'] ?? 'Area '.($areaIndex + 1),
+                    'name' => $areaData['name'] ?? 'Area ' . ($areaIndex + 1),
                     'notes' => $areaData['notes'] ?? null,
                 ]
             );
@@ -1188,7 +1186,7 @@ class PropertyController extends Controller
                 foreach ($request->file("inventory_areas.{$areaIndex}.items.{$itemIndex}.photos", []) as $photo) {
 
                     $photoRecord = $item->photos()->create([
-                        'name' => 'Photo for '.$item->name,
+                        'name' => 'Photo for ' . $item->name,
                         'status' => PropertyInventoryItemPhoto::STATUS_ACTIVE,
                     ]);
 
@@ -1279,7 +1277,7 @@ class PropertyController extends Controller
             ];
         }
 
-        $path = trim($directory, '/').'/'.Str::uuid().'.'.$encoded['extension'];
+        $path = trim($directory, '/') . '/' . Str::uuid() . '.' . $encoded['extension'];
         Storage::disk('public')->put($path, $encoded['binary']);
 
         return [
@@ -1470,7 +1468,7 @@ class PropertyController extends Controller
 
         $photos = PropertyInventoryPhoto::query()
             ->whereIn('id', $photoIds)
-            ->whereHas('area', fn ($query) => $query->where('property_id', $property->id))
+            ->whereHas('area', fn($query) => $query->where('property_id', $property->id))
             ->get();
 
         $this->deleteAreaPhotoFiles($photos);
@@ -1490,7 +1488,7 @@ class PropertyController extends Controller
 
         $photos = PropertyInventoryItemPhoto::query()
             ->whereIn('id', $photoIds)
-            ->whereHas('item.area', fn ($query) => $query->where('property_id', $property->id))
+            ->whereHas('item.area', fn($query) => $query->where('property_id', $property->id))
             ->with('versions')
             ->get();
 
@@ -1545,13 +1543,13 @@ class PropertyController extends Controller
         }
 
         $order = collect(self::DEFAULT_PROPERTY_TYPES)
-            ->mapWithKeys(fn (string $name, int $index) => [Str::slug($name) => $index]);
+            ->mapWithKeys(fn(string $name, int $index) => [Str::slug($name) => $index]);
 
         return PropertyType::query()
             ->where('is_active', true)
             ->whereIn('slug', $order->keys()->all())
             ->get()
-            ->sortBy(fn (PropertyType $type) => $order[$type->slug] ?? 999)
+            ->sortBy(fn(PropertyType $type) => $order[$type->slug] ?? 999)
             ->values();
     }
 
@@ -1565,13 +1563,13 @@ class PropertyController extends Controller
         }
 
         $order = collect(self::DEFAULT_ZONES)
-            ->mapWithKeys(fn (string $name, int $index) => [Str::slug($name) => $index]);
+            ->mapWithKeys(fn(string $name, int $index) => [Str::slug($name) => $index]);
 
         return Zone::query()
             ->where('is_active', true)
             ->whereIn('slug', $order->keys()->all())
             ->get()
-            ->sortBy(fn (Zone $zone) => $order[$zone->slug] ?? 999)
+            ->sortBy(fn(Zone $zone) => $order[$zone->slug] ?? 999)
             ->values();
     }
 }

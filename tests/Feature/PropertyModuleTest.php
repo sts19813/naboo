@@ -190,6 +190,56 @@ class PropertyModuleTest extends TestCase
         $this->assertSame($advisor->id, $property->fresh()->advisor_user_id);
     }
 
+    public function test_advisor_role_can_assign_and_remove_a_property_tenant(): void
+    {
+        $advisorRole = Role::query()->create(['name' => 'asesores', 'guard_name' => 'web']);
+        $advisor = User::factory()->create();
+        $advisor->assignRole($advisorRole);
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $zone = Zone::create(['name' => 'Centro', 'slug' => 'centro', 'is_active' => true]);
+        $tenant = Tenant::create([
+            'full_name' => 'Inquilino del Asesor',
+            'phone_primary' => '9991112233',
+            'dossier_status' => Tenant::DOSSIER_COMPLETE,
+            'is_active' => true,
+        ]);
+        $property = Property::create([
+            'internal_name' => 'Casa Gestionada por Asesor',
+            'property_type_id' => $type->id,
+            'zone_id' => $zone->id,
+            'full_address' => 'Calle Asesor 300',
+            'status' => Property::STATUS_AVAILABLE,
+            'created_by' => $advisor->id,
+        ]);
+
+        $this->actingAs($advisor)
+            ->from(route('properties.show', $property))
+            ->put(route('properties.update.tenant', $property), [
+                'tenant_id' => $tenant->id,
+                'force_assignment' => true,
+            ])
+            ->assertRedirect(route('properties.show', $property))
+            ->assertSessionHas('success', 'Inquilino actualizado correctamente.');
+
+        $this->assertDatabaseHas('properties', [
+            'id' => $property->id,
+            'tenant_id' => $tenant->id,
+            'current_tenant_name' => $tenant->full_name,
+        ]);
+
+        $this->actingAs($advisor)
+            ->from(route('properties.show', $property))
+            ->put(route('properties.update.tenant', $property), ['tenant_id' => ''])
+            ->assertRedirect(route('properties.show', $property))
+            ->assertSessionHas('success', 'Inquilino quitado correctamente.');
+
+        $this->assertDatabaseHas('properties', [
+            'id' => $property->id,
+            'tenant_id' => null,
+            'current_tenant_name' => null,
+        ]);
+    }
+
     public function test_admin_can_assign_responsible_advisors_from_properties_index(): void
     {
         $adminRole = Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']);
