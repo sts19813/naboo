@@ -63,7 +63,7 @@
                                     <td>{{ $provider->availability ?: '-' }}</td>
                                     <td>{{ $provider->is_active ? 'Activo' : 'Inactivo' }}</td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-light-primary" data-bs-toggle="modal" data-bs-target="#editProviderModal-{{ $provider->id }}">
+                                        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#editProviderModal-{{ $provider->id }}">
                                             Editar
                                         </button>
                                     </td>

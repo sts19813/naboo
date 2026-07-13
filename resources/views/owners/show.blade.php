@@ -278,10 +278,10 @@
                     </div>
 
                     <div class="owner-show-actions">
-                        <a href="{{ route('owners.edit', $owner) }}" class="btn btn-primary">
+                        <a href="{{ route('owners.edit', $owner) }}" class="btn btn-success">
                             <i class="ki-outline ki-pencil fs-4 me-1"></i> Editar
                         </a>
-                        <a href="{{ route('dossiers.owners.show', $owner) }}" class="btn btn-light-info">
+                        <a href="{{ route('dossiers.owners.show', $owner) }}" class="btn btn-warning">
                             Expediente
                         </a>
                     </div>

@@ -396,7 +396,7 @@
                                         class="card-header border-0 pt-6 d-flex justify-content-between align-items-center flex-wrap gap-3">
                                         <h3 class="card-title fw-bold mb-0">Información general</h3>
                                         <a href="{{ route('properties.edit', $property) }}"
-                                            class="btn btn-sm btn-light-primary">
+                                            class="btn btn-sm btn-success">
                                             Editar propiedad
                                         </a>
                                     </div>
@@ -486,7 +486,7 @@
                                         class="card-header border-0 pt-6 d-flex justify-content-between align-items-center flex-wrap gap-3">
                                         <h3 class="card-title fw-bold mb-0">Expediente</h3>
                                         <a href="{{ route('dossiers.properties.show', $property) }}"
-                                            class="btn btn-sm btn-light-primary">
+                                            class="btn btn-sm btn-warning">
                                             Abrir expediente
                                         </a>
                                     </div>
@@ -574,7 +574,7 @@
                                                 </h3>
 
                                                 <a href="{{ url('/propietarios/' . $ownerUuid . '/editar') }}"
-                                                    class="btn btn-sm btn-light-primary">
+                                                    class="btn btn-sm btn-success">
                                                     Editar propietario
                                                 </a>
                                             </div>
@@ -765,7 +765,7 @@
 
                                             <div class="d-flex flex-wrap gap-2">
                                                 <a href="{{ url('/inquilinos/' . $tenantUuid . '/editar') }}"
-                                                    class="btn btn-sm btn-light-primary">
+                                                    class="btn btn-sm btn-success">
                                                     Editar inquilino
                                                 </a>
                                                 <form method="POST"
@@ -1233,7 +1233,7 @@
                                 <h3 class="card-title fw-bold">Inventario</h3>
                                 <div class="d-flex flex-wrap gap-2">
                                     <a href="{{ route('properties.inventory.edit', $property) }}"
-                                        class="btn btn-sm btn-light-primary">
+                                        class="btn btn-sm btn-success">
                                         <i class="ki-outline ki-pencil fs-5 me-1"></i> Editar inventario
                                     </a>
                                      <a href="{{ route('inventory-checks.index', $property) }}"

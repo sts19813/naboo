@@ -274,9 +274,9 @@
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2 flex-wrap owner-card-actions">
-                                    <a href="{{ route('owners.show', $owner) }}" class="btn btn-sm btn-light">Ver</a>
-                                    <a href="{{ route('owners.edit', $owner) }}" class="btn btn-sm btn-light-primary">Editar</a>
-                                    <a href="{{ route('dossiers.owners.show', $owner) }}" class="btn btn-sm btn-light-info">Expediente</a>
+                                    <a href="{{ route('owners.show', $owner) }}" class="btn btn-sm btn-primary">Ver</a>
+                                    <a href="{{ route('owners.edit', $owner) }}" class="btn btn-sm btn-success">Editar</a>
+                                    <a href="{{ route('dossiers.owners.show', $owner) }}" class="btn btn-sm btn-warning">Expediente</a>
                                     @if ($canDeleteOwners)
                                         <form method="POST" action="{{ route('owners.destroy', $owner) }}"
                                             class="js-delete-owner-form"
@@ -284,7 +284,7 @@
                                             data-properties-count="{{ $owner->properties_count }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-light-danger">Eliminar</button>
+                                            <button type="submit" class="btn btn-sm btn-secondary">Eliminar</button>
                                         </form>
                                     @endif
                                 </div>

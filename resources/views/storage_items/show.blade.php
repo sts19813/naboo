@@ -35,13 +35,13 @@
 
                     <div class="d-flex flex-column flex-sm-row gap-3">
                         <a href="{{ route('storage_items.index') }}"
-                           class="btn btn-light-primary fw-bold">
+                           class="btn btn-secondary fw-bold">
                             <i class="ki-duotone ki-arrow-left fs-4 me-1"></i>
                             Volver
                         </a>
 
                         <a href="{{ route('storage_items.edit', $item) }}"
-                           class="btn btn-primary fw-bold">
+                           class="btn btn-success fw-bold">
                             <i class="ki-duotone ki-pencil fs-4 me-1"></i>
                             Editar item
                         </a>

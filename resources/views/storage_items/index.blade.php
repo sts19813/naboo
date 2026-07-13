@@ -6,12 +6,12 @@
     <style>
         .storage-list-module {
             --sl-surface: #ffffff;
-            --sl-ink: #172033;
+            --sl-ink: #1F2632;
             --sl-text: #334155;
             --sl-muted: #7b879d;
             --sl-line: #e5eaf3;
-            --sl-accent: #b54708;
-            --sl-accent-soft: #fff1e8;
+            --sl-accent: #FF3364;
+            --sl-accent-soft: #fff0f4;
             --sl-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             color: var(--sl-text);
         }
@@ -61,8 +61,8 @@
         }
 
         .storage-list-search .form-control:focus {
-            border-color: rgba(181, 71, 8, 0.35);
-            box-shadow: 0 0 0 4px rgba(181, 71, 8, 0.08);
+            border-color: rgba(255, 51, 100, 0.38);
+            box-shadow: 0 0 0 4px rgba(255, 51, 100, 0.10);
         }
 
         .storage-list-view-toggle .btn {
@@ -112,7 +112,7 @@
         }
 
         .storage-list-row:hover td {
-            background: #fcf8f6;
+            background: #fff8fa;
         }
 
         .storage-list-title {
@@ -318,12 +318,12 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 flex-shrink-0">
-                        <button type="button" class="btn btn-light-info" data-bs-toggle="modal" data-bs-target="#warehouseCatalogModal">
+                        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#warehouseCatalogModal">
                             <i class="ki-duotone ki-home fs-6 me-1"></i>
                             Catálogo
                         </button>
 
-                        <a href="{{ route('storage_items.trashed') }}" class="btn btn-light-warning">
+                        <a href="{{ route('storage_items.trashed') }}" class="btn btn-secondary">
                             <i class="ki-duotone ki-trash fs-6 me-1"></i>
                             Eliminados
                         </a>
@@ -509,21 +509,21 @@
                                             <div class="storage-list-actions">
 
                                                 <a href="{{ route('storage_items.show', $item) }}"
-                                                    class="btn btn-sm btn-light-dark">
+                                                    class="btn btn-sm btn-primary">
                                                     Ver
                                                 </a>
 
                                                 <a href="{{ route('storage_items.edit', $item) }}"
-                                                    class="btn btn-sm btn-light-primary">
+                                                    class="btn btn-sm btn-success">
                                                     Editar
                                                 </a>
 
-                                                <button type="button" class="btn btn-sm btn-light-info" data-bs-toggle="modal"
+                                                <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal"
                                                     data-bs-target="#noteModal{{ $item->id }}">
                                                     Nota
                                                 </button>
 
-                                                <button type="button" class="btn btn-sm btn-light-danger" data-bs-toggle="modal"
+                                                <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal"
                                                     data-bs-target="#deleteModal{{ $item->id }}">
                                                     Eliminar
                                                 </button>
@@ -637,15 +637,15 @@
 
                                         <div class="d-grid gap-2 storage-grid-actions">
 
-                                            <a href="{{ route('storage_items.show', $item) }}" class="btn btn-light-dark">
+                                            <a href="{{ route('storage_items.show', $item) }}" class="btn btn-primary">
                                                 Ver
                                             </a>
 
-                                            <a href="{{ route('storage_items.edit', $item) }}" class="btn btn-light-primary">
+                                            <a href="{{ route('storage_items.edit', $item) }}" class="btn btn-success">
                                                 Editar
                                             </a>
 
-                                            <button type="button" class="btn btn-light-info" data-bs-toggle="modal"
+                                            <button type="button" class="btn btn-secondary" data-bs-toggle="modal"
                                                 data-bs-target="#noteModal{{ $item->id }}">
                                                 Nota
                                             </button>
@@ -757,7 +757,7 @@
                                                                     <input type="url" name="maps_url" value="{{ $warehouse->maps_url }}" class="form-control" maxlength="500">
                                                                 </td>
                                                                 <td>
-                                                                    <button class="btn btn-sm btn-light-primary" type="submit">Guardar</button>
+                                                                    <button class="btn btn-sm btn-secondary" type="submit">Guardar</button>
                                                                 </td>
                                                             </form>
                                                         </tr>
@@ -802,12 +802,12 @@
                                                                 <form id="zoneUpdateForm{{ $zone->id }}" method="POST" action="{{ route('storage_items.zones.update', $zone) }}" class="d-inline-block">
                                                                     @csrf
                                                                     @method('PUT')
-                                                                    <button class="btn btn-sm btn-light-primary" type="submit">Guardar</button>
+                                                                    <button class="btn btn-sm btn-secondary" type="submit">Guardar</button>
                                                                 </form>
                                                                 <form method="POST" action="{{ route('storage_items.zones.destroy', $zone) }}" class="d-inline-block ms-2">
                                                                     @csrf
                                                                     @method('DELETE')
-                                                                    <button class="btn btn-sm btn-light-danger" type="submit">Eliminar</button>
+                                                                    <button class="btn btn-sm btn-secondary" type="submit">Eliminar</button>
                                                                 </form>
                                                             </td>
                                                         </tr>

@@ -790,12 +790,12 @@
                                                 'property' => $selectedProperty?->uuid,
                                                 'return_to' => request()->fullUrl(),
                                             ])) }}"
-                                                class="btn btn-sm btn-light">
+                                                class="btn btn-sm btn-primary">
                                                 Ver
                                             </a>
 
                                             @if ($canEditCharge)
-                                                <button type="button" class="btn btn-sm btn-light-primary" data-edit-charge
+                                                <button type="button" class="btn btn-sm btn-success" data-edit-charge
                                                     data-action="{{ route('charges.update', $charge) }}"
                                                     data-charge="{{ $charge->uuid }}" data-type="{{ $charge->type }}"
                                                     data-due-date="{{ $charge->due_date?->format('Y-m-d') }}"
@@ -816,12 +816,12 @@
                                                     @method('DELETE')
                                                     <input type="hidden" name="deletion_note" value="">
                                                     <input type="hidden" name="return_to" value="{{ request()->fullUrl() }}">
-                                                    <button type="submit" class="btn btn-sm btn-light-danger">Eliminar cargo</button>
+                                                    <button type="submit" class="btn btn-sm btn-secondary">Eliminar cargo</button>
                                                 </form>
                                             @endif
 
                                             @if ($canRegisterPayment)
-                                                <button type="button" class="btn btn-sm btn-success" data-register-payment
+                                                <button type="button" class="btn btn-sm btn-secondary" data-register-payment
                                                     data-charge="{{ $charge->uuid }}"
                                                     data-action="{{ route('charges.payments.store', $charge) }}"
                                                     data-concept="{{ $charge->concept }}"
@@ -831,7 +831,7 @@
                                             @endif
 
                                             <a href="{{ route('charges.public.show', ['token' => $charge->payment_token]) }}"
-                                                target="_blank" class="btn btn-sm btn-light-primary">
+                                                target="_blank" class="btn btn-sm btn-secondary">
                                                 Abrir link
                                             </a>
                                             <button type="button" class="btn btn-sm btn-light"

@@ -98,7 +98,7 @@
                                             </button>
                                         @endif
 
-                                        <button type="button" class="btn btn-sm btn-light-primary" data-bs-toggle="collapse"
+                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="collapse"
                                             data-bs-target="#expense-edit-{{ $expense->uuid }}" aria-expanded="false"
                                             aria-controls="expense-edit-{{ $expense->uuid }}">
                                             Editar

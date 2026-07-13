@@ -6,11 +6,11 @@
     <style>
         .expenses-list-module {
             --el-surface: #ffffff;
-            --el-ink: #172033;
+            --el-ink: #1F2632;
             --el-text: #334155;
             --el-muted: #7b879d;
             --el-line: #e5eaf3;
-            --el-accent: #b54708;
+            --el-accent: #FF3364;
             --el-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             color: var(--el-text);
         }
@@ -52,8 +52,8 @@
         }
 
         .expenses-list-search .form-control:focus {
-            border-color: rgba(181, 71, 8, 0.35);
-            box-shadow: 0 0 0 4px rgba(181, 71, 8, 0.08);
+            border-color: rgba(255, 51, 100, 0.38);
+            box-shadow: 0 0 0 4px rgba(255, 51, 100, 0.10);
         }
 
         .expenses-list-results {
@@ -105,7 +105,7 @@
         }
 
         .expenses-list-row:hover td {
-            background: #fcf8f6;
+            background: #fff8fa;
         }
 
         .expenses-list-title {
@@ -219,7 +219,7 @@
             <div class="d-flex flex-wrap gap-3">
                 {{-- Botón configuración --}}
                 <button type="button"
-                    class="btn btn-light-warning fw-bold"
+                    class="btn btn-secondary fw-bold"
                     data-bs-toggle="modal"
                     data-bs-target="#globalNotificationsModal">
                     <i class="ki-outline ki-setting-2 fs-4 me-1"></i>
@@ -337,14 +337,14 @@
                                                 @csrf
 
                                                 <button type="submit"
-                                                    class="btn btn-sm btn-light-success">
+                                                    class="btn btn-sm btn-secondary">
                                                     Marcar pagado
                                                 </button>
                                             </form>
                                         @endif
 
                                         <button type="button"
-                                            class="btn btn-sm btn-light-primary"
+                                            class="btn btn-sm btn-success"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editExpenseModal-{{ $expense->uuid }}">
                                             Editar
@@ -359,7 +359,7 @@
                                             @method('DELETE')
 
                                             <button type="submit"
-                                                class="btn btn-sm btn-light-danger">
+                                                class="btn btn-sm btn-secondary">
                                                 Eliminar
                                             </button>
                                         </form>

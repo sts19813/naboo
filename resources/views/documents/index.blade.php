@@ -728,17 +728,17 @@
                                     <td class="text-end pe-7">
                                         <div class="documents-list-actions">
                                             <a href="{{ $document['file_url'] }}" target="_blank" rel="noopener"
-                                                class="btn btn-light btn-active-light-primary btn-sm" title="Ver archivo">
+                                                class="btn btn-primary btn-sm" title="Ver archivo">
                                                 <i class="ki-outline ki-eye fs-3"></i>
                                                 <span>Ver</span>
                                             </a>
                                             <a href="{{ $document['file_url'] }}" download="{{ $document['file_name'] }}"
-                                                class="btn btn-light btn-active-light-primary btn-sm" title="Descargar">
+                                                class="btn btn-secondary btn-sm" title="Descargar">
                                                 <i class="ki-outline ki-file-down fs-3"></i>
                                                 <span>Descargar</span>
                                             </a>
                                             @if ($document['entity_url'])
-                                                <a href="{{ $document['entity_url'] }}" class="btn btn-primary btn-sm" title="Abrir expediente">
+                                                <a href="{{ $document['entity_url'] }}" class="btn btn-warning btn-sm" title="Abrir expediente">
                                                     <i class="ki-outline ki-folder fs-3"></i>
                                                     <span>Expediente</span>
                                                 </a>
@@ -813,17 +813,17 @@
                                     <td class="text-end pe-7">
                                         <div class="documents-list-actions">
                                             <a href="{{ $document['file_url'] }}" target="_blank" rel="noopener"
-                                                class="btn btn-light btn-active-light-primary btn-sm" title="Ver archivo">
+                                                class="btn btn-primary btn-sm" title="Ver archivo">
                                                 <i class="ki-outline ki-eye fs-3"></i>
                                                 <span>Ver</span>
                                             </a>
                                             <a href="{{ $document['file_url'] }}" download="{{ $document['file_name'] }}"
-                                                class="btn btn-light btn-active-light-primary btn-sm" title="Descargar">
+                                                class="btn btn-secondary btn-sm" title="Descargar">
                                                 <i class="ki-outline ki-file-down fs-3"></i>
                                                 <span>Descargar</span>
                                             </a>
                                             @if ($document['entity_url'])
-                                                <a href="{{ $document['entity_url'] }}" class="btn btn-primary btn-sm" title="Abrir expediente">
+                                                <a href="{{ $document['entity_url'] }}" class="btn btn-warning btn-sm" title="Abrir expediente">
                                                     <i class="ki-outline ki-folder fs-3"></i>
                                                     <span>Expediente</span>
                                                 </a>

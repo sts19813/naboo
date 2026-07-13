@@ -40,7 +40,7 @@
                 </a>
             </div>
             <div class="col-lg-3">
-                <a href="{{ route('inventory-checks.history', $property) }}" class="btn btn-light-primary btn-lg w-100">
+                <a href="{{ route('inventory-checks.history', $property) }}" class="btn btn-primary btn-lg w-100">
                     <i class="ki-outline ki-clock fs-4 me-2"></i> Ver Historico
                 </a>
             </div>
@@ -57,7 +57,7 @@
                     <div class="card-header border-0 pt-6 d-flex justify-content-between align-items-center">
                         <h3 class="card-title fw-bold mb-0">Inventario de la propiedad</h3>
 
-                        <a href="{{ route('properties.inventory.edit', $property) }}" class="btn btn-light-primary">
+                        <a href="{{ route('properties.inventory.edit', $property) }}" class="btn btn-success">
                             <i class="ki-outline ki-pencil fs-4 me-1"></i>
                             Editar inventario
                         </a>

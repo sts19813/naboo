@@ -8,7 +8,7 @@
             <small class="text-muted">Los items marcados como eliminados se pueden restaurar.</small>
         </div>
         <div class="col-auto">
-            <a href="{{ route('storage_items.index') }}" class="btn btn-primary">
+            <a href="{{ route('storage_items.index') }}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Volver al almacén
             </a>
         </div>
@@ -59,12 +59,12 @@
                         </div>
                         <div class="card-footer bg-transparent border-top">
                             <div class="btn-group btn-group-sm w-100" role="group">
-                                <a href="{{ route('storage_items.show', $item) }}" class="btn btn-outline-secondary" title="Ver">
+                                <a href="{{ route('storage_items.show', $item) }}" class="btn btn-primary" title="Ver">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 <form action="{{ route('storage_items.restore', $item->id) }}" method="POST" style="flex: 1;">
                                     @csrf
-                                    <button type="submit" class="btn btn-outline-success w-100" title="Restaurar">
+                                    <button type="submit" class="btn btn-secondary w-100" title="Restaurar">
                                         <i class="bi bi-arrow-counterclockwise"></i> Restaurar
                                     </button>
                                 </form>

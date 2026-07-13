@@ -2547,10 +2547,13 @@ td .btn {
 }
 
 .btn.btn-success {
+    --bs-btn-color: #ffffff;
     --bs-btn-bg: var(--naboo-green);
     --bs-btn-border-color: var(--naboo-green);
+    --bs-btn-hover-color: #ffffff;
     --bs-btn-hover-bg: var(--naboo-green-hover);
     --bs-btn-hover-border-color: var(--naboo-green-hover);
+    --bs-btn-active-color: #ffffff;
     --bs-btn-active-bg: #287d31;
     --bs-btn-active-border-color: #287d31;
 }
@@ -2593,6 +2596,52 @@ td .btn {
     color: var(--sw-secondary) !important;
     background-color: var(--naboo-yellow) !important;
     border-color: var(--naboo-yellow-hover) !important;
+}
+
+/* Consistent action hierarchy for operational tables across all modules. */
+.table .btn.btn-primary,
+.table .btn.btn-light-primary,
+.table .btn.btn-light-info,
+table.dataTable .btn.btn-primary,
+table.dataTable .btn.btn-light-primary,
+table.dataTable .btn.btn-light-info {
+    color: #ffffff !important;
+    background-color: var(--sw-primary) !important;
+    border-color: var(--sw-primary) !important;
+    box-shadow: 0 6px 14px rgba(var(--sw-primary-rgb), 0.16);
+}
+
+.table .btn.btn-primary:hover,
+.table .btn.btn-primary:focus,
+.table .btn.btn-light-primary:hover,
+.table .btn.btn-light-primary:focus,
+.table .btn.btn-light-info:hover,
+.table .btn.btn-light-info:focus,
+table.dataTable .btn.btn-primary:hover,
+table.dataTable .btn.btn-primary:focus,
+table.dataTable .btn.btn-light-primary:hover,
+table.dataTable .btn.btn-light-primary:focus,
+table.dataTable .btn.btn-light-info:hover,
+table.dataTable .btn.btn-light-info:focus {
+    color: #ffffff !important;
+    background-color: var(--sw-primary-hover) !important;
+    border-color: var(--sw-primary-hover) !important;
+}
+
+.table .btn.btn-light,
+table.dataTable .btn.btn-light {
+    color: #ffffff !important;
+    background-color: var(--sw-secondary) !important;
+    border-color: var(--sw-secondary) !important;
+}
+
+.table .btn.btn-light:hover,
+.table .btn.btn-light:focus,
+table.dataTable .btn.btn-light:hover,
+table.dataTable .btn.btn-light:focus {
+    color: #ffffff !important;
+    background-color: #111720 !important;
+    border-color: #111720 !important;
 }
 
 .btn-light,

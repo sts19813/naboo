@@ -32,7 +32,7 @@
                             </div>
                         </div>
 
-                        <a href="{{ route('storage_items.index') }}" class="btn btn-light-primary fw-bold mt-4 mt-md-0">
+                        <a href="{{ route('storage_items.index') }}" class="btn btn-secondary fw-bold mt-4 mt-md-0">
                             <i class="ki-duotone ki-arrow-left fs-4 me-1"></i>
                             Volver
                         </a>

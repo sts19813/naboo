@@ -698,6 +698,54 @@ class PropertyModuleTest extends TestCase
         ]);
     }
 
+    public function test_property_with_assigned_tenant_can_be_updated_to_occupied_without_resubmitting_tenant(): void
+    {
+        $user = User::factory()->create();
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $zone = Zone::create(['name' => 'Playa', 'slug' => 'playa', 'is_active' => true]);
+        $tenant = Tenant::create([
+            'full_name' => 'Inquilino Asignado',
+            'phone_primary' => '9991112233',
+            'dossier_status' => Tenant::DOSSIER_COMPLETE,
+            'is_active' => true,
+        ]);
+        $owner = Owner::create([
+            'name' => 'Propietario Existente',
+            'phone' => '9991112244',
+            'is_active' => true,
+        ]);
+        $property = Property::create([
+            'internal_name' => 'Casa con Inquilino',
+            'property_type_id' => $type->id,
+            'zone_id' => $zone->id,
+            'full_address' => 'Calle 30',
+            'status' => Property::STATUS_AVAILABLE,
+            'tenant_id' => $tenant->id,
+            'current_tenant_name' => $tenant->full_name,
+            'facade_photo_path' => 'properties/facade.jpg',
+            'created_by' => $user->id,
+        ]);
+        $property->owners()->attach($owner->id);
+
+        $response = $this
+            ->actingAs($user)
+            ->put(route('properties.update', $property), [
+                'internal_name' => $property->internal_name,
+                'property_type_id' => $type->id,
+                'zone_id' => $zone->id,
+                'full_address' => $property->full_address,
+                'status' => Property::STATUS_OCCUPIED,
+                'owner_ids' => [$owner->id],
+            ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('properties', [
+            'id' => $property->id,
+            'status' => Property::STATUS_OCCUPIED,
+            'tenant_id' => $tenant->id,
+        ]);
+    }
+
     public function test_remove_tenant_option_is_shown_when_property_has_no_pending_charges(): void
     {
         $user = User::factory()->create();

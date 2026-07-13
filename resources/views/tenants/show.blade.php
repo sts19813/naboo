@@ -284,10 +284,10 @@
                     </div>
 
                     <div class="tenant-show-actions">
-                        <a href="{{ route('tenants.edit', $tenant) }}" class="btn btn-primary">
+                        <a href="{{ route('tenants.edit', $tenant) }}" class="btn btn-success">
                             <i class="ki-outline ki-pencil fs-4 me-1"></i> Editar
                         </a>
-                        <a href="{{ route('dossiers.tenants.show', $tenant) }}" class="btn btn-light-info">
+                        <a href="{{ route('dossiers.tenants.show', $tenant) }}" class="btn btn-warning">
                             Expediente
                         </a>
                     </div>

@@ -135,7 +135,7 @@ class StorePropertyRequest extends FormRequest
                 $isAssignableAdvisor = User::query()
                     ->whereKey($advisorId)
                     ->where('is_active', true)
-                    ->whereHas('roles', fn ($query) => $query->whereIn('name', [
+                    ->whereHas('roles', fn($query) => $query->whereIn('name', [
                         'asesores',
                         'asesor',
                         'advisor',
@@ -150,13 +150,13 @@ class StorePropertyRequest extends FormRequest
             }
 
             $ownerIds = collect($this->input('owner_ids', []))
-                ->filter(fn ($ownerId) => filled($ownerId));
+                ->filter(fn($ownerId) => filled($ownerId));
 
             $newOwners = collect($this->input('new_owners', []))
-                ->filter(fn ($owner) => is_array($owner));
+                ->filter(fn($owner) => is_array($owner));
 
             $validNewOwners = $newOwners->filter(
-                fn ($owner) => filled($owner['name'] ?? null) && filled($owner['phone'] ?? null),
+                fn($owner) => filled($owner['name'] ?? null) && filled($owner['phone'] ?? null),
             );
 
             if ($ownerIds->isEmpty() && $validNewOwners->isEmpty()) {
@@ -164,7 +164,7 @@ class StorePropertyRequest extends FormRequest
             }
 
             foreach ($newOwners as $index => $ownerData) {
-                $hasAnyData = collect($ownerData)->contains(fn ($value) => filled($value));
+                $hasAnyData = collect($ownerData)->contains(fn($value) => filled($value));
                 if (!$hasAnyData) {
                     continue;
                 }
@@ -185,10 +185,10 @@ class StorePropertyRequest extends FormRequest
             }
 
             $chargePlanRows = collect((array) $this->input('rent_charge_plan', []))
-                ->filter(fn ($row) => is_array($row));
+                ->filter(fn($row) => is_array($row));
             $duplicatePeriods = $chargePlanRows
-                ->map(fn ($row) => sprintf('%s-%s', (string) ($row['period_year'] ?? ''), (string) ($row['period_month'] ?? '')))
-                ->filter(fn ($period) => $period !== '-')
+                ->map(fn($row) => sprintf('%s-%s', (string) ($row['period_year'] ?? ''), (string) ($row['period_month'] ?? '')))
+                ->filter(fn($period) => $period !== '-')
                 ->duplicates();
             if ($duplicatePeriods->isNotEmpty()) {
                 $validator->errors()->add(
@@ -204,7 +204,11 @@ class StorePropertyRequest extends FormRequest
                 $validator->errors()->add('zone_text', 'Debes seleccionar una zona del listado o capturar una zona personalizada.');
             }
 
-            if ($this->input('status') === Property::STATUS_OCCUPIED && blank($this->input('tenant_id'))) {
+            $tenantId = $this->exists('tenant_id')
+                ? $this->input('tenant_id')
+                : $this->route('property')?->tenant_id;
+
+            if ($this->input('status') === Property::STATUS_OCCUPIED && blank($tenantId)) {
                 $validator->errors()->add('tenant_id', 'Debes seleccionar un inquilino para marcar la propiedad como ocupada.');
             }
 

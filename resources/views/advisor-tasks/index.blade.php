@@ -27,8 +27,9 @@
 @push('styles')
     <style>
         .advisor-tasks {
-            max-width: 1180px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: none;
+            margin: 0;
         }
 
         .advisor-tasks-hero {
@@ -82,9 +83,9 @@
         }
 
         .advisor-user-option.is-active {
-            border-color: #1b84ff;
-            background: #eef6ff;
-            color: #1b84ff;
+            border-color: var(--sw-primary);
+            background: var(--sw-primary-light);
+            color: var(--sw-primary);
         }
 
         .advisor-user-avatar {
@@ -134,7 +135,7 @@
 
         .advisor-range-tab.is-active {
             background: #fff;
-            color: #1b84ff;
+            color: var(--sw-primary);
             box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
         }
 
@@ -153,9 +154,9 @@
         }
 
         .advisor-filter-chip.is-active {
-            border-color: #1b84ff;
-            background: #eef6ff;
-            color: #1b84ff;
+            border-color: var(--sw-primary);
+            background: var(--sw-primary-light);
+            color: var(--sw-primary);
         }
 
         .advisor-task-list {
@@ -195,7 +196,7 @@
         }
 
         .advisor-task-item:hover {
-            background: #f8fbff;
+            background: #fff8fa;
         }
 
         .advisor-task-property {
@@ -502,7 +503,7 @@
                         </span>
 
                         <span class="advisor-task-action" role="cell">
-                            <a href="{{ $task['route'] }}" class="btn btn-sm btn-light-primary">
+                            <a href="{{ $task['route'] }}" class="btn btn-sm btn-primary">
                                 Abrir
                             </a>
                         </span>

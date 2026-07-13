@@ -126,7 +126,7 @@
                                             </div>
                                         </td>
                                         <td class="text-end">
-                                            <button type="button" class="btn btn-sm btn-light-primary" data-bs-toggle="modal" data-bs-target="#editUserModal-{{ $userItem->id }}">
+                                            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#editUserModal-{{ $userItem->id }}">
                                                 <i class="bi bi-pencil-square me-1"></i> Editar
                                             </button>
                                         </td>
@@ -174,13 +174,13 @@
                                             </div>
                                         </td>
                                         <td class="text-end">
-                                            <button type="button" class="btn btn-sm btn-light-primary me-2" data-bs-toggle="modal" data-bs-target="#editRoleModal-{{ $role->id }}">
+                                            <button type="button" class="btn btn-sm btn-success me-2" data-bs-toggle="modal" data-bs-target="#editRoleModal-{{ $role->id }}">
                                                 <i class="bi bi-pencil-square me-1"></i> Editar
                                             </button>
                                             <form method="POST" action="{{ route('access.roles.destroy', $role) }}" class="d-inline" data-access-form>
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-light-danger" data-access-delete data-confirm-message="Solo se eliminará si ningún usuario lo tiene asignado.">
+                                                <button type="submit" class="btn btn-sm btn-secondary" data-access-delete data-confirm-message="Solo se eliminará si ningún usuario lo tiene asignado.">
                                                     <i class="bi bi-trash me-1"></i> Eliminar
                                                 </button>
                                             </form>
@@ -214,13 +214,13 @@
                                         <td class="fw-semibold">{{ $permission->name }}</td>
                                         <td><span class="badge badge-light-secondary text-secondary">{{ $permission->guard_name }}</span></td>
                                         <td class="text-end">
-                                            <button type="button" class="btn btn-sm btn-light-primary me-2" data-bs-toggle="modal" data-bs-target="#editPermissionModal-{{ $permission->id }}">
+                                            <button type="button" class="btn btn-sm btn-success me-2" data-bs-toggle="modal" data-bs-target="#editPermissionModal-{{ $permission->id }}">
                                                 <i class="bi bi-pencil-square me-1"></i> Editar
                                             </button>
                                             <form method="POST" action="{{ route('access.permissions.destroy', $permission) }}" class="d-inline" data-access-form>
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-light-danger" data-access-delete data-confirm-message="Solo se eliminará si no está asignado a roles ni usuarios.">
+                                                <button type="submit" class="btn btn-sm btn-secondary" data-access-delete data-confirm-message="Solo se eliminará si no está asignado a roles ni usuarios.">
                                                     <i class="bi bi-trash me-1"></i> Eliminar
                                                 </button>
                                             </form>
@@ -282,7 +282,7 @@
                                             </div>
                                         </td>
                                         <td class="text-end">
-                                            <button type="button" class="btn btn-sm btn-light-primary" data-bs-toggle="modal" data-bs-target="#editUserModal-{{ $userItem->id }}">
+                                            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#editUserModal-{{ $userItem->id }}">
                                                 <i class="bi bi-pencil-square me-1"></i> Editar
                                             </button>
                                         </td>

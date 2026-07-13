@@ -598,7 +598,7 @@
                                     <td class="text-end pe-7">
                                         <div class="property-list-actions">
                                             <a href="{{ route('properties.show', $property) }}"
-                                                class="btn btn-sm btn-light-primary">
+                                                class="btn btn-sm btn-primary">
                                                 Ver
                                             </a>
 
