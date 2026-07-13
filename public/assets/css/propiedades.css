@@ -1,0 +1,186 @@
+/* =========================================================
+   CONTENEDOR GENERAL (TABS)
+========================================================= */
+.property-tabs-wrap {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-soft);
+    padding: 12px;
+    overflow: hidden;
+}
+
+/* =========================================================
+   NAVEGACIÓN DE TABS
+========================================================= */
+.property-tabs-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* TAB BASE */
+.property-tabs-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+
+    font-size: 0.9rem;
+    font-weight: 600;
+
+    background: var(--bg-light);
+    color: var(--text-muted);
+
+    transition: all 0.25s ease;
+}
+
+/* HOVER */
+.property-tabs-nav .nav-link:hover {
+    background: var(--primary-hover);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+
+/* ACTIVO */
+.property-tabs-nav .nav-link.active {
+    background: var(--primary);
+    color: #fff !important;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ICONOS */
+.property-tabs-nav .nav-link i {
+    font-size: 1rem;
+}
+
+/* =========================================================
+   CONTENIDO DE TABS
+========================================================= */
+.property-tab-pane {
+    padding: 20px 10px 10px;
+    animation: fadeIn 0.25s ease;
+}
+
+/* ANIMACIÓN */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =========================================================
+   TARJETA (FICHA TÉCNICA)
+========================================================= */
+.property-block-card {
+    background: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    transition: all 0.25s ease;
+}
+
+.property-block-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+/* =========================================================
+   HEADER DE PROPIEDAD
+========================================================= */
+.property-cover {
+    width: 140px;
+    height: 100px;
+    object-fit: cover;
+
+    border-radius: 12px;
+    border: 1px solid #e8ecf8;
+}
+
+/* =========================================================
+   META (PILLS)
+========================================================= */
+.property-header-meta .meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    padding: 6px 12px;
+    border-radius: 999px;
+
+    background: var(--primary-soft);
+    color: var(--primary);
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* =========================================================
+   DATOS (FICHA TÉCNICA)
+========================================================= */
+.property-value-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-light);
+    margin-bottom: 2px;
+}
+
+.property-value-content {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+    word-break: break-word;
+}
+
+/* =========================================================
+   TABLAS
+========================================================= */
+.table-row-bordered td,
+.table-row-bordered th {
+    border-color: var(--border-light) !important;
+}
+
+.table-row-bordered tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+/* =========================================================
+   BADGES
+========================================================= */
+.badge {
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* =========================================================
+   BOTONES
+========================================================= */
+.btn-light-primary {
+    background: var(--primary-soft);
+    color: var(--primary);
+    border: none;
+}
+
+.btn-light-primary:hover {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-light-success {
+    background: var(--success-soft);
+    color: var(--success);
+    border: none;
+}
+
+.btn-light-success:hover {
+    background: var(--success);
+    color: #fff;
+}
