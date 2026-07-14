@@ -48,4 +48,11 @@ return [
         'redirect' => env('GOOGLE_CALLBACK'),
     ],
 
+    'central_sso' => [
+        'url' => env('CENTRAL_SSO_URL', 'https://naboo.cloud'),
+        'workspace' => env('CENTRAL_SSO_WORKSPACE'),
+        'client_id' => env('CENTRAL_SSO_CLIENT_ID'),
+        'client_secret' => env('CENTRAL_SSO_CLIENT_SECRET'),
+    ],
+
 ];

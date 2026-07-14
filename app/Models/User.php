@@ -5,9 +5,9 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
@@ -16,17 +16,17 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
-
     protected $fillable = [
         'name',
         'email',
+        'sso_subject',
         'password',
         'is_active',
         'profile_photo',
@@ -35,6 +35,7 @@ class User extends Authenticatable
         'google_refresh_token',
         'google_token_expires_at',
     ];
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -93,7 +94,7 @@ class User extends Authenticatable
 
     public function hasSystemAccess(): bool
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return false;
         }
 
@@ -102,7 +103,7 @@ class User extends Authenticatable
 
     public function profilePhotoUrl(): string
     {
-        if (!$this->profile_photo) {
+        if (! $this->profile_photo) {
             return asset('metronic/assets/media/svg/avatars/blank.svg');
         }
 
