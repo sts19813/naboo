@@ -587,8 +587,36 @@ body.su-admin-layout {
     box-shadow: 0 8px 24px rgba(31, 38, 50, 0.04);
 }
 
-.su-admin-layout .table-responsive thead {
-    background: #f8f8f8;
+.su-admin-layout .table-responsive thead,
+.su-admin-layout table.table>thead {
+    background: #f8fafc;
+}
+
+/*
+ * Encabezado estándar para todas las tablas del panel.
+ * Replica el lenguaje visual de la tabla de Pendientes.
+ */
+/* Todos sin padding */
+.su-admin-layout table.table>thead>tr>th {
+    padding: 0 !important;
+    background: #f8fafc;
+    color: #99a1b7 !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    vertical-align: middle;
+    padding: 0.75rem 1rem !important;
+}
+
+/* Solo el primer th */
+.su-admin-layout table.table>thead>tr>th:first-child {
+    padding-left: 23px !important;
+}
+
+.su-admin-layout table.table>thead>tr>th:last-child {
+    padding-right: 30px !important;
 }
 
 .su-admin-layout .app-footer {
@@ -2691,10 +2719,10 @@ table.dataTable .btn.btn-light:focus {
 
 .table thead th,
 .table-responsive thead th {
-    color: #69717e;
+    color: #99a1b7;
     font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.035em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 

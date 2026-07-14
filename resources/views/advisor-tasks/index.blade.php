@@ -182,7 +182,7 @@
             padding: 0.75rem 1rem;
             background: #f8fafc;
             color: #99a1b7;
-            font-size: 0.72rem;
+            font-size: 12px !important;
             font-weight: 700;
             letter-spacing: 0.04em;
             text-transform: uppercase;

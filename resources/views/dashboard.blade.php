@@ -4,6 +4,24 @@
 
 @push('styles')
     <style>
+        .executive-dashboard .dashboard-standard-table {
+            border: 1px solid #e9edf4;
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        .executive-dashboard .dashboard-standard-table table {
+            margin-bottom: 0;
+        }
+
+        .executive-dashboard .dashboard-standard-table tbody td:first-child {
+            padding-left: 1rem !important;
+        }
+
+        .executive-dashboard .dashboard-standard-table tbody td:last-child {
+            padding-right: 1rem !important;
+        }
+
         @media (min-width: 1200px) {
             .executive-dashboard .dashboard-scroll-card {
                 display: flex;
@@ -42,7 +60,7 @@
                 width: 100%;
                 padding: 0.85rem;
                 border: 1px solid #e9edf4;
-                border-radius: 8px;
+                border-radius: 10px !important;
                 background: #fff;
                 box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
             }
@@ -193,8 +211,7 @@
                 -webkit-overflow-scrolling: touch;
             }
 
-            .executive-dashboard #dashboard_properties_card .table-responsive {
-                border-radius: 8px;
+            .executive-dashboard #dashboard_properties_card .dashboard-standard-table {
                 overflow: visible;
             }
 
@@ -384,10 +401,10 @@
                     </div>
                     <div class="card-body pt-2">
                         <div class="dashboard-properties-scroll">
-                            <div class="table-responsive">
-                                <table class="table table-row-dashed align-middle gs-0 gy-4">
+                            <div class="table-responsive dashboard-standard-table">
+                                <table class="table table-row-bordered align-middle mb-0">
                                     <thead>
-                                        <tr class="fw-bold text-muted text-uppercase fs-8">
+                                        <tr>
                                             <th>Propiedad</th>
                                             <th>Asesor</th>
                                             
@@ -481,10 +498,10 @@
                 </div>
             </div>
             <div class="card-body pt-2">
-                <div class="table-responsive">
-                    <table class="table table-row-dashed align-middle gs-0 gy-4 mb-0">
+                <div class="table-responsive dashboard-standard-table">
+                    <table class="table table-row-bordered align-middle mb-0">
                         <thead>
-                            <tr class="fw-bold text-muted text-uppercase fs-8">
+                            <tr>
                                 <th>Asesor responsable</th>
                                 <th class="text-end">Propiedades asignadas</th>
                                 <th class="text-end">Propiedades cobradas</th>
