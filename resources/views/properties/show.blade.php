@@ -2,10 +2,11 @@
 
 @section('title', $property->internal_name . ' | Naboo')
 
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('/assets/css/propiedades.css') }}">
+@endpush
+
 @section('content')
-
-    <link rel="stylesheet" href="/assets/css/propiedades.css">
-
     @php
         $photoUrl = $property->facade_photo_path
             ? \Illuminate\Support\Facades\Storage::url($property->facade_photo_path)

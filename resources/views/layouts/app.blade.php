@@ -8,6 +8,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    <script>
+        (function () {
+            var mode = localStorage.getItem('data-bs-theme') || 'light';
+
+            if (mode === 'system') {
+                mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            document.documentElement.setAttribute('data-bs-theme', mode);
+        })();
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="{{ asset('assets/img/naboo-mark.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,6 +50,8 @@
     </style>
 
     @stack('styles')
+    {{-- Se carga al final para sobreescribir los estilos claros definidos por cada módulo. --}}
+    <link rel="stylesheet" href="{{ asset('/assets/css/dark-theme.css') }}">
 </head>
 
 @php
@@ -54,30 +68,6 @@
     @endif
     @include('partials.suwork-flash-attrs')
     class="app-default su-admin-layout">
-    <!--begin::Theme mode setup on page load-->
-    <script>
-        var defaultThemeMode = "light";
-        var themeMode;
-
-        if (document.documentElement) {
-            if (document.documentElement.hasAttribute("data-bs-theme-mode")) {
-                themeMode = document.documentElement.getAttribute("data-bs-theme-mode");
-            } else {
-                if (localStorage.getItem("data-bs-theme") !== null) {
-                    themeMode = localStorage.getItem("data-bs-theme");
-                } else {
-                    themeMode = defaultThemeMode;
-                }
-            }
-
-            if (themeMode === "system") {
-                themeMode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-            }
-
-            document.documentElement.setAttribute("data-bs-theme", themeMode);
-        }
-    </script>
-
     <div class="d-flex flex-column flex-root app-root" id="kt_app_root">
         <div class="app-page flex-column flex-column-fluid" id="kt_app_page">
             <div class="app-wrapper" id="kt_app_wrapper">
