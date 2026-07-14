@@ -12,6 +12,7 @@ use App\Models\PropertyType;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Zone;
+use App\Support\NotificationSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -75,6 +76,131 @@ class MaintenanceModuleTest extends TestCase
             'ticket_id' => $ticket->id,
             'to_status' => 'pendiente',
         ]);
+    }
+
+    public function test_new_ticket_notifies_only_technician_advisor_and_tenant(): void
+    {
+        Mail::fake();
+
+        $reporter = User::factory()->create(['email' => 'reporter@example.com']);
+        Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']);
+        $admin = User::factory()->create(['email' => 'admin@example.com']);
+        $admin->assignRole('administrador');
+        $advisor = User::factory()->create(['email' => 'advisor@example.com']);
+        $technicianUser = User::factory()->create(['email' => 'technician-user@example.com']);
+        $tenant = Tenant::create([
+            'full_name' => 'Inquilino Notificado',
+            'phone_primary' => '9991112233',
+            'email' => 'tenant@example.com',
+            'dossier_status' => Tenant::DOSSIER_INCOMPLETE,
+            'is_active' => true,
+        ]);
+        $property = $this->createPropertyFixture($reporter);
+        $property->update(['tenant_id' => $tenant->id]);
+        $property->advisors()->attach($advisor->id);
+        $owner = Owner::create([
+            'name' => 'Propietario No Notificado',
+            'phone' => '9992223344',
+            'email' => 'owner@example.com',
+            'is_active' => true,
+        ]);
+        $property->owners()->attach($owner->id);
+        $provider = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico asignado',
+            'email' => 'technician-provider@example.com',
+            'specialty' => 'Plomería',
+            'user_id' => $technicianUser->id,
+            'is_active' => true,
+        ]);
+
+        $this
+            ->actingAs($reporter)
+            ->post(route('maintenance.store'), [
+                'property_id' => $property->id,
+                'category' => 'plomeria',
+                'priority' => 'media',
+                'title' => 'Fuga reportada sin aviso al propietario',
+                'exact_location' => 'Baño',
+                'description' => 'Validar destinatarios del nuevo reporte',
+                'reported_at' => now()->format('Y-m-d H:i:s'),
+                'provider_id' => $provider->id,
+            ])
+            ->assertRedirect();
+
+        $ticket = MaintenanceTicket::query()
+            ->where('title', 'Fuga reportada sin aviso al propietario')
+            ->firstOrFail();
+
+        foreach (['technician-provider@example.com', 'technician-user@example.com', 'advisor@example.com', 'tenant@example.com'] as $recipient) {
+            $this->assertDatabaseHas('maintenance_ticket_notifications', [
+                'ticket_id' => $ticket->id,
+                'event' => 'nuevo_reporte',
+                'recipient' => $recipient,
+            ]);
+        }
+
+        foreach (['owner@example.com', 'reporter@example.com', 'admin@example.com'] as $recipient) {
+            $this->assertDatabaseMissing('maintenance_ticket_notifications', [
+                'ticket_id' => $ticket->id,
+                'event' => 'nuevo_reporte',
+                'recipient' => $recipient,
+            ]);
+        }
+
+        Mail::assertSent(MaintenanceTicketEventMail::class, 4);
+    }
+
+    public function test_new_ticket_does_not_notify_tenant_when_switch_is_disabled(): void
+    {
+        Mail::fake();
+        NotificationSettings::setMatrix([
+            NotificationSettings::ROLE_TENANT => [
+                NotificationSettings::EVENT_MAINTENANCE_CREATED => false,
+            ],
+        ]);
+
+        $reporter = User::factory()->create(['email' => 'reporter@example.com']);
+        $advisor = User::factory()->create(['email' => 'advisor@example.com']);
+        $tenant = Tenant::create([
+            'full_name' => 'Inquilino Sin Aviso',
+            'phone_primary' => '9991112233',
+            'email' => 'tenant@example.com',
+            'dossier_status' => Tenant::DOSSIER_INCOMPLETE,
+            'is_active' => true,
+        ]);
+        $property = $this->createPropertyFixture($reporter);
+        $property->update(['tenant_id' => $tenant->id]);
+        $property->advisors()->attach($advisor->id);
+
+        $this
+            ->actingAs($reporter)
+            ->post(route('maintenance.store'), [
+                'property_id' => $property->id,
+                'category' => 'plomeria',
+                'priority' => 'media',
+                'title' => 'Reporte con switch de inquilino apagado',
+                'exact_location' => 'Baño',
+                'description' => 'Validar configuración de notificaciones',
+                'reported_at' => now()->format('Y-m-d H:i:s'),
+            ])
+            ->assertRedirect();
+
+        $ticket = MaintenanceTicket::query()
+            ->where('title', 'Reporte con switch de inquilino apagado')
+            ->firstOrFail();
+
+        $this->assertDatabaseMissing('maintenance_ticket_notifications', [
+            'ticket_id' => $ticket->id,
+            'event' => 'nuevo_reporte',
+            'recipient' => 'tenant@example.com',
+        ]);
+        $this->assertDatabaseHas('maintenance_ticket_notifications', [
+            'ticket_id' => $ticket->id,
+            'event' => 'nuevo_reporte',
+            'recipient' => 'advisor@example.com',
+        ]);
+        Mail::assertSent(MaintenanceTicketEventMail::class, 1);
     }
 
     public function test_tenant_can_create_ticket_with_minimal_fields(): void

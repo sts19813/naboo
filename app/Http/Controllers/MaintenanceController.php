@@ -83,13 +83,13 @@ class MaintenanceController extends Controller
             ->withCount(['files', 'messages']);
 
         $ticketsQuery = (clone $baseQuery)
-            ->when($selectedPropertyId, fn (Builder $query) => $query->where('property_id', $selectedPropertyId))
+            ->when($selectedPropertyId, fn(Builder $query) => $query->where('property_id', $selectedPropertyId))
             ->whereIn('status', $tabStatuses)
-            ->when($status !== '', fn (Builder $query) => $query->where('status', $status))
-            ->when($priority !== '', fn (Builder $query) => $query->where('priority', $priority))
-            ->when($category !== '', fn (Builder $query) => $query->where('category', $category))
-            ->when($from, fn (Builder $query) => $query->whereDate('reported_at', '>=', $from))
-            ->when($to, fn (Builder $query) => $query->whereDate('reported_at', '<=', $to))
+            ->when($status !== '', fn(Builder $query) => $query->where('status', $status))
+            ->when($priority !== '', fn(Builder $query) => $query->where('priority', $priority))
+            ->when($category !== '', fn(Builder $query) => $query->where('category', $category))
+            ->when($from, fn(Builder $query) => $query->whereDate('reported_at', '>=', $from))
+            ->when($to, fn(Builder $query) => $query->whereDate('reported_at', '<=', $to))
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where(function (Builder $inner) use ($search): void {
                     $inner->where('title', 'like', "%{$search}%")
@@ -110,7 +110,7 @@ class MaintenanceController extends Controller
             ->withQueryString();
 
         $metricsBase = (clone $baseQuery)
-            ->when($selectedPropertyId, fn (Builder $query) => $query->where('property_id', $selectedPropertyId));
+            ->when($selectedPropertyId, fn(Builder $query) => $query->where('property_id', $selectedPropertyId));
         $totalCount = (clone $metricsBase)->count();
         $openCount = (clone $metricsBase)->whereIn('status', $activeStatuses)->count();
         $pendingCount = (clone $metricsBase)->whereIn('status', $pendingStatuses)->count();
@@ -123,10 +123,10 @@ class MaintenanceController extends Controller
         $avgResolutionHours = $resolvedTickets->isEmpty()
             ? null
             : $resolvedTickets
-                ->map(function (MaintenanceTicket $ticket): float {
-                    return max(0, (float) $ticket->reported_at?->diffInMinutes($ticket->completed_at) / 60);
-                })
-                ->avg();
+            ->map(function (MaintenanceTicket $ticket): float {
+                return max(0, (float) $ticket->reported_at?->diffInMinutes($ticket->completed_at) / 60);
+            })
+            ->avg();
         $monthlyCost = (float) MaintenanceTicketCost::query()
             ->whereHas('ticket', function (Builder $query) use ($metricsBase): void {
                 $query->whereIn('maintenance_tickets.id', (clone $metricsBase)->select('maintenance_tickets.id'));
@@ -167,7 +167,7 @@ class MaintenanceController extends Controller
 
                         return max(0, (float) $ticket->reported_at->diffInMinutes($ticket->completed_at) / 60);
                     })
-                    ->filter(fn ($value) => $value !== null);
+                    ->filter(fn($value) => $value !== null);
 
                 return (object) [
                     'name' => $provider?->name ?? '-',
@@ -532,8 +532,8 @@ class MaintenanceController extends Controller
             $property = $role === 'tecnico'
                 ? Property::query()->where('id', (int) $validated['property_id'])->firstOrFail()
                 : $this->accessiblePropertiesQuery($user, $role)
-                    ->where('id', (int) $validated['property_id'])
-                    ->firstOrFail();
+                ->where('id', (int) $validated['property_id'])
+                ->firstOrFail();
             $updates['property_id'] = $property->id;
         }
         if (array_key_exists('scheduled_visit_at', $validated)) {
@@ -817,7 +817,7 @@ class MaintenanceController extends Controller
 
             $expense = Expense::create([
                 'property_id' => $maintenance->property_id,
-                'concept' => Str::limit('Mantenimiento '.$maintenance->display_reference.': '.$maintenance->title, 190, ''),
+                'concept' => Str::limit('Mantenimiento ' . $maintenance->display_reference . ': ' . $maintenance->title, 190, ''),
                 'amount' => $totalCost,
                 'excluded_from_totals' => $payer === 'inquilino',
                 'due_date' => now()->toDateString(),
@@ -926,8 +926,8 @@ class MaintenanceController extends Controller
         if (filled($recipient?->email) && (! $recipientRole || NotificationSettings::allows($recipientRole, NotificationSettings::EVENT_MAINTENANCE_MESSAGE))) {
             try {
                 Mail::raw(
-                    "Nuevo mensaje en ticket {$maintenance->uuid}: ".$message->message,
-                    fn ($mail) => $mail->to($recipient->email)->subject('Nuevo mensaje de mantenimiento')
+                    "Nuevo mensaje en ticket {$maintenance->uuid}: " . $message->message,
+                    fn($mail) => $mail->to($recipient->email)->subject('Nuevo mensaje de mantenimiento')
                 );
             } catch (\Throwable) {
             }
@@ -998,8 +998,8 @@ class MaintenanceController extends Controller
         ) {
             try {
                 Mail::raw(
-                    "Tu cuenta de técnico fue creada.\n\nAcceso:\nCorreo: {$linkedUser->email}\nContraseña: {$generatedPassword}\n\nPortal: ".url('/login'),
-                    fn ($mail) => $mail->to($linkedUser->email)->subject('Acceso al sistema de mantenimiento')
+                    "Tu cuenta de técnico fue creada.\n\nAcceso:\nCorreo: {$linkedUser->email}\nContraseña: {$generatedPassword}\n\nPortal: " . url('/login'),
+                    fn($mail) => $mail->to($linkedUser->email)->subject('Acceso al sistema de mantenimiento')
                 );
             } catch (\Throwable) {
             }
@@ -1072,8 +1072,8 @@ class MaintenanceController extends Controller
         ) {
             try {
                 Mail::raw(
-                    "Tu cuenta de técnico fue creada.\n\nAcceso:\nCorreo: {$linkedUser->email}\nContraseña: {$generatedPassword}\n\nPortal: ".url('/login'),
-                    fn ($mail) => $mail->to($linkedUser->email)->subject('Acceso al sistema de mantenimiento')
+                    "Tu cuenta de técnico fue creada.\n\nAcceso:\nCorreo: {$linkedUser->email}\nContraseña: {$generatedPassword}\n\nPortal: " . url('/login'),
+                    fn($mail) => $mail->to($linkedUser->email)->subject('Acceso al sistema de mantenimiento')
                 );
             } catch (\Throwable) {
             }
@@ -1183,10 +1183,10 @@ class MaintenanceController extends Controller
             return $query;
         }
         if ($role === 'propietario') {
-            return $query->whereHas('owners', fn (Builder $ownerQuery) => $ownerQuery->where('email', $user->email));
+            return $query->whereHas('owners', fn(Builder $ownerQuery) => $ownerQuery->where('email', $user->email));
         }
         if ($role === 'inquilino') {
-            return $query->whereHas('tenant', fn (Builder $tenantQuery) => $tenantQuery->where('email', $user->email));
+            return $query->whereHas('tenant', fn(Builder $tenantQuery) => $tenantQuery->where('email', $user->email));
         }
 
         return $query->whereHas('maintenanceTickets.assignments.provider', function (Builder $providerQuery) use ($user): void {
@@ -1203,10 +1203,10 @@ class MaintenanceController extends Controller
             return $query;
         }
         if ($role === 'propietario') {
-            return $query->whereHas('property.owners', fn (Builder $ownerQuery) => $ownerQuery->where('email', $user->email));
+            return $query->whereHas('property.owners', fn(Builder $ownerQuery) => $ownerQuery->where('email', $user->email));
         }
         if ($role === 'inquilino') {
-            return $query->whereHas('property.tenant', fn (Builder $tenantQuery) => $tenantQuery->where('email', $user->email));
+            return $query->whereHas('property.tenant', fn(Builder $tenantQuery) => $tenantQuery->where('email', $user->email));
         }
 
         return $query->whereHas('assignments', function (Builder $assignmentQuery) use ($user): void {
@@ -1391,7 +1391,7 @@ class MaintenanceController extends Controller
             ];
         }
 
-        $path = trim($directory, '/').'/'.Str::uuid().'.'.$encoded['extension'];
+        $path = trim($directory, '/') . '/' . Str::uuid() . '.' . $encoded['extension'];
         Storage::disk('public')->put($path, $encoded['binary']);
 
         return [
@@ -1514,28 +1514,17 @@ class MaintenanceController extends Controller
     private function notifyTicketEvent(MaintenanceTicket $ticket, string $event, string $subject): void
     {
         $ticket->loadMissing([
-            'reporter:id,email,name',
             'currentProvider:id,user_id,email,name',
             'currentProvider.user:id,email,name',
             'property.tenant:id,email,full_name',
             'property.advisors:id,email,name',
-            'property.owners:id,email,name',
         ]);
 
         $notificationEvent = $event === 'nuevo_reporte'
             ? NotificationSettings::EVENT_MAINTENANCE_CREATED
             : NotificationSettings::EVENT_MAINTENANCE_UPDATED;
-        $isStatusEvent = in_array($event, ['cambio_estado', 'cierre'], true);
 
-        $adminRecipients = User::query()
-            ->whereHas('roles', fn ($query) => $query->whereIn('name', ['administrador', 'admin']))
-            ->get(['id', 'email'])
-            ->map(fn (User $user): array => [
-                'email' => $user->email,
-                'role' => NotificationSettings::ROLE_ADMIN,
-            ]);
-
-        $statusRecipients = collect([
+        $recipients = collect([
             [
                 'email' => $ticket->currentProvider?->email,
                 'role' => NotificationSettings::ROLE_TECHNICIAN,
@@ -1548,30 +1537,16 @@ class MaintenanceController extends Controller
                 'email' => $ticket->property?->tenant?->email,
                 'role' => NotificationSettings::ROLE_TENANT,
             ],
-            ...($ticket->property?->advisors?->map(fn (User $advisor): array => [
+            ...($ticket->property?->advisors?->map(fn(User $advisor): array => [
                 'email' => $advisor->email,
                 'role' => NotificationSettings::ROLE_ADVISOR,
             ])->all() ?? []),
-        ]);
-
-        $eventRecipients = collect([
-            [
-                'email' => $ticket->reporter?->email,
-                'role' => NotificationSettings::roleForUser($ticket->reporter),
-            ],
-            ...($ticket->property?->owners?->map(fn ($owner): array => [
-                'email' => $owner->email,
-                'role' => null,
-            ])->all() ?? []),
-        ]);
-
-        $recipients = ($isStatusEvent ? $statusRecipients : $statusRecipients->merge($eventRecipients))
-            ->when(! $isStatusEvent, fn ($recipients) => $recipients->merge($adminRecipients))
-            ->filter(fn (array $recipient): bool => filled($recipient['email']))
+        ])
+            ->filter(fn(array $recipient): bool => filled($recipient['email']))
             ->filter(function (array $recipient) use ($notificationEvent): bool {
-                return ! $recipient['role'] || NotificationSettings::allows($recipient['role'], $notificationEvent);
+                return NotificationSettings::allows($recipient['role'], $notificationEvent);
             })
-            ->map(fn (array $recipient): string => trim((string) $recipient['email']))
+            ->map(fn(array $recipient): string => trim((string) $recipient['email']))
             ->unique()
             ->values();
 
