@@ -32,6 +32,48 @@ class ChargeModuleTest extends TestCase
         $response->assertSee('Cobranza');
     }
 
+    public function test_pending_tab_excludes_paid_charges_and_keeps_other_statuses(): void
+    {
+        $user = User::factory()->create();
+        $pendingCharge = $this->createChargeFixture();
+        $chargesByStatus = collect([
+            Charge::STATUS_PARTIAL,
+            Charge::STATUS_IN_VALIDATION,
+            Charge::STATUS_CANCELED,
+            Charge::STATUS_PAID,
+        ])->mapWithKeys(function (string $status) use ($pendingCharge): array {
+            $charge = $pendingCharge->replicate(['uuid', 'payment_token', 'paid_at']);
+            $charge->concept = 'Cargo ' . $status;
+            $charge->status = $status;
+            $charge->paid_amount = $status === Charge::STATUS_PAID ? $charge->amount : 0;
+            $charge->paid_at = $status === Charge::STATUS_PAID ? now() : null;
+            $charge->save();
+
+            return [$status => $charge];
+        });
+
+        $paidPayment = ChargePayment::create([
+            'charge_id' => $chargesByStatus[Charge::STATUS_PAID]->id,
+            'amount' => $chargesByStatus[Charge::STATUS_PAID]->amount,
+            'currency' => 'mxn',
+            'status' => ChargePayment::STATUS_SUCCEEDED,
+            'paid_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('charges.index'));
+
+        $response->assertOk();
+
+        $pendingTabCharges = $response->viewData('charges');
+        $this->assertTrue($pendingTabCharges->contains($pendingCharge));
+        $this->assertTrue($pendingTabCharges->contains($chargesByStatus[Charge::STATUS_PARTIAL]));
+        $this->assertTrue($pendingTabCharges->contains($chargesByStatus[Charge::STATUS_IN_VALIDATION]));
+        $this->assertTrue($pendingTabCharges->contains($chargesByStatus[Charge::STATUS_CANCELED]));
+        $this->assertFalse($pendingTabCharges->contains($chargesByStatus[Charge::STATUS_PAID]));
+        $this->assertSame(4, $response->viewData('stats')['charges_count']);
+        $this->assertTrue($response->viewData('payments')->contains($paidPayment));
+    }
+
     public function test_charge_can_be_created(): void
     {
         $user = User::factory()->create();

@@ -30,9 +30,7 @@ use Illuminate\View\View;
 
 class ChargeController extends Controller
 {
-    public function __construct(private readonly DossierDocumentRequirementService $requirements)
-    {
-    }
+    public function __construct(private readonly DossierDocumentRequirementService $requirements) {}
 
     public function index(Request $request): View
     {
@@ -40,8 +38,8 @@ class ChargeController extends Controller
         $isTenant = $this->isTenantUser($user);
         $tenantPropertyIds = $isTenant
             ? Property::query()
-                ->whereHas('tenant', fn ($query) => $query->where('email', $user->email))
-                ->pluck('id')
+            ->whereHas('tenant', fn($query) => $query->where('email', $user->email))
+            ->pluck('id')
             : collect();
         $filters = $request->validate([
             'property' => ['nullable', 'string', 'exists:properties,uuid'],
@@ -50,10 +48,10 @@ class ChargeController extends Controller
         $selectedPropertyUuid = (string) ($filters['property'] ?? '');
         $selectedProperty = filled($selectedPropertyUuid)
             ? Property::query()
-                ->with('tenant:id,full_name')
-                ->when($isTenant, fn ($query) => $query->whereIn('id', $tenantPropertyIds))
-                ->where('uuid', $selectedPropertyUuid)
-                ->first()
+            ->with('tenant:id,full_name')
+            ->when($isTenant, fn($query) => $query->whereIn('id', $tenantPropertyIds))
+            ->where('uuid', $selectedPropertyUuid)
+            ->first()
             : null;
         if ($isTenant && filled($selectedPropertyUuid) && !$selectedProperty) {
             abort(403);
@@ -61,17 +59,18 @@ class ChargeController extends Controller
         $selectedPropertyId = $selectedProperty?->id;
         $selectedPropertyHasRentCharges = $selectedPropertyId
             ? Charge::query()
-                ->where('property_id', $selectedPropertyId)
-                ->where('type', Charge::TYPE_RENT)
-                ->where('status', '!=', Charge::STATUS_CANCELED)
-                ->exists()
+            ->where('property_id', $selectedPropertyId)
+            ->where('type', Charge::TYPE_RENT)
+            ->where('status', '!=', Charge::STATUS_CANCELED)
+            ->exists()
             : false;
         $showPropertySetupCard = !$isTenant && (bool) ($selectedPropertyId && !$selectedPropertyHasRentCharges);
 
         $charges = Charge::query()
             ->with(['tenant:id,full_name', 'property:id,internal_name,internal_reference'])
-            ->when($isTenant, fn ($query) => $query->whereIn('property_id', $tenantPropertyIds))
-            ->when($selectedPropertyId, fn ($query) => $query->where('property_id', $selectedPropertyId))
+            ->where('status', '!=', Charge::STATUS_PAID)
+            ->when($isTenant, fn($query) => $query->whereIn('property_id', $tenantPropertyIds))
+            ->when($selectedPropertyId, fn($query) => $query->where('property_id', $selectedPropertyId))
             ->latest('id')
             ->get();
 
@@ -80,42 +79,42 @@ class ChargeController extends Controller
             ->where('status', ChargePayment::STATUS_SUCCEEDED)
             ->when(
                 $isTenant,
-                fn ($query) => $query->whereHas('charge', fn ($chargeQuery) => $chargeQuery->whereIn('property_id', $tenantPropertyIds)),
+                fn($query) => $query->whereHas('charge', fn($chargeQuery) => $chargeQuery->whereIn('property_id', $tenantPropertyIds)),
             )
             ->when(
                 $selectedPropertyId,
-                fn ($query) => $query->whereHas('charge', fn ($chargeQuery) => $chargeQuery->where('property_id', $selectedPropertyId)),
+                fn($query) => $query->whereHas('charge', fn($chargeQuery) => $chargeQuery->where('property_id', $selectedPropertyId)),
             )
             ->latest('id')
             ->get();
 
         $now = now();
-        $chargeBaseQuery = fn () => Charge::query()
-            ->when($isTenant, fn ($query) => $query->whereIn('property_id', $tenantPropertyIds))
-            ->when($selectedPropertyId, fn ($query) => $query->where('property_id', $selectedPropertyId));
-        $paymentBaseQuery = fn () => ChargePayment::query()
+        $chargeBaseQuery = fn() => Charge::query()
+            ->when($isTenant, fn($query) => $query->whereIn('property_id', $tenantPropertyIds))
+            ->when($selectedPropertyId, fn($query) => $query->where('property_id', $selectedPropertyId));
+        $paymentBaseQuery = fn() => ChargePayment::query()
             ->when(
                 $isTenant,
-                fn ($query) => $query->whereHas('charge', fn ($chargeQuery) => $chargeQuery->whereIn('property_id', $tenantPropertyIds)),
+                fn($query) => $query->whereHas('charge', fn($chargeQuery) => $chargeQuery->whereIn('property_id', $tenantPropertyIds)),
             )
             ->when(
                 $selectedPropertyId,
-                fn ($query) => $query->whereHas('charge', fn ($chargeQuery) => $chargeQuery->where('property_id', $selectedPropertyId)),
+                fn($query) => $query->whereHas('charge', fn($chargeQuery) => $chargeQuery->where('property_id', $selectedPropertyId)),
             );
 
         $stats = [
             'pending_amount' => (float) $chargeBaseQuery()
                 ->whereIn('status', [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL, Charge::STATUS_IN_VALIDATION])
                 ->sum('amount') - (float) $chargeBaseQuery()
-                    ->whereIn('status', [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL, Charge::STATUS_IN_VALIDATION])
-                    ->sum('paid_amount'),
+                ->whereIn('status', [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL, Charge::STATUS_IN_VALIDATION])
+                ->sum('paid_amount'),
             'overdue_amount' => (float) $chargeBaseQuery()
                 ->whereIn('status', [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL])
                 ->whereDate('due_date', '<', $now->toDateString())
                 ->sum('amount') - (float) $chargeBaseQuery()
-                    ->whereIn('status', [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL])
-                    ->whereDate('due_date', '<', $now->toDateString())
-                    ->sum('paid_amount'),
+                ->whereIn('status', [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL])
+                ->whereDate('due_date', '<', $now->toDateString())
+                ->sum('paid_amount'),
             'collected_month' => (float) $paymentBaseQuery()
                 ->where('status', ChargePayment::STATUS_SUCCEEDED)
                 ->whereYear('paid_at', $now->year)
@@ -124,7 +123,9 @@ class ChargeController extends Controller
             'pending_validation' => $paymentBaseQuery()
                 ->where('status', ChargePayment::STATUS_PENDING_VALIDATION)
                 ->count(),
-            'charges_count' => $chargeBaseQuery()->count(),
+            'charges_count' => $chargeBaseQuery()
+                ->where('status', '!=', Charge::STATUS_PAID)
+                ->count(),
             'payments_count' => $paymentBaseQuery()
                 ->where('status', ChargePayment::STATUS_SUCCEEDED)
                 ->count(),
@@ -132,7 +133,7 @@ class ChargeController extends Controller
 
         $propertiesQuery = Property::query()
             ->with('tenant:id,full_name')
-            ->when($isTenant, fn ($query) => $query->whereIn('id', $tenantPropertyIds))
+            ->when($isTenant, fn($query) => $query->whereIn('id', $tenantPropertyIds))
             ->orderBy('internal_name');
         if ($selectedPropertyId) {
             $propertiesQuery->where('id', $selectedPropertyId);
@@ -141,7 +142,7 @@ class ChargeController extends Controller
         $chargeablePropertiesQuery = Property::query()
             ->with('tenant:id,full_name')
             ->whereNotNull('tenant_id')
-            ->when($isTenant, fn ($query) => $query->whereIn('id', $tenantPropertyIds))
+            ->when($isTenant, fn($query) => $query->whereIn('id', $tenantPropertyIds))
             ->orderBy('internal_name');
         if ($selectedPropertyId) {
             $chargeablePropertiesQuery->where('id', $selectedPropertyId);
@@ -152,7 +153,7 @@ class ChargeController extends Controller
         if ($showPropertySetupCard) {
             $tenantRequiredDocumentTypes = array_keys($this->requirements->labelsForEntity('tenant'));
             $propertySetupTenants = Tenant::query()
-                ->with(['documents' => fn ($query) => $query->whereIn('document_type', $tenantRequiredDocumentTypes)])
+                ->with(['documents' => fn($query) => $query->whereIn('document_type', $tenantRequiredDocumentTypes)])
                 ->orderBy('full_name')
                 ->get([
                     'id',
@@ -195,8 +196,8 @@ class ChargeController extends Controller
             'tenants' => $isTenant
                 ? collect()
                 : Tenant::query()
-                    ->orderBy('full_name')
-                    ->get(['id', 'full_name', 'email']),
+                ->orderBy('full_name')
+                ->get(['id', 'full_name', 'email']),
             'propertySetupTenants' => $propertySetupTenants,
             'tenantAssignmentChecks' => $tenantAssignmentChecks,
             'typeOptions' => Charge::TYPE_LABELS,
@@ -249,10 +250,10 @@ class ChargeController extends Controller
             }
 
             $chargePlanRows = collect((array) $request->input('rent_charge_plan', []))
-                ->filter(fn ($row) => is_array($row));
+                ->filter(fn($row) => is_array($row));
             $duplicatePeriods = $chargePlanRows
-                ->map(fn ($row) => sprintf('%s-%s', (string) ($row['period_year'] ?? ''), (string) ($row['period_month'] ?? '')))
-                ->filter(fn ($period) => $period !== '-')
+                ->map(fn($row) => sprintf('%s-%s', (string) ($row['period_year'] ?? ''), (string) ($row['period_month'] ?? '')))
+                ->filter(fn($period) => $period !== '-')
                 ->duplicates();
             if ($duplicatePeriods->isNotEmpty()) {
                 $validator->errors()->add(
@@ -284,7 +285,7 @@ class ChargeController extends Controller
         $tenant = null;
         if (filled($validated['tenant_id'] ?? null)) {
             $tenant = Tenant::query()
-                ->with(['documents' => fn ($query) => $query->whereIn('document_type', array_keys($this->requirements->labelsForEntity('tenant')))])
+                ->with(['documents' => fn($query) => $query->whereIn('document_type', array_keys($this->requirements->labelsForEntity('tenant')))])
                 ->find((int) $validated['tenant_id']);
         }
 
@@ -359,8 +360,8 @@ class ChargeController extends Controller
         $message = $tenant
             ? (
                 $created > 0
-                    ? "Configuracion guardada. Se generaron {$created} cargos de renta."
-                    : 'Configuracion guardada. No se crearon cargos nuevos porque todos ya existen.'
+                ? "Configuracion guardada. Se generaron {$created} cargos de renta."
+                : 'Configuracion guardada. No se crearon cargos nuevos porque todos ya existen.'
             )
             : 'Configuracion guardada. Asigna un inquilino para poder generar cargos.';
 
@@ -437,7 +438,7 @@ class ChargeController extends Controller
         $charge->load([
             'tenant:id,full_name,email,phone_primary',
             'property.owners:id,name,phone,email,bank_name,clabe,account_holder',
-            'payments' => fn ($query) => $query->latest('id'),
+            'payments' => fn($query) => $query->latest('id'),
         ]);
 
         $canManageCharges = !$this->isTenantUser($request->user());
@@ -811,7 +812,7 @@ class ChargeController extends Controller
     private function normalizeBulkRows(?array $rows): Collection
     {
         return collect($rows ?? [])
-            ->filter(fn ($row) => is_array($row))
+            ->filter(fn($row) => is_array($row))
             ->map(function (array $row): ?array {
                 $periodMonth = (int) ($row['period_month'] ?? 0);
                 $periodYear = (int) ($row['period_year'] ?? 0);
@@ -1010,7 +1011,7 @@ class ChargeController extends Controller
     private function syncPropertyPlanFromBulk(Property $property, array $rows): void
     {
         $planRows = $this->normalizeBulkRows($property->rent_charge_plan)
-            ->keyBy(fn (array $row) => $this->periodKey((int) $row['period_year'], (int) $row['period_month']));
+            ->keyBy(fn(array $row) => $this->periodKey((int) $row['period_year'], (int) $row['period_month']));
 
         foreach ($rows as $row) {
             if (($row['type'] ?? Charge::TYPE_RENT) !== Charge::TYPE_RENT) {
@@ -1038,7 +1039,7 @@ class ChargeController extends Controller
         $property->forceFill([
             'rent_charge_plan' => $planRows
                 ->values()
-                ->sortBy(fn (array $row) => ((int) $row['period_year'] * 100) + (int) $row['period_month'])
+                ->sortBy(fn(array $row) => ((int) $row['period_year'] * 100) + (int) $row['period_month'])
                 ->values()
                 ->all(),
         ])->save();
@@ -1056,7 +1057,7 @@ class ChargeController extends Controller
         }
 
         $planRows = $this->normalizeBulkRows($property->rent_charge_plan)
-            ->keyBy(fn (array $row) => $this->periodKey((int) $row['period_year'], (int) $row['period_month']));
+            ->keyBy(fn(array $row) => $this->periodKey((int) $row['period_year'], (int) $row['period_month']));
         $periodKey = $this->periodKey((int) $charge->period_year, (int) $charge->period_month);
 
         $planRows->put($periodKey, [
@@ -1073,7 +1074,7 @@ class ChargeController extends Controller
         $property->forceFill([
             'rent_charge_plan' => $planRows
                 ->values()
-                ->sortBy(fn (array $row) => ((int) $row['period_year'] * 100) + (int) $row['period_month'])
+                ->sortBy(fn(array $row) => ((int) $row['period_year'] * 100) + (int) $row['period_month'])
                 ->values()
                 ->all(),
         ])->save();
@@ -1092,7 +1093,7 @@ class ChargeController extends Controller
 
         $periodKey = $this->periodKey((int) $charge->period_year, (int) $charge->period_month);
         $planRows = $this->normalizeBulkRows($property->rent_charge_plan)
-            ->keyBy(fn (array $row) => $this->periodKey((int) $row['period_year'], (int) $row['period_month']));
+            ->keyBy(fn(array $row) => $this->periodKey((int) $row['period_year'], (int) $row['period_month']));
 
         if (!$planRows->has($periodKey)) {
             return;
@@ -1103,7 +1104,7 @@ class ChargeController extends Controller
         $property->forceFill([
             'rent_charge_plan' => $planRows
                 ->values()
-                ->sortBy(fn (array $row) => ((int) $row['period_year'] * 100) + (int) $row['period_month'])
+                ->sortBy(fn(array $row) => ((int) $row['period_year'] * 100) + (int) $row['period_month'])
                 ->values()
                 ->all(),
         ])->save();
@@ -1233,7 +1234,7 @@ class ChargeController extends Controller
 
         $visible = Charge::query()
             ->where('id', $charge->id)
-            ->whereHas('property.tenant', fn ($query) => $query->where('email', $user->email))
+            ->whereHas('property.tenant', fn($query) => $query->where('email', $user->email))
             ->exists();
 
         if (!$visible) {
@@ -1261,9 +1262,9 @@ class ChargeController extends Controller
         $documentsByType = $tenant->relationLoaded('documents')
             ? $tenant->documents->keyBy('document_type')
             : $tenant->documents()
-                ->whereIn('document_type', array_keys($this->requirements->labelsForEntity('tenant')))
-                ->get()
-                ->keyBy('document_type');
+            ->whereIn('document_type', array_keys($this->requirements->labelsForEntity('tenant')))
+            ->get()
+            ->keyBy('document_type');
 
         foreach ($this->requirements->labelsForEntity('tenant') as $documentType => $label) {
             $document = $documentsByType->get($documentType);
