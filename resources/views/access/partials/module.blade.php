@@ -85,7 +85,7 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table class="table table-row-dashed align-middle mb-0" data-access-datatable data-access-search-input="#accessUsersSearch">
+                        <table class="table table-row-dashed align-middle mb-0" data-access-datatable data-access-search-input="#accessUsersSearch" data-access-empty-message="No hay usuarios administrativos registrados.">
                             <thead>
                                 <tr class="text-muted text-uppercase fs-8">
                                     <th>Usuario</th>
@@ -96,7 +96,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($administrativeUsers as $userItem)
+                                @foreach ($administrativeUsers as $userItem)
                                     <tr>
                                         <td>
                                             <div class="fw-semibold">{{ $userItem->name }}</div>
@@ -131,13 +131,7 @@
                                             </button>
                                         </td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5">
-                                            <div class="access-empty text-center text-muted py-10">No hay usuarios administrativos registrados.</div>
-                                        </td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
@@ -241,7 +235,7 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table class="table table-row-dashed align-middle mb-0" data-access-datatable data-access-search-input="#accessTenantsSearch">
+                        <table class="table table-row-dashed align-middle mb-0" data-access-datatable data-access-search-input="#accessTenantsSearch" data-access-empty-message="No hay usuarios con rol inquilino.">
                             <thead>
                                 <tr class="text-muted text-uppercase fs-8">
                                     <th>Inquilino</th>
@@ -252,7 +246,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($tenantUsers as $userItem)
+                                @foreach ($tenantUsers as $userItem)
                                     <tr>
                                         <td>
                                             <div class="fw-semibold">{{ $userItem->name }}</div>
@@ -287,13 +281,7 @@
                                             </button>
                                         </td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5">
-                                            <div class="access-empty text-center text-muted py-10">No hay usuarios con rol inquilino.</div>
-                                        </td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

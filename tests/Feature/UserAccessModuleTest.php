@@ -103,6 +103,23 @@ class UserAccessModuleTest extends TestCase
         $this->assertStringContainsString('Usuario Inquilino Demo', $tenantsTab);
     }
 
+    public function test_empty_tenant_table_has_no_colspan_row_incompatible_with_datatables(): void
+    {
+        $admin = $this->adminUser();
+
+        $html = $this->actingAs($admin)
+            ->get(route('access.index', ['tab' => 'tenants']))
+            ->assertOk()
+            ->assertSee('data-access-empty-message="No hay usuarios con rol inquilino."', false)
+            ->getContent();
+
+        $tenantsTab = $this->htmlBetween($html, 'id="access-tenants-tab"', '<div class="modal fade" id="createUserModal"');
+        $tenantTableBody = $this->htmlBetween($tenantsTab, '<tbody>', '</tbody>');
+
+        $this->assertStringNotContainsString('colspan=', $tenantTableBody);
+        $this->assertStringNotContainsString('<tr', $tenantTableBody);
+    }
+
     private function adminUser(): User
     {
         $role = Role::query()->firstOrCreate(['name' => 'administrador', 'guard_name' => 'web']);

@@ -17,12 +17,6 @@
             gap: .4rem;
         }
 
-        .access-module .access-empty {
-            border: 1px dashed #dce2ec;
-            border-radius: 8px;
-            background: #fbfcff;
-        }
-
         .access-module .nav-line-tabs .nav-link {
             border: 0;
             border-bottom: 2px solid transparent;
@@ -128,6 +122,7 @@
                 document.querySelectorAll(`${moduleSelector} table[data-access-datatable]`).forEach((table) => {
                     if ($.fn.DataTable.isDataTable(table)) return;
                     const searchInputSelector = table.dataset.accessSearchInput;
+                    const emptyTableMessage = table.dataset.accessEmptyMessage || 'No hay registros disponibles.';
 
                     const dataTable = $(table).DataTable({
                         pageLength: 10,
@@ -135,7 +130,8 @@
                         responsive: true,
                         dom: searchInputSelector ? 'rt<"d-flex flex-wrap justify-content-between align-items-center gap-3 pt-5"ip>' : undefined,
                         language: {
-                            url: '//cdn.datatables.net/plug-ins/2.3.2/i18n/es-MX.json'
+                            url: '//cdn.datatables.net/plug-ins/2.3.2/i18n/es-MX.json',
+                            emptyTable: emptyTableMessage
                         }
                     });
 
