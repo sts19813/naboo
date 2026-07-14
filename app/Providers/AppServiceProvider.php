@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Services\PendingNotificationService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(PendingNotificationService::class);
     }
 
     /**
@@ -30,5 +32,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Paginator::useBootstrapFive();
+
+        View::composer(['partials.sidebar', 'partials.topbar'], function ($view): void {
+            $view->with(
+                'pendingNotifications',
+                app(PendingNotificationService::class)->forUser(auth()->user()),
+            );
+        });
     }
 }

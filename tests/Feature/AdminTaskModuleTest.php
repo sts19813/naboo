@@ -95,6 +95,19 @@ class AdminTaskModuleTest extends TestCase
             $advisorResponse
                 ->assertOk()
                 ->assertSee('Pendientes administrativos')
+                ->assertSee('class="su-desktop-topbar"', false)
+                ->assertSee('data-pending-count="2"', false)
+                ->assertSee(route('admin.tasks.index', [
+                    'user_id' => $advisor->id,
+                    'range' => 'today',
+                    'filter' => 'all',
+                ]))
+                ->assertSee(route('admin.tasks.index', [
+                    'user_id' => $technician->id,
+                    'range' => 'today',
+                    'filter' => 'all',
+                ]))
+                ->assertDontSee('sidebar-user-card', false)
                 ->assertSee('Pendientes por usuario')
                 ->assertSee('Asesora Uno')
                 ->assertSee('Técnico Uno')

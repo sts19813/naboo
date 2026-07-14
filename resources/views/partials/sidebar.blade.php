@@ -18,6 +18,8 @@
     $roleLabel = $isTenant ? 'Panel de inquilino' : ($isTechnician ? 'Panel técnico' : ($isAdvisor ? 'Panel de asesor' : 'Panel Naboo'));
     $currentHour = now()->hour;
     $greeting = $currentHour < 12 ? 'Buenos días' : ($currentHour < 19 ? 'Buenas tardes' : 'Buenas noches');
+    $mobilePendingTotal = (int) ($pendingNotifications['total'] ?? 0);
+    $mobilePendingRoute = $pendingNotifications['route'] ?? $homeRoute;
     $menuItems = $isTenant
         ? [
             ['patterns' => ['charges.*'], 'route' => 'charges.index', 'label' => 'Cobranza', 'icon' => 'bi-wallet2'],
@@ -127,9 +129,12 @@
         </div>
 
         <div class="su-mobile-topbar__actions">
-            <button type="button" class="su-mobile-icon-btn is-disabled" aria-label="Notificaciones" disabled>
+            <a href="{{ $mobilePendingRoute }}" class="su-mobile-icon-btn" aria-label="Ver {{ $mobilePendingTotal }} pendientes">
                 <i class="bi bi-bell"></i>
-            </button>
+                @if ($mobilePendingTotal > 0)
+                    <span class="su-mobile-notification-count">{{ $mobilePendingTotal > 99 ? '99+' : $mobilePendingTotal }}</span>
+                @endif
+            </a>
 
             <div class="dropdown">
                 <button type="button" class="su-mobile-avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Abrir menú de perfil">
@@ -250,92 +255,6 @@
                 </div>
             </div>
 
-            <div id="kt_app_sidebar_footer" class="app-sidebar-footer">
-                <div class="sidebar-user-card">
-                    <button type="button" class="sidebar-user-menu-trigger symbol symbol-circle border-0 p-0"
-                        data-bs-toggle="dropdown"
-                        data-bs-auto-close="outside"
-                        aria-expanded="false"
-                        aria-label="Abrir menú de perfil">
-                        @if ($user->profile_photo)
-                            <img src="{{ $user->profilePhotoUrl() }}" alt="{{ $user->name }}" class="w-100 h-100 rounded-circle" style="object-fit: cover;">
-                        @else
-                            <span class="symbol-label bg-primary text-white fw-bold w-100 h-100 d-flex align-items-center justify-content-center">{{ $initials }}</span>
-                        @endif
-                    </button>
-
-                    <div class="sidebar-user-details flex-grow-1">
-                        <div class="sidebar-user-name text-truncate">{{ $user->name }}</div>
-                        <div class="sidebar-user-email text-truncate">{{ $user->email }}</div>
-                    </div>
-
-                    <div class="sidebar-user-actions d-flex align-items-center gap-2">
-                        <a href="{{ route('profile.index') }}"
-                            class="sidebar-user-action"
-                            aria-label="Mi perfil">
-                            <i class="ki-outline ki-setting-4 fs-5"></i>
-                        </a>
-                        <a href="#"
-                            class="sidebar-user-action is-danger"
-                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-                            aria-label="Cerrar sesión">
-                            <i class="ki-outline ki-exit-right fs-5"></i>
-                        </a>
-                    </div>
-
-                    <div class="dropdown-menu p-0 shadow-sm sidebar-user-dropdown">
-                        <div class="px-4 py-3 border-bottom d-flex align-items-center">
-                            <div class="symbol symbol-45px me-3">
-                                @if ($user->profile_photo)
-                                    <img src="{{ $user->profilePhotoUrl() }}" class="symbol-label" alt="avatar">
-                                @else
-                                    <div class="symbol-label fw-bold d-flex justify-content-center align-items-center text-white bg-primary">
-                                        {{ $initials }}
-                                    </div>
-                                @endif
-                            </div>
-                            <div class="min-w-0">
-                                <div class="fw-bold text-truncate">{{ $user->name }}</div>
-                                <div class="text-muted small text-truncate">{{ $user->email }}</div>
-                            </div>
-                        </div>
-
-                        <a href="{{ route('profile.index') }}" class="dropdown-item px-4 py-3">Mi perfil</a>
-                        <button type="button" class="dropdown-item px-4 py-3" data-sidebar-theme-toggle>Modo</button>
-
-                        <div class="dropdown-divider my-0"></div>
-
-                        <a href="#" class="dropdown-item text-danger px-4 py-3"
-                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                            <i class="ki-outline ki-exit-right me-2"></i> Cerrar sesión
-                        </a>
-                    </div>
-
-                    <div class="sidebar-user-hover-card">
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                            <div class="symbol symbol-45px">
-                                @if ($user->profile_photo)
-                                    <img src="{{ $user->profilePhotoUrl() }}" alt="{{ $user->name }}" class="w-100 h-100 rounded-circle" style="object-fit: cover;">
-                                @else
-                                    <div class="symbol-label bg-primary text-white fw-bold fs-5">{{ $initials }}</div>
-                                @endif
-                            </div>
-                            <div class="min-w-0">
-                                <div class="fw-bold text-gray-900 text-truncate">{{ $user->name }}</div>
-                                <div class="text-muted fs-8 text-truncate">{{ $user->email }}</div>
-                            </div>
-                        </div>
-                        <a href="{{ route('profile.index') }}" class="sidebar-hover-link">Mi perfil</a>
-                        <button type="button" class="sidebar-hover-link sidebar-hover-button" data-sidebar-theme-toggle>
-                            Modo
-                        </button>
-                        <button type="button" class="sidebar-hover-link sidebar-hover-button text-danger"
-                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                            Cerrar sesión
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </aside>

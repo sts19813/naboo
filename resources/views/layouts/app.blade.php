@@ -84,6 +84,8 @@
                 @include('partials.sidebar')
 
                 <main class="app-main" id="kt_app_main">
+                    @include('partials.topbar')
+
                     <div class="app-shell">
                         <div class="su-layout-content">
                             @if (session('status'))
@@ -125,6 +127,14 @@
     <script src="{{ asset('/metronic/assets/plugins/custom/datatables/datatables.bundle.js') }}"></script>
 
     <script>
+        function syncThemeModeControls() {
+            var currentMode = document.documentElement.getAttribute('data-bs-theme') || 'light';
+
+            document.querySelectorAll('[data-theme-mode-option]').forEach(function (button) {
+                button.setAttribute('aria-pressed', button.dataset.themeModeOption === currentMode ? 'true' : 'false');
+            });
+        }
+
         function setThemeMode(mode) {
             localStorage.setItem('data-bs-theme', mode);
 
@@ -133,9 +143,17 @@
             }
 
             document.documentElement.setAttribute('data-bs-theme', mode);
+            syncThemeModeControls();
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-theme-mode-option]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    setThemeMode(button.dataset.themeModeOption);
+                });
+            });
+            syncThemeModeControls();
+
             document.querySelectorAll('[data-sidebar-theme-toggle]').forEach(function (button) {
                 button.addEventListener('click', function () {
                     var currentMode = document.documentElement.getAttribute('data-bs-theme') || 'light';
