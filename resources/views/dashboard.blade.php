@@ -22,6 +22,70 @@
             padding-right: 1rem !important;
         }
 
+        .executive-dashboard .dashboard-kpi-value {
+            display: block;
+            width: 100%;
+            min-width: 0;
+            font-size: clamp(1rem, 1.35vw, 1.65rem);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.035em;
+            line-height: 1.15;
+            white-space: nowrap;
+        }
+
+        .executive-dashboard [data-dashboard-fit-value] {
+            max-width: 100%;
+            font-variant-numeric: tabular-nums;
+            overflow-wrap: normal;
+            white-space: nowrap;
+        }
+
+        .executive-dashboard .dashboard-collection-layout {
+            display: grid;
+            grid-template-columns: minmax(150px, 0.85fr) minmax(0, 1.15fr);
+            align-items: center;
+            gap: clamp(1rem, 2vw, 2rem);
+            min-width: 0;
+        }
+
+        .executive-dashboard .dashboard-collection-chart-shell {
+            width: 100%;
+            max-width: 240px;
+            min-width: 0;
+            margin-inline: auto;
+        }
+
+        .executive-dashboard #dashboard_collection_pie {
+            width: 100%;
+            min-width: 0;
+            min-height: 240px;
+        }
+
+        .executive-dashboard #dashboard_collection_pie .apexcharts-canvas,
+        .executive-dashboard #dashboard_collection_pie svg {
+            max-width: 100% !important;
+        }
+
+        .executive-dashboard .dashboard-collection-legend {
+            min-width: 0;
+        }
+
+        .executive-dashboard .dashboard-collection-amount {
+            font-variant-numeric: tabular-nums;
+            overflow-wrap: normal;
+            white-space: nowrap;
+        }
+
+        @media (min-width: 1200px) and (max-width: 1399.98px) {
+            .executive-dashboard .dashboard-collection-layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .executive-dashboard .dashboard-collection-chart-shell {
+                max-width: 220px;
+            }
+        }
+
         @media (min-width: 1200px) {
             .executive-dashboard .dashboard-scroll-card {
                 display: flex;
@@ -132,10 +196,8 @@
                 line-height: 1.35;
             }
 
-            .executive-dashboard .dashboard-kpi-col .fs-2x {
-                font-size: 1.08rem !important;
-                line-height: 1.2;
-                word-break: break-word;
+            .executive-dashboard .dashboard-kpi-value {
+                font-size: 1.08rem;
             }
 
             .executive-dashboard .executive-kpi-icon {
@@ -169,7 +231,14 @@
 
             .executive-dashboard #dashboard_collection_pie {
                 min-height: 210px !important;
-                margin-top: -0.75rem;
+            }
+
+            .executive-dashboard .dashboard-collection-layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .executive-dashboard .dashboard-collection-chart-shell {
+                max-width: 210px;
             }
 
             .executive-dashboard .executive-alert {
@@ -311,7 +380,10 @@
                                     <i class="bi {{ $kpi['icon'] }}"></i>
                                 </span>
                             </div>
-                            <div class="fw-bold text-dark fs-2x">{{ $kpi['value'] }}</div>
+                            <div class="fw-bold text-dark dashboard-kpi-value"
+                                data-dashboard-kpi-value
+                                data-dashboard-fit-value
+                                title="{{ $kpi['value'] }}">{{ $kpi['value'] }}</div>
                         </div>
                     </div>
                 </div>
@@ -328,11 +400,11 @@
                         </div>
                     </div>
                     <div class="card-body pt-2">
-                        <div class="row align-items-center">
-                            <div class="col-lg-5">
-                                <div id="dashboard_collection_pie" class="min-h-250px"></div>
+                        <div class="dashboard-collection-layout">
+                            <div class="dashboard-collection-chart-shell">
+                                <div id="dashboard_collection_pie"></div>
                             </div>
-                            <div class="col-lg-7">
+                            <div class="dashboard-collection-legend">
                                 @foreach ($collectionSummary['segments'] as $segment)
                                     <div class="mb-5">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -345,7 +417,9 @@
                                         <div class="progress h-8px bg-light mb-2">
                                             <div class="progress-bar" role="progressbar" style="width: {{ $segment['percent'] }}%; background: {{ $segment['color'] }};"></div>
                                         </div>
-                                        <div class="text-gray-700 fw-semibold">{{ '$' . number_format($segment['value'], 2) }}</div>
+                                        <div class="text-gray-700 fw-semibold dashboard-collection-amount"
+                                            data-dashboard-fit-value
+                                            title="{{ '$' . number_format($segment['value'], 2) }}">{{ '$' . number_format($segment['value'], 2) }}</div>
                                     </div>
                                 @endforeach
                             </div>
@@ -459,19 +533,25 @@
                             <div class="col-4">
                                 <div class="executive-summary-box">
                                     <div class="text-muted fs-8 fw-bold text-uppercase">Ingresos</div>
-                                    <div class="fs-2 fw-bold text-dark">{{ '$' . number_format($profitabilitySummary['income_total'], 2) }}</div>
+                                    <div class="fs-2 fw-bold text-dark"
+                                        data-dashboard-fit-value
+                                        title="{{ '$' . number_format($profitabilitySummary['income_total'], 2) }}">{{ '$' . number_format($profitabilitySummary['income_total'], 2) }}</div>
                                 </div>
                             </div>
                             <div class="col-4">
                                 <div class="executive-summary-box">
                                     <div class="text-muted fs-8 fw-bold text-uppercase">Gastos</div>
-                                    <div class="fs-2 fw-bold text-danger">{{ '$' . number_format($profitabilitySummary['expense_total'], 2) }}</div>
+                                    <div class="fs-2 fw-bold text-danger"
+                                        data-dashboard-fit-value
+                                        title="{{ '$' . number_format($profitabilitySummary['expense_total'], 2) }}">{{ '$' . number_format($profitabilitySummary['expense_total'], 2) }}</div>
                                 </div>
                             </div>
                             <div class="col-4">
                                 <div class="executive-summary-box">
                                     <div class="text-muted fs-8 fw-bold text-uppercase">Utilidad</div>
-                                    <div class="fs-2 fw-bold {{ $profitabilitySummary['profit_total'] >= 0 ? 'text-success' : 'text-danger' }}">
+                                    <div class="fs-2 fw-bold {{ $profitabilitySummary['profit_total'] >= 0 ? 'text-success' : 'text-danger' }}"
+                                        data-dashboard-fit-value
+                                        title="{{ '$' . number_format($profitabilitySummary['profit_total'], 2) }}">
                                         {{ '$' . number_format($profitabilitySummary['profit_total'], 2) }}
                                     </div>
                                 </div>
@@ -556,6 +636,7 @@
             const periodPreset = document.getElementById('dashboard_period_preset');
             const periodStart = document.getElementById('dashboard_period_start');
             const periodEnd = document.getElementById('dashboard_period_end');
+            const fittedValues = document.querySelectorAll('[data-dashboard-fit-value]');
 
             const padDate = (value) => String(value).padStart(2, '0');
             const formatDate = (date) => `${date.getFullYear()}-${padDate(date.getMonth() + 1)}-${padDate(date.getDate())}`;
@@ -607,6 +688,33 @@
                 });
             }
 
+            const fitDashboardValue = (element) => {
+                element.style.removeProperty('font-size');
+
+                let fontSize = Number.parseFloat(window.getComputedStyle(element).fontSize);
+                const minimumFontSize = 14;
+
+                while (element.scrollWidth > element.clientWidth && fontSize > minimumFontSize) {
+                    fontSize -= 0.5;
+                    element.style.fontSize = `${fontSize}px`;
+                }
+            };
+
+            const fitDashboardValues = () => {
+                fittedValues.forEach(fitDashboardValue);
+            };
+
+            if (fittedValues.length > 0) {
+                window.requestAnimationFrame(fitDashboardValues);
+
+                if ('ResizeObserver' in window) {
+                    const dashboardValueResizeObserver = new ResizeObserver(fitDashboardValues);
+                    fittedValues.forEach((element) => dashboardValueResizeObserver.observe(element.parentElement));
+                } else {
+                    window.addEventListener('resize', fitDashboardValues, { passive: true });
+                }
+            }
+
             const syncPropertyCardHeight = () => {
                 if (!propertiesCard || !profitabilityCard) {
                     return;
@@ -634,7 +742,11 @@
                 new ApexCharts(collectionElement, {
                     chart: {
                         type: 'donut',
-                        height: 280,
+                        width: '100%',
+                        height: 240,
+                        parentHeightOffset: 0,
+                        redrawOnParentResize: true,
+                        redrawOnWindowResize: true,
                         toolbar: {
                             show: false,
                         },
@@ -654,11 +766,32 @@
                     },
                     plotOptions: {
                         pie: {
+                            customScale: 0.92,
                             donut: {
                                 size: '72%',
                             },
                         },
                     },
+                    responsive: [{
+                        breakpoint: 1400,
+                        options: {
+                            chart: {
+                                height: 220,
+                            },
+                        },
+                    }, {
+                        breakpoint: 768,
+                        options: {
+                            chart: {
+                                height: 210,
+                            },
+                            plotOptions: {
+                                pie: {
+                                    customScale: 0.88,
+                                },
+                            },
+                        },
+                    }],
                 }).render();
             }
 

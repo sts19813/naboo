@@ -50,7 +50,12 @@ class DashboardModulesTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Panel ejecutivo')
-            ->assertSee('Resumen de cobranza');
+            ->assertSee('Resumen de cobranza')
+            ->assertSee('dashboard-collection-layout', false)
+            ->assertSee('dashboard-collection-chart-shell', false)
+            ->assertSee('data-dashboard-kpi-value', false)
+            ->assertSee('data-dashboard-fit-value', false)
+            ->assertSee("parentHeightOffset: 0", false);
     }
 
     public function test_advisor_dashboard_defaults_to_assigned_properties_and_can_view_all(): void
