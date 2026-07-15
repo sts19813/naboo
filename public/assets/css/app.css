@@ -420,6 +420,45 @@ body.su-admin-layout {
     background-color: currentColor;
 }
 
+.su-admin-layout .app-sidebar-menu-primary .menu-sub-accordion {
+    padding: 4px 6px 2px 42px;
+}
+
+.su-admin-layout .app-sidebar-menu-primary .menu-sub-accordion .menu-item {
+    margin-bottom: 2px;
+}
+
+.su-admin-layout .app-sidebar-menu-primary .menu-sub-accordion .menu-link {
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 9px;
+    color: rgba(225, 231, 244, 0.72);
+}
+
+.su-admin-layout .app-sidebar-menu-primary .menu-sub-accordion .menu-link:hover,
+.su-admin-layout .app-sidebar-menu-primary .menu-sub-accordion .menu-link.active {
+    color: #fff;
+}
+
+.su-admin-layout .app-sidebar-menu-primary .menu-sub-accordion .menu-link.active {
+    box-shadow: none;
+}
+
+.su-admin-layout .app-sidebar-menu-primary .menu-sub-accordion .menu-title {
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.su-admin-layout .app-sidebar-menu-primary .menu-sub-accordion .menu-bullet {
+    width: 14px;
+    margin-right: 6px;
+}
+
+.su-admin-layout .app-sidebar-menu-primary .menu-sub-accordion .bullet {
+    width: 5px;
+    height: 5px;
+}
+
 .su-admin-layout .sidebar-hover-card,
 .su-admin-layout .sidebar-user-hover-card {
     display: none;

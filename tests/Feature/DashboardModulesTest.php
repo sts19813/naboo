@@ -58,6 +58,52 @@ class DashboardModulesTest extends TestCase
             ->assertSee("parentHeightOffset: 0", false);
     }
 
+    public function test_admin_sidebar_groups_every_module_in_a_compact_order(): void
+    {
+        $adminRole = Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($adminRole);
+
+        $response = $this->actingAs($admin)->get(route('dashboard'));
+
+        $response->assertOk();
+
+        $document = new \DOMDocument();
+        @$document->loadHTML($response->getContent());
+        $xpath = new \DOMXPath($document);
+        $topLevelMenuTitles = collect($xpath->query(
+            '//*[@id="kt_app_sidebar_menu"]/*[contains(concat(" ", normalize-space(@class), " "), " menu-item ")]/*[contains(concat(" ", normalize-space(@class), " "), " menu-link ")]//*[contains(concat(" ", normalize-space(@class), " "), " menu-title ")]'
+        ))
+            ->map(fn (\DOMNode $node): string => trim($node->textContent))
+            ->values()
+            ->all();
+
+        $this->assertSame([
+            'Dashboard',
+            'Pendientes',
+            'Propiedades',
+            'Control de propiedades',
+            'Expedientes',
+            'Cuentas',
+            'Mantenimiento',
+            'Configuración',
+        ], $topLevelMenuTitles);
+
+        $response
+            ->assertSee('Propietarios')
+            ->assertSee('Inquilinos')
+            ->assertSee('Documentos')
+            ->assertSee('Cobranza')
+            ->assertSee('Gastos')
+            ->assertSee('Tickets')
+            ->assertSee('Almacén')
+            ->assertSee('Configurar expedientes')
+            ->assertSee('Almacenamiento')
+            ->assertSee('Notificaciones')
+            ->assertSee('Usuarios y permisos')
+            ->assertSee('Perfil');
+    }
+
     public function test_advisor_dashboard_defaults_to_assigned_properties_and_can_view_all(): void
     {
         $advisorRole = Role::query()->create(['name' => 'asesores', 'guard_name' => 'web']);
