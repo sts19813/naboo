@@ -332,7 +332,7 @@
                                     <span class="maintenance-property-cell">
                                         <span class="maintenance-cell-icon"><i class="bi bi-house-door"></i></span>
                                         <span class="min-w-0">
-                                            <span class="maintenance-cell-title">{{ $ticket->property?->internal_name ?? '-' }}</span>
+                                            <span class="maintenance-cell-title" title="{{ $ticket->property?->internal_name ?? '-' }}">{{ $ticket->property?->internal_name ?? '-' }}</span>
                                             <span class="maintenance-cell-subtitle">{{ $ticket->property?->internal_reference ?: 'Sin referencia' }}</span>
                                         </span>
                                     </span>
@@ -345,7 +345,7 @@
                                                     @if ($ticket->currentProvider)
                                                         <span class="maintenance-avatar">{{ $providerInitials ?: 'T' }}</span>
                                                         <span class="min-w-0">
-                                                            <span class="maintenance-cell-title">{{ $ticket->currentProvider->name }}</span>
+                                                            <span class="maintenance-cell-title" title="{{ $ticket->currentProvider->name }}">{{ $ticket->currentProvider->name }}</span>
                                                             <span class="maintenance-cell-subtitle">{{ \App\Models\MaintenanceProvider::TYPE_LABELS[$ticket->currentProvider->type] ?? $ticket->currentProvider->type }}</span>
                                                         </span>
                                                     @else
@@ -397,7 +397,7 @@
                                         @elseif ($ticket->currentProvider)
                                             <span class="maintenance-avatar">{{ $providerInitials ?: 'T' }}</span>
                                             <span class="min-w-0">
-                                                <span class="maintenance-cell-title">{{ $ticket->currentProvider->name }}</span>
+                                                <span class="maintenance-cell-title" title="{{ $ticket->currentProvider->name }}">{{ $ticket->currentProvider->name }}</span>
                                                 <span class="maintenance-cell-subtitle">{{ \App\Models\MaintenanceProvider::TYPE_LABELS[$ticket->currentProvider->type] ?? $ticket->currentProvider->type }}</span>
                                             </span>
                                         @else

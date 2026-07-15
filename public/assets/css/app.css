@@ -2017,6 +2017,30 @@ td .btn {
     min-width: 0;
 }
 
+/*
+ * Las columnas de propiedad y técnico viven dentro de un grid. El contenedor
+ * de texto debe poder encogerse; de lo contrario, un nombre largo conserva su
+ * ancho intrínseco y termina dibujándose encima del avatar de la columna
+ * siguiente.
+ */
+.maintenance-property-cell > .min-w-0,
+.maintenance-provider-cell > .min-w-0,
+.maintenance-provider-trigger > .min-w-0 {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.maintenance-ticket-row > span:last-child {
+    min-width: 0;
+}
+
+.maintenance-ticket-row > span:last-child .maintenance-chip {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .maintenance-cell-icon {
     width: 36px;
     height: 36px;
