@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdvisorTaskController;
 use App\Http\Controllers\ChargeController;
 use App\Http\Controllers\ChargePaymentController;
+use App\Http\Controllers\CopilotController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DossierConfigurationController;
@@ -54,6 +55,10 @@ Route::middleware(['auth', 'system.access'])
         Route::post('/perfil/actualizar', [ProfileController::class, 'update'])->name('profile.update');
         Route::post('/perfil/foto', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
         Route::post('/perfil/password', [ProfileController::class, 'updatePassword'])->name('profile.update.password');
+
+        Route::get('/copilot/history', [CopilotController::class, 'history'])->name('copilot.history');
+        Route::delete('/copilot/history', [CopilotController::class, 'reset'])->name('copilot.reset');
+        Route::post('/copilot/chat', [CopilotController::class, 'chat'])->name('copilot.chat');
 
         Route::get('/asesor/pendientes', [AdvisorTaskController::class, 'index'])->name('advisor.tasks.index');
         Route::get('/administracion/pendientes', [AdvisorTaskController::class, 'adminIndex'])->name('admin.tasks.index');
