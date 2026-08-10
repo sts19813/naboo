@@ -138,7 +138,9 @@ class AdvisorTaskController extends Controller
             ->where('user_id', $user->id)
             ->pluck('id');
 
-        if ($providerIds->isEmpty()) {
+        $isResponsibleTechnician = $user->isResponsibleMaintenanceTechnician();
+
+        if (! $isResponsibleTechnician && $providerIds->isEmpty()) {
             return collect();
         }
 
@@ -146,7 +148,7 @@ class AdvisorTaskController extends Controller
 
         return MaintenanceTicket::query()
             ->with('property:id,uuid,internal_name,internal_reference,facade_photo_path')
-            ->whereIn('current_provider_id', $providerIds->all())
+            ->when(! $isResponsibleTechnician, fn ($query) => $query->whereIn('current_provider_id', $providerIds->all()))
             ->whereIn('status', $activeStatuses)
             ->where(function ($query) use ($period): void {
                 $query->whereNull('scheduled_visit_at')

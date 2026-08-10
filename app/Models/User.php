@@ -92,6 +92,21 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function isResponsibleMaintenanceTechnician(): bool
+    {
+        return MaintenanceProvider::query()
+            ->where('is_active', true)
+            ->where('is_responsible', true)
+            ->where(function ($query): void {
+                $query->where('user_id', $this->id);
+
+                if (filled($this->email)) {
+                    $query->orWhere('email', $this->email);
+                }
+            })
+            ->exists();
+    }
+
     public function hasSystemAccess(): bool
     {
         if (! $this->is_active) {

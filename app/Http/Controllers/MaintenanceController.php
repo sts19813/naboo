@@ -232,7 +232,7 @@ class MaintenanceController extends Controller
             'canManageProviders' => $this->canManageTechnicians($user),
             'canManageAssignments' => $role === 'administrador',
             'canUpdateTicketMeta' => in_array($role, ['administrador', 'tecnico'], true),
-            'canManageCosts' => $role === 'administrador',
+            'canManageCosts' => $role === 'administrador' || $user->isResponsibleMaintenanceTechnician(),
             'isTenant' => $role === 'inquilino',
         ]);
     }
@@ -431,7 +431,7 @@ class MaintenanceController extends Controller
             'paymentRuleOptions' => MaintenanceTicket::PAYMENT_RULE_LABELS,
             'messageChannels' => MaintenanceTicketMessage::CHANNEL_LABELS,
             'canManageAssignments' => in_array($role, ['administrador', 'tecnico'], true),
-            'canManageCosts' => $role === 'administrador',
+            'canManageCosts' => $role === 'administrador' || $user->isResponsibleMaintenanceTechnician(),
             'canEditTicket' => $role === 'administrador',
             'canChangeStatus' => in_array($role, ['administrador', 'tecnico'], true),
             'canQuickScheduleVisit' => in_array($role, ['administrador', 'tecnico'], true),
@@ -808,7 +808,7 @@ class MaintenanceController extends Controller
         $user = $request->user();
         $role = $this->resolveRole($user);
         $this->ensureTicketVisible($maintenance, $user, $role);
-        if ($role !== 'administrador') {
+        if ($role !== 'administrador' && ! $user->isResponsibleMaintenanceTechnician()) {
             abort(403);
         }
 
@@ -1206,7 +1206,7 @@ class MaintenanceController extends Controller
     private function accessiblePropertiesQuery(User $user, string $role): Builder
     {
         $query = Property::query();
-        if ($role === 'administrador') {
+        if ($role === 'administrador' || ($role === 'tecnico' && $user->isResponsibleMaintenanceTechnician())) {
             return $query;
         }
         if ($role === 'propietario') {
@@ -1249,7 +1249,7 @@ class MaintenanceController extends Controller
     private function visibleTicketsQuery(User $user, string $role): Builder
     {
         $query = MaintenanceTicket::query();
-        if ($role === 'administrador') {
+        if ($role === 'administrador' || ($role === 'tecnico' && $user->isResponsibleMaintenanceTechnician())) {
             return $query;
         }
         if ($role === 'propietario') {

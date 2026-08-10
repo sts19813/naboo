@@ -452,6 +452,82 @@ class MaintenanceModuleTest extends TestCase
         $response->assertSee('<section class="ticket-panel d-none" id="ticket-chat-section" hidden>', false);
     }
 
+    public function test_responsible_technician_can_view_all_tickets_and_manage_incident_costs(): void
+    {
+        $technicianRole = Role::query()->create(['name' => 'tecnico', 'guard_name' => 'web']);
+        $responsibleUser = User::factory()->create(['email' => 'responsable-costos@example.com']);
+        $responsibleUser->assignRole($technicianRole);
+        $regularTechnician = User::factory()->create(['email' => 'tecnico-regular@example.com']);
+        $regularTechnician->assignRole($technicianRole);
+
+        MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Responsable de mantenimiento',
+            'email' => $responsibleUser->email,
+            'user_id' => $responsibleUser->id,
+            'is_active' => true,
+            'is_responsible' => true,
+        ]);
+        MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico regular',
+            'email' => $regularTechnician->email,
+            'user_id' => $regularTechnician->id,
+            'is_active' => true,
+        ]);
+
+        $property = $this->createPropertyFixture($responsibleUser);
+        $ticket = MaintenanceTicket::create([
+            'property_id' => $property->id,
+            'reported_by_user_id' => $regularTechnician->id,
+            'reported_by_role' => 'tecnico',
+            'reported_by_name' => $regularTechnician->name,
+            'category' => 'electricidad',
+            'priority' => 'alta',
+            'status' => 'pendiente',
+            'title' => 'Ticket global visible para responsable',
+            'exact_location' => 'Área común',
+            'description' => 'No está asignado al técnico responsable',
+            'reported_at' => now(),
+        ]);
+
+        $this->actingAs($responsibleUser)
+            ->get(route('maintenance.index'))
+            ->assertOk()
+            ->assertSee('Ticket global visible para responsable');
+
+        $this->actingAs($responsibleUser)
+            ->get(route('maintenance.show', $ticket))
+            ->assertOk()
+            ->assertSee('Costos y gastos del incidente')
+            ->assertSee('Agregar costo');
+
+        $this->actingAs($responsibleUser)
+            ->from(route('maintenance.show', $ticket))
+            ->put(route('maintenance.costs', $ticket), [
+                'labor_cost' => 450,
+                'material_cost' => 150,
+                'payer' => 'administracion',
+                'payment_rule' => 'preventivo',
+                'notes' => 'Registrado por técnico responsable',
+            ])
+            ->assertRedirect(route('maintenance.show', $ticket));
+
+        $this->assertDatabaseHas('maintenance_ticket_costs', [
+            'ticket_id' => $ticket->id,
+            'final_cost' => 600,
+        ]);
+        $this->assertDatabaseHas('expenses', [
+            'property_id' => $property->id,
+            'amount' => 600,
+            'created_by' => $responsibleUser->id,
+        ]);
+
+        $this->actingAs($regularTechnician)
+            ->get(route('maintenance.show', $ticket))
+            ->assertForbidden();
+    }
+
     public function test_multiple_costs_create_expenses_and_tenant_costs_are_excluded_from_totals(): void
     {
         Storage::fake('public');
