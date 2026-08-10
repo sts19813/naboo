@@ -1558,12 +1558,28 @@ class MaintenanceController extends Controller
             'property.tenant:id,email,full_name',
             'property.technicianProvider:id,user_id,email,name',
             'property.technicianProvider.user:id,email,name',
+            'property.advisor:id,email,name',
             'property.advisors:id,email,name',
         ]);
 
         $propertyTechnician = $event === 'nuevo_reporte'
             ? $ticket->property?->technicianProvider
             : null;
+        $isTenantCreatedTicket = $event === 'nuevo_reporte'
+            && $ticket->reported_by_role === 'inquilino';
+        $advisorRecipients = collect();
+        if (! $isTenantCreatedTicket || ! $propertyTechnician) {
+            if ($isTenantCreatedTicket) {
+                $responsibleAdvisor = $ticket->property?->advisor;
+                if (! $responsibleAdvisor || blank($responsibleAdvisor->email)) {
+                    $responsibleAdvisor = $ticket->property?->advisors?->first(fn (User $advisor): bool => filled($advisor->email));
+                }
+                $advisorRecipients = collect([$responsibleAdvisor]);
+            } else {
+                $advisorRecipients = collect([$ticket->property?->advisor])
+                    ->merge($ticket->property?->advisors ?? collect());
+            }
+        }
 
         $notificationEvent = $event === 'nuevo_reporte'
             ? NotificationSettings::EVENT_MAINTENANCE_CREATED
@@ -1590,10 +1606,10 @@ class MaintenanceController extends Controller
                 'email' => $ticket->property?->tenant?->email,
                 'role' => NotificationSettings::ROLE_TENANT,
             ],
-            ...($ticket->property?->advisors?->map(fn (User $advisor): array => [
+            ...$advisorRecipients->filter()->map(fn (User $advisor): array => [
                 'email' => $advisor->email,
                 'role' => NotificationSettings::ROLE_ADVISOR,
-            ])->all() ?? []),
+            ])->all(),
         ])
             ->filter(fn (array $recipient): bool => filled($recipient['email']))
             ->filter(function (array $recipient) use ($notificationEvent): bool {

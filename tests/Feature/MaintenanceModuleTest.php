@@ -345,6 +345,113 @@ class MaintenanceModuleTest extends TestCase
         $this->assertDatabaseCount('maintenance_ticket_files', 1);
     }
 
+    public function test_tenant_ticket_without_property_technician_notifies_responsible_advisor(): void
+    {
+        Storage::fake('public');
+        Mail::fake();
+
+        Role::query()->create(['name' => 'inquilino', 'guard_name' => 'web']);
+        $tenantUser = User::factory()->create(['email' => 'inquilino-sin-tecnico@example.com']);
+        $tenantUser->assignRole('inquilino');
+        $advisor = User::factory()->create(['email' => 'asesor-responsable@example.com']);
+        $tenant = Tenant::create([
+            'full_name' => 'Inquilino sin técnico',
+            'phone_primary' => '9991112233',
+            'email' => $tenantUser->email,
+            'dossier_status' => Tenant::DOSSIER_INCOMPLETE,
+            'is_active' => true,
+        ]);
+        $property = $this->createPropertyFixture($tenantUser);
+        $property->update([
+            'tenant_id' => $tenant->id,
+            'current_tenant_name' => $tenant->full_name,
+            'advisor_user_id' => $advisor->id,
+            'technician_provider_id' => null,
+        ]);
+        $property->advisors()->attach($advisor->id);
+
+        $this->actingAs($tenantUser)
+            ->post(route('maintenance.store'), [
+                'property_id' => $property->id,
+                'title' => 'Ticket del inquilino sin técnico',
+                'files' => [UploadedFile::fake()->image('evidencia.jpg')],
+            ])
+            ->assertRedirect();
+
+        $ticket = MaintenanceTicket::query()->where('title', 'Ticket del inquilino sin técnico')->firstOrFail();
+        $this->assertNull($ticket->current_provider_id);
+        $this->assertDatabaseHas('maintenance_ticket_notifications', [
+            'ticket_id' => $ticket->id,
+            'event' => 'nuevo_reporte',
+            'recipient' => 'asesor-responsable@example.com',
+        ]);
+        Mail::assertSent(MaintenanceTicketEventMail::class, function (MaintenanceTicketEventMail $mail) use ($property): bool {
+            return $mail->hasTo('asesor-responsable@example.com')
+                && $mail->event === 'nuevo_reporte'
+                && str_contains($mail->render(), $property->internal_name);
+        });
+    }
+
+    public function test_tenant_ticket_with_property_technician_notifies_technician_instead_of_advisor(): void
+    {
+        Storage::fake('public');
+        Mail::fake();
+
+        Role::query()->create(['name' => 'inquilino', 'guard_name' => 'web']);
+        $tenantUser = User::factory()->create(['email' => 'inquilino-con-tecnico@example.com']);
+        $tenantUser->assignRole('inquilino');
+        $advisor = User::factory()->create(['email' => 'asesor-no-notificado@example.com']);
+        $technicianUser = User::factory()->create(['email' => 'tecnico-propiedad@example.com']);
+        $technician = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico de la propiedad',
+            'email' => $technicianUser->email,
+            'user_id' => $technicianUser->id,
+            'is_active' => true,
+        ]);
+        $tenant = Tenant::create([
+            'full_name' => 'Inquilino con técnico',
+            'phone_primary' => '9991112233',
+            'email' => $tenantUser->email,
+            'dossier_status' => Tenant::DOSSIER_INCOMPLETE,
+            'is_active' => true,
+        ]);
+        $property = $this->createPropertyFixture($tenantUser);
+        $property->update([
+            'tenant_id' => $tenant->id,
+            'current_tenant_name' => $tenant->full_name,
+            'advisor_user_id' => $advisor->id,
+            'technician_provider_id' => $technician->id,
+        ]);
+        $property->advisors()->attach($advisor->id);
+
+        $this->actingAs($tenantUser)
+            ->post(route('maintenance.store'), [
+                'property_id' => $property->id,
+                'title' => 'Ticket del inquilino con técnico',
+                'files' => [UploadedFile::fake()->image('evidencia.jpg')],
+            ])
+            ->assertRedirect();
+
+        $ticket = MaintenanceTicket::query()->where('title', 'Ticket del inquilino con técnico')->firstOrFail();
+        $this->assertSame($technician->id, $ticket->current_provider_id);
+        $this->assertDatabaseHas('maintenance_ticket_notifications', [
+            'ticket_id' => $ticket->id,
+            'event' => 'nuevo_reporte',
+            'recipient' => 'tecnico-propiedad@example.com',
+        ]);
+        $this->assertDatabaseMissing('maintenance_ticket_notifications', [
+            'ticket_id' => $ticket->id,
+            'event' => 'nuevo_reporte',
+            'recipient' => 'asesor-no-notificado@example.com',
+        ]);
+        Mail::assertSent(MaintenanceTicketEventMail::class, function (MaintenanceTicketEventMail $mail) use ($property): bool {
+            return $mail->hasTo('tecnico-propiedad@example.com')
+                && $mail->event === 'nuevo_reporte'
+                && str_contains($mail->render(), $property->internal_name);
+        });
+    }
+
     public function test_maintenance_ticket_detail_displays_operational_sections(): void
     {
         $user = User::factory()->create();
