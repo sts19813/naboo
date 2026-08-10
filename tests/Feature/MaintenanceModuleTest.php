@@ -452,6 +452,56 @@ class MaintenanceModuleTest extends TestCase
         });
     }
 
+    public function test_ticket_notification_retries_transient_mail_failures(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $property = $this->createPropertyFixture($admin);
+        $technician = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico con reintento',
+            'email' => 'retry@example.com',
+            'is_active' => true,
+        ]);
+        $transport = new class
+        {
+            public int $attempts = 0;
+
+            public function send(): void
+            {
+                $this->attempts++;
+                if ($this->attempts < 3) {
+                    throw new \RuntimeException('Falla SMTP temporal');
+                }
+            }
+        };
+
+        Mail::shouldReceive('to')
+            ->times(3)
+            ->with('retry@example.com')
+            ->andReturn($transport);
+
+        $this->actingAs($admin)
+            ->post(route('maintenance.store'), [
+                'property_id' => $property->id,
+                'category' => 'electricidad',
+                'priority' => 'media',
+                'title' => 'Ticket con reintento SMTP',
+                'exact_location' => 'Sala',
+                'description' => 'Validar recuperación del envío',
+                'reported_at' => now()->format('Y-m-d H:i:s'),
+                'provider_id' => $technician->id,
+            ])
+            ->assertRedirect();
+
+        $ticket = MaintenanceTicket::query()->where('title', 'Ticket con reintento SMTP')->firstOrFail();
+        $notification = $ticket->notifications()->where('recipient', 'retry@example.com')->firstOrFail();
+        $this->assertSame(3, $transport->attempts);
+        $this->assertTrue($notification->was_sent);
+        $this->assertSame(3, $notification->meta['attempts']);
+        $this->assertNull($notification->meta['delivery_error']);
+    }
+
     public function test_maintenance_ticket_detail_displays_operational_sections(): void
     {
         $user = User::factory()->create();

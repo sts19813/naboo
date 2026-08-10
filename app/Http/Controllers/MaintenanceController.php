@@ -1621,11 +1621,18 @@ class MaintenanceController extends Controller
 
         foreach ($recipients as $email) {
             $sent = false;
+            $attempts = 0;
+            $deliveryError = null;
             try {
-                Mail::to($email)->send(new MaintenanceTicketEventMail($ticket, $event, $subject));
+                retry(3, function (int $attempt) use ($email, $ticket, $event, $subject, &$attempts): void {
+                    $attempts = $attempt;
+                    Mail::to($email)->send(new MaintenanceTicketEventMail($ticket, $event, $subject));
+                }, 500);
                 $sent = true;
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
                 $sent = false;
+                $deliveryError = Str::limit($exception->getMessage(), 1000, '');
+                report($exception);
             }
 
             MaintenanceTicketNotification::create([
@@ -1639,6 +1646,8 @@ class MaintenanceController extends Controller
                     'status' => $ticket->status,
                     'priority' => $ticket->priority,
                     'property' => $ticket->property?->internal_name,
+                    'attempts' => $attempts,
+                    'delivery_error' => $deliveryError,
                 ],
             ]);
         }
