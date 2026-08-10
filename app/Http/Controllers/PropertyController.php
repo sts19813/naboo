@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePropertyRequest;
+use App\Mail\PropertyTechnicianAssignedMail;
 use App\Models\Charge;
 use App\Models\ChargePayment;
 use App\Models\Expense;
@@ -28,6 +29,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -200,11 +202,88 @@ class PropertyController extends Controller
             ],
         ]);
 
-        $property->update([
-            'technician_provider_id' => $validated['technician_provider_id'] ?? null,
-        ]);
+        $newProviderId = filled($validated['technician_provider_id'] ?? null)
+            ? (int) $validated['technician_provider_id']
+            : null;
+        $previousProviderId = $property->technician_provider_id
+            ? (int) $property->technician_provider_id
+            : null;
+        $technician = $newProviderId
+            ? MaintenanceProvider::query()->with('user:id,email')->findOrFail($newProviderId)
+            : null;
+        $activeTickets = collect();
 
-        return redirect()->back()->with('success', 'Técnico de la propiedad actualizado correctamente.');
+        if ($previousProviderId !== $newProviderId) {
+            DB::transaction(function () use ($property, $technician, $newProviderId, $request, &$activeTickets): void {
+                $property->update(['technician_provider_id' => $newProviderId]);
+
+                if (! $technician) {
+                    return;
+                }
+
+                $activeTickets = $property->maintenanceTickets()
+                    ->whereNotIn('status', ['completado', 'cancelado'])
+                    ->orderBy('reported_at')
+                    ->orderBy('id')
+                    ->get();
+
+                foreach ($activeTickets as $ticket) {
+                    $hasCurrentAssignment = $ticket->assignments()
+                        ->where('provider_id', $technician->id)
+                        ->where('is_current', true)
+                        ->exists();
+
+                    if ((int) $ticket->current_provider_id === (int) $technician->id && $hasCurrentAssignment) {
+                        continue;
+                    }
+
+                    $ticket->assignments()
+                        ->where('is_current', true)
+                        ->update([
+                            'is_current' => false,
+                            'unassigned_at' => now(),
+                        ]);
+                    $ticket->assignments()->create([
+                        'provider_id' => $technician->id,
+                        'assigned_by_user_id' => $request->user()?->id,
+                        'notes' => 'Reasignación automática al cambiar el técnico responsable de la propiedad.',
+                        'assigned_at' => now(),
+                        'is_current' => true,
+                    ]);
+                    $ticket->update([
+                        'current_provider_id' => $technician->id,
+                        'assigned_at' => now(),
+                    ]);
+                }
+            });
+        }
+
+        $notifiedEmails = 0;
+        if ($technician && $activeTickets->isNotEmpty()) {
+            $recipients = collect([$technician->email, $technician->user?->email])
+                ->filter(fn ($email): bool => filled($email))
+                ->map(fn ($email): string => trim((string) $email))
+                ->unique(fn (string $email): string => Str::lower($email));
+
+            foreach ($recipients as $email) {
+                try {
+                    Mail::to($email)->send(new PropertyTechnicianAssignedMail($property, $technician, $activeTickets));
+                    $notifiedEmails++;
+                } catch (\Throwable $exception) {
+                    report($exception);
+                }
+            }
+        }
+
+        $message = 'Técnico de la propiedad actualizado correctamente.';
+        if ($activeTickets->isNotEmpty()) {
+            $message .= ' Se reasignaron '.$activeTickets->count().' tickets pendientes.';
+            $message .= $notifiedEmails > 0
+                ? ' El técnico fue notificado por correo.'
+                : ' No fue posible enviar la notificación porque el técnico no tiene un correo disponible o ocurrió un error de envío.';
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function updateTenant(Request $request, Property $property): RedirectResponse
