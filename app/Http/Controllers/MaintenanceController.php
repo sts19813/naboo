@@ -232,7 +232,7 @@ class MaintenanceController extends Controller
             'canManageProviders' => $this->canManageTechnicians($user),
             'canManageAssignments' => $role === 'administrador',
             'canUpdateTicketMeta' => in_array($role, ['administrador', 'tecnico'], true),
-            'canManageCosts' => $role === 'administrador' || $user->isResponsibleMaintenanceTechnician(),
+            'canManageCosts' => $role === 'administrador',
             'isTenant' => $role === 'inquilino',
         ]);
     }
@@ -252,30 +252,7 @@ class MaintenanceController extends Controller
         return view('maintenance.technicians', [
             'providers' => $providers,
             'users' => $users,
-            'responsibleProviderId' => $providers->firstWhere('is_responsible', true)?->id,
         ]);
-    }
-
-    public function updateResponsibleTechnician(Request $request): RedirectResponse
-    {
-        $this->ensureCanManageTechnicians($request);
-
-        $validated = $request->validate([
-            'responsible_provider_id' => [
-                'required',
-                'integer',
-                Rule::exists('maintenance_providers', 'id')->where('is_active', true),
-            ],
-        ]);
-
-        DB::transaction(function () use ($validated): void {
-            MaintenanceProvider::query()->where('is_responsible', true)->update(['is_responsible' => false]);
-            MaintenanceProvider::query()
-                ->whereKey((int) $validated['responsible_provider_id'])
-                ->update(['is_responsible' => true]);
-        });
-
-        return redirect()->back()->with('success', 'Técnico responsable actualizado correctamente.');
     }
 
     public function store(StoreMaintenanceTicketRequest $request): RedirectResponse|JsonResponse
@@ -405,7 +382,7 @@ class MaintenanceController extends Controller
             'administrador' => $this->accessiblePropertiesQuery($user, $role)
                 ->orderBy('internal_name')
                 ->get(['id', 'uuid', 'internal_name', 'internal_reference']),
-            'tecnico' => Property::query()
+            'tecnico' => $this->accessiblePropertiesQuery($user, $role)
                 ->orderBy('internal_name')
                 ->get(['id', 'uuid', 'internal_name', 'internal_reference']),
             default => collect(),
@@ -431,7 +408,8 @@ class MaintenanceController extends Controller
             'paymentRuleOptions' => MaintenanceTicket::PAYMENT_RULE_LABELS,
             'messageChannels' => MaintenanceTicketMessage::CHANNEL_LABELS,
             'canManageAssignments' => in_array($role, ['administrador', 'tecnico'], true),
-            'canManageCosts' => $role === 'administrador' || $user->isResponsibleMaintenanceTechnician(),
+            'canManageCosts' => $role === 'administrador'
+                || ($role === 'tecnico' && $this->isPropertyTechnician($maintenance, $user)),
             'canEditTicket' => $role === 'administrador',
             'canChangeStatus' => in_array($role, ['administrador', 'tecnico'], true),
             'canQuickScheduleVisit' => in_array($role, ['administrador', 'tecnico'], true),
@@ -553,11 +531,9 @@ class MaintenanceController extends Controller
             $updates['priority'] = (string) $validated['priority'];
         }
         if (filled($validated['property_id'] ?? null)) {
-            $property = $role === 'tecnico'
-                ? Property::query()->where('id', (int) $validated['property_id'])->firstOrFail()
-                : $this->accessiblePropertiesQuery($user, $role)
-                    ->where('id', (int) $validated['property_id'])
-                    ->firstOrFail();
+            $property = $this->accessiblePropertiesQuery($user, $role)
+                ->where('id', (int) $validated['property_id'])
+                ->firstOrFail();
             $updates['property_id'] = $property->id;
         }
         if (array_key_exists('scheduled_visit_at', $validated)) {
@@ -808,7 +784,7 @@ class MaintenanceController extends Controller
         $user = $request->user();
         $role = $this->resolveRole($user);
         $this->ensureTicketVisible($maintenance, $user, $role);
-        if ($role !== 'administrador' && ! $user->isResponsibleMaintenanceTechnician()) {
+        if ($role !== 'administrador' && ($role !== 'tecnico' || ! $this->isPropertyTechnician($maintenance, $user))) {
             abort(403);
         }
 
@@ -1058,9 +1034,6 @@ class MaintenanceController extends Controller
         ]);
         $wantsCreateAccount = (bool) ($validated['create_user_account'] ?? false);
         $selectedUserId = $validated['user_id'] ?? null;
-        if ($provider->is_responsible && ! (bool) ($validated['is_active'] ?? false)) {
-            return redirect()->back()->with('error', 'El técnico responsable no puede desactivarse. Selecciona primero otro responsable.');
-        }
         if ($wantsCreateAccount && $selectedUserId) {
             return redirect()->back()->with('error', 'Selecciona un usuario existente o crea una cuenta nueva, no ambos.');
         }
@@ -1206,7 +1179,7 @@ class MaintenanceController extends Controller
     private function accessiblePropertiesQuery(User $user, string $role): Builder
     {
         $query = Property::query();
-        if ($role === 'administrador' || ($role === 'tecnico' && $user->isResponsibleMaintenanceTechnician())) {
+        if ($role === 'administrador') {
             return $query;
         }
         if ($role === 'propietario') {
@@ -1216,40 +1189,35 @@ class MaintenanceController extends Controller
             return $query->whereHas('tenant', fn (Builder $tenantQuery) => $tenantQuery->where('email', $user->email));
         }
 
-        return $query->whereHas('maintenanceTickets.assignments.provider', function (Builder $providerQuery) use ($user): void {
-            $providerQuery
-                ->where('maintenance_providers.user_id', $user->id)
-                ->orWhere('maintenance_providers.email', $user->email);
+        return $query->where(function (Builder $propertyQuery) use ($user): void {
+            $propertyQuery
+                ->whereHas('technicianProvider', function (Builder $providerQuery) use ($user): void {
+                    $this->constrainProviderToUser($providerQuery, $user);
+                })
+                ->orWhereHas('maintenanceTickets.currentProvider', function (Builder $providerQuery) use ($user): void {
+                    $this->constrainProviderToUser($providerQuery, $user);
+                });
         });
     }
 
     private function resolveInitialProviderId(Property $property, ?int $requestedProviderId): ?int
     {
+        if ($requestedProviderId) {
+            return $requestedProviderId;
+        }
+
         $propertyProviderId = MaintenanceProvider::query()
             ->whereKey($property->technician_provider_id)
             ->where('is_active', true)
             ->value('id');
 
-        if ($propertyProviderId) {
-            return (int) $propertyProviderId;
-        }
-
-        if ($requestedProviderId) {
-            return $requestedProviderId;
-        }
-
-        $responsibleProviderId = MaintenanceProvider::query()
-            ->where('is_active', true)
-            ->where('is_responsible', true)
-            ->value('id');
-
-        return $responsibleProviderId ? (int) $responsibleProviderId : null;
+        return $propertyProviderId ? (int) $propertyProviderId : null;
     }
 
     private function visibleTicketsQuery(User $user, string $role): Builder
     {
         $query = MaintenanceTicket::query();
-        if ($role === 'administrador' || ($role === 'tecnico' && $user->isResponsibleMaintenanceTechnician())) {
+        if ($role === 'administrador') {
             return $query;
         }
         if ($role === 'propietario') {
@@ -1259,15 +1227,36 @@ class MaintenanceController extends Controller
             return $query->whereHas('property.tenant', fn (Builder $tenantQuery) => $tenantQuery->where('email', $user->email));
         }
 
-        return $query->whereHas('assignments', function (Builder $assignmentQuery) use ($user): void {
-            $assignmentQuery
-                ->where('is_current', true)
-                ->whereHas('provider', function (Builder $providerQuery) use ($user): void {
-                    $providerQuery
-                        ->where('maintenance_providers.user_id', $user->id)
-                        ->orWhere('maintenance_providers.email', $user->email);
+        return $query->where(function (Builder $ticketQuery) use ($user): void {
+            $ticketQuery
+                ->whereHas('currentProvider', function (Builder $providerQuery) use ($user): void {
+                    $this->constrainProviderToUser($providerQuery, $user);
+                })
+                ->orWhereHas('property.technicianProvider', function (Builder $providerQuery) use ($user): void {
+                    $this->constrainProviderToUser($providerQuery, $user);
                 });
         });
+    }
+
+    private function constrainProviderToUser(Builder $query, User $user): void
+    {
+        $query->where(function (Builder $identityQuery) use ($user): void {
+            $identityQuery->where('maintenance_providers.user_id', $user->id);
+
+            if (filled($user->email)) {
+                $identityQuery->orWhere('maintenance_providers.email', $user->email);
+            }
+        });
+    }
+
+    private function isPropertyTechnician(MaintenanceTicket $ticket, User $user): bool
+    {
+        return Property::query()
+            ->whereKey($ticket->property_id)
+            ->whereHas('technicianProvider', function (Builder $providerQuery) use ($user): void {
+                $this->constrainProviderToUser($providerQuery, $user);
+            })
+            ->exists();
     }
 
     private function ensureTicketVisible(MaintenanceTicket $ticket, User $user, string $role): void
@@ -1567,15 +1556,13 @@ class MaintenanceController extends Controller
             'currentProvider:id,user_id,email,name',
             'currentProvider.user:id,email,name',
             'property.tenant:id,email,full_name',
+            'property.technicianProvider:id,user_id,email,name',
+            'property.technicianProvider.user:id,email,name',
             'property.advisors:id,email,name',
         ]);
 
-        $responsibleProvider = $event === 'nuevo_reporte'
-            ? MaintenanceProvider::query()
-                ->where('is_active', true)
-                ->where('is_responsible', true)
-                ->with('user:id,email,name')
-                ->first(['id', 'user_id', 'email', 'name'])
+        $propertyTechnician = $event === 'nuevo_reporte'
+            ? $ticket->property?->technicianProvider
             : null;
 
         $notificationEvent = $event === 'nuevo_reporte'
@@ -1592,11 +1579,11 @@ class MaintenanceController extends Controller
                 'role' => NotificationSettings::ROLE_TECHNICIAN,
             ],
             [
-                'email' => $responsibleProvider?->email,
+                'email' => $propertyTechnician?->email,
                 'role' => NotificationSettings::ROLE_TECHNICIAN,
             ],
             [
-                'email' => $responsibleProvider?->user?->email,
+                'email' => $propertyTechnician?->user?->email,
                 'role' => NotificationSettings::ROLE_TECHNICIAN,
             ],
             [

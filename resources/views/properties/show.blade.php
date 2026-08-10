@@ -259,14 +259,14 @@
 
                                         <div class="dropdown property-assignment-dropdown">
                                             <button class="btn btn-sm btn-primary dropdown-toggle property-assignment-button" type="button"
-                                                data-bs-toggle="dropdown" title="{{ $property->technicianProvider?->name ?: 'Técnico responsable global' }}"
+                                                data-bs-toggle="dropdown" title="{{ $property->technicianProvider?->name ?: 'Sin técnico de la propiedad' }}"
                                                 @disabled(! $canManagePropertyTechnician)>
                                                 <span class="property-assignment-button__content">
                                                     <span class="property-assignment-button__label">
                                                         {{ $property->technician_provider_id ? 'Cambiar técnico' : 'Técnico' }}
                                                     </span>
                                                     <span class="property-assignment-button__value">
-                                                        {{ $property->technicianProvider?->name ?: 'Responsable global' }}
+                                                        {{ $property->technicianProvider?->name ?: 'Sin técnico asignado' }}
                                                     </span>
                                                 </span>
                                             </button>
@@ -280,7 +280,7 @@
                                                             @method('PUT')
                                                             <input type="hidden" name="technician_provider_id" value="">
                                                             <button type="submit" class="dropdown-item {{ $property->technician_provider_id ? '' : 'active' }}">
-                                                                Usar técnico responsable global
+                                                                Sin técnico de la propiedad
                                                             </button>
                                                         </form>
                                                     </li>

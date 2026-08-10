@@ -135,12 +135,16 @@ class AdvisorTaskController extends Controller
         }
 
         $providerIds = MaintenanceProvider::query()
-            ->where('user_id', $user->id)
+            ->where(function ($query) use ($user): void {
+                $query->where('user_id', $user->id);
+
+                if (filled($user->email)) {
+                    $query->orWhere('email', $user->email);
+                }
+            })
             ->pluck('id');
 
-        $isResponsibleTechnician = $user->isResponsibleMaintenanceTechnician();
-
-        if (! $isResponsibleTechnician && $providerIds->isEmpty()) {
+        if ($providerIds->isEmpty()) {
             return collect();
         }
 
@@ -148,7 +152,10 @@ class AdvisorTaskController extends Controller
 
         return MaintenanceTicket::query()
             ->with('property:id,uuid,internal_name,internal_reference,facade_photo_path')
-            ->when(! $isResponsibleTechnician, fn ($query) => $query->whereIn('current_provider_id', $providerIds->all()))
+            ->where(function ($query) use ($providerIds): void {
+                $query->whereIn('current_provider_id', $providerIds->all())
+                    ->orWhereHas('property', fn ($propertyQuery) => $propertyQuery->whereIn('technician_provider_id', $providerIds->all()));
+            })
             ->whereIn('status', $activeStatuses)
             ->where(function ($query) use ($period): void {
                 $query->whereNull('scheduled_visit_at')

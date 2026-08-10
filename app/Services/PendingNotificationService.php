@@ -110,14 +110,13 @@ class PendingNotificationService
     {
         $count = $this->countTechnicianTasks($user);
         $route = route('maintenance.index');
-        $isResponsibleTechnician = $user->isResponsibleMaintenanceTechnician();
 
         return [
             'total' => $count,
             'route' => $route,
             'items' => [[
-                'title' => $isResponsibleTechnician ? 'Todos los tickets' : 'Tickets asignados',
-                'subtitle' => $isResponsibleTechnician ? 'Mantenimiento por atender' : 'Visitas y trabajos por atender',
+                'title' => 'Mis tickets de mantenimiento',
+                'subtitle' => 'Asignados y de propiedades a mi cargo',
                 'count' => $count,
                 'route' => $route,
                 'icon' => 'bi-tools',
@@ -196,19 +195,27 @@ class PendingNotificationService
 
     private function countTechnicianTasks(User $user): int
     {
-        $isResponsibleTechnician = $user->isResponsibleMaintenanceTechnician();
         $providerIds = MaintenanceProvider::query()
-            ->where('user_id', $user->id)
+            ->where(function ($query) use ($user): void {
+                $query->where('user_id', $user->id);
+
+                if (filled($user->email)) {
+                    $query->orWhere('email', $user->email);
+                }
+            })
             ->pluck('id');
 
-        if (! $isResponsibleTechnician && $providerIds->isEmpty()) {
+        if ($providerIds->isEmpty()) {
             return 0;
         }
 
         $activeStatuses = array_diff(array_keys(MaintenanceTicket::STATUS_LABELS), ['completado', 'cancelado']);
 
         return MaintenanceTicket::query()
-            ->when(! $isResponsibleTechnician, fn ($query) => $query->whereIn('current_provider_id', $providerIds))
+            ->where(function ($query) use ($providerIds): void {
+                $query->whereIn('current_provider_id', $providerIds)
+                    ->orWhereHas('property', fn ($propertyQuery) => $propertyQuery->whereIn('technician_provider_id', $providerIds));
+            })
             ->whereIn('status', $activeStatuses)
             ->where(function ($query): void {
                 $query->whereNull('scheduled_visit_at')

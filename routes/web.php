@@ -179,7 +179,6 @@ Route::middleware(['auth', 'system.access'])
         Route::get('/mantenimiento', [MaintenanceController::class, 'index'])->name('maintenance.index');
         Route::post('/mantenimiento', [MaintenanceController::class, 'store'])->name('maintenance.store');
         Route::get('/mantenimiento/tecnicos', [MaintenanceController::class, 'technicians'])->name('maintenance.technicians.index');
-        Route::put('/mantenimiento/tecnicos/responsable', [MaintenanceController::class, 'updateResponsibleTechnician'])->name('maintenance.technicians.responsible');
         Route::get('/mantenimiento/{maintenance}', [MaintenanceController::class, 'show'])->name('maintenance.show');
         Route::put('/mantenimiento/{maintenance}', [MaintenanceController::class, 'update'])->name('maintenance.update');
         Route::patch('/mantenimiento/{maintenance}/meta', [MaintenanceController::class, 'updateMeta'])->name('maintenance.meta');
