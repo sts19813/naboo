@@ -55,4 +55,12 @@ return [
         'client_secret' => env('CENTRAL_SSO_CLIENT_SECRET'),
     ],
 
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4.1-mini'),
+        'timeout' => env('OPENAI_TIMEOUT', 45),
+        'input_cost_per_1m' => env('OPENAI_INPUT_COST_PER_1M'),
+        'output_cost_per_1m' => env('OPENAI_OUTPUT_COST_PER_1M'),
+    ],
+
 ];

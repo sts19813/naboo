@@ -106,6 +106,8 @@
         </div>
     </div>
 
+    @include('partials.copilot')
+
     <script>
         var hostUrl = "{{ asset('assets') }}/";
     </script>
