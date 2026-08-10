@@ -3,10 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Charge;
+use App\Models\DossierDocumentRequirement;
+use App\Models\MaintenanceProvider;
 use App\Models\Owner;
 use App\Models\Property;
 use App\Models\PropertyType;
-use App\Models\DossierDocumentRequirement;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Zone;
@@ -274,6 +275,52 @@ class PropertyModuleTest extends TestCase
         $this->assertSame($advisor->id, $property->fresh()->advisor_user_id);
     }
 
+    public function test_admin_can_select_property_technician_and_sees_both_responsible_selectors(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $advisor = User::factory()->create(['name' => 'Asesor de ficha']);
+        $advisor->assignRole(Role::query()->create(['name' => 'asesores', 'guard_name' => 'web']));
+        $technician = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico de ficha',
+            'email' => 'ficha@example.com',
+            'is_active' => true,
+        ]);
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $zone = Zone::create(['name' => 'Centro', 'slug' => 'centro', 'is_active' => true]);
+        $property = Property::create([
+            'internal_name' => 'Casa con responsables',
+            'property_type_id' => $type->id,
+            'zone_id' => $zone->id,
+            'full_address' => 'Calle Responsables',
+            'status' => Property::STATUS_AVAILABLE,
+            'created_by' => $admin->id,
+            'advisor_user_id' => $advisor->id,
+            'technician_provider_id' => $technician->id,
+        ]);
+        $property->advisors()->attach($advisor->id);
+
+        $this->actingAs($admin)
+            ->get(route('properties.show', $property))
+            ->assertOk()
+            ->assertSee('Técnico de la propiedad')
+            ->assertSee('Técnico de ficha')
+            ->assertSee('Asesor responsable')
+            ->assertSee('Asesor de ficha')
+            ->assertSee('title="Técnico de ficha"', false)
+            ->assertSee('title="Asesor de ficha"', false);
+
+        $this->actingAs($admin)
+            ->from(route('properties.show', $property))
+            ->put(route('properties.update.technician', $property), [
+                'technician_provider_id' => $technician->id,
+            ])
+            ->assertRedirect(route('properties.show', $property));
+
+        $this->assertSame($technician->id, $property->fresh()->technician_provider_id);
+    }
+
     public function test_property_advisor_dropdown_only_shows_advisors_and_admins(): void
     {
         $adminRole = Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']);
@@ -438,7 +485,7 @@ class PropertyModuleTest extends TestCase
         $response->assertSee('Asignar inquilino');
         $response->assertSee('suwork:property-tab-restore:', false);
         $this->assertNotNull($property->uuid);
-        $this->assertStringContainsString('/propiedades/' . $property->uuid, route('properties.show', $property));
+        $this->assertStringContainsString('/propiedades/'.$property->uuid, route('properties.show', $property));
     }
 
     public function test_property_can_be_updated_from_edit_flow(): void
@@ -495,7 +542,7 @@ class PropertyModuleTest extends TestCase
             ->get(route('properties.edit', $property))
             ->assertOk();
         $this->assertMatchesRegularExpression(
-            '/<option\s+value="' . $type2->id . '"\s+selected>\s*Terreno\s*<\/option>/',
+            '/<option\s+value="'.$type2->id.'"\s+selected>\s*Terreno\s*<\/option>/',
             $editResponse->getContent(),
         );
         $this->assertDatabaseHas('owner_property', [

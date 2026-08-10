@@ -184,3 +184,95 @@
     background: var(--success);
     color: #fff;
 }
+
+/* =========================================================
+   RESPONSABLES DE LA PROPIEDAD
+========================================================= */
+.property-assignment-bar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+.property-assignment-dropdown {
+    min-width: 0;
+}
+
+.property-assignment-button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 58px;
+    padding: 9px 14px;
+    text-align: left;
+}
+
+.property-assignment-button::after {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.property-assignment-button__content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    padding-right: 10px;
+}
+
+.property-assignment-button__label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+    opacity: 0.78;
+    text-transform: uppercase;
+}
+
+.property-assignment-button__value {
+    display: block;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.property-assignment-dropdown .dropdown-menu {
+    width: max-content;
+    min-width: 100%;
+    max-width: min(360px, 90vw);
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.property-assignment-dropdown .dropdown-item {
+    color: var(--text-main) !important;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.property-assignment-dropdown .dropdown-item:not(.active):hover,
+.property-assignment-dropdown .dropdown-item:not(.active):focus {
+    color: var(--primary) !important;
+    background-color: var(--primary-soft) !important;
+}
+
+.property-assignment-dropdown .dropdown-item.active,
+.property-assignment-dropdown .dropdown-item:active {
+    color: #fff !important;
+    background-color: var(--sw-primary, var(--primary)) !important;
+}
+
+.property-assignment-dropdown .dropdown-item.active .text-muted,
+.property-assignment-dropdown .dropdown-item:active .text-muted {
+    color: rgba(255, 255, 255, 0.82) !important;
+}
+
+@media (max-width: 767.98px) {
+    .property-assignment-bar {
+        grid-template-columns: 1fr;
+    }
+}

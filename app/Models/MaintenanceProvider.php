@@ -30,6 +30,7 @@ class MaintenanceProvider extends Model
         'rating',
         'availability',
         'is_active',
+        'is_responsible',
     ];
 
     protected function casts(): array
@@ -38,6 +39,7 @@ class MaintenanceProvider extends Model
             'average_cost' => 'decimal:2',
             'rating' => 'decimal:2',
             'is_active' => 'boolean',
+            'is_responsible' => 'boolean',
         ];
     }
 

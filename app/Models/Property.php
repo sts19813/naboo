@@ -5,8 +5,8 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -14,17 +14,24 @@ use Illuminate\Support\Str;
 class Property extends Model
 {
     use HasFactory;
+
     private const CHANGE_LOG_IGNORED_ATTRIBUTES = [
         'updated_at',
         'created_at',
     ];
+
     private array $pendingPropertyChangeSet = [];
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_AVAILABLE = 'available';
+
     public const STATUS_IN_PROCESS = 'in_process';
+
     public const STATUS_BLOCKED = 'blocked';
+
     public const STATUS_OCCUPIED = 'occupied';
+
     public const STATUS_RENTED = 'rented';
 
     public const STATUS_LABELS = [
@@ -78,6 +85,7 @@ class Property extends Model
         'onboarding_step',
         'created_by',
         'advisor_user_id',
+        'technician_provider_id',
     ];
 
     protected function casts(): array
@@ -143,6 +151,11 @@ class Property extends Model
     public function advisor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'advisor_user_id');
+    }
+
+    public function technicianProvider(): BelongsTo
+    {
+        return $this->belongsTo(MaintenanceProvider::class, 'technician_provider_id');
     }
 
     public function advisors(): BelongsToMany

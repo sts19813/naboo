@@ -24,6 +24,32 @@
 
         <div class="card mb-6">
             <div class="card-body">
+                <form method="POST" action="{{ route('maintenance.technicians.responsible') }}" class="row g-4 align-items-end">
+                    @csrf
+                    @method('PUT')
+                    <div class="col-lg-8">
+                        <label class="form-label required fw-bold">Técnico responsable</label>
+                        <select class="form-select @error('responsible_provider_id') is-invalid @enderror" name="responsible_provider_id" required>
+                            <option value="">Selecciona un técnico</option>
+                            @foreach ($providers->where('is_active', true) as $provider)
+                                <option value="{{ $provider->id }}" @selected((int) old('responsible_provider_id', $responsibleProviderId) === $provider->id)>
+                                    {{ $provider->name }}{{ $provider->specialty ? ' · '.$provider->specialty : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('responsible_provider_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-lg-4">
+                        <button class="btn btn-primary w-100" type="submit">Guardar responsable</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-6">
+            <div class="card-body">
                 <div class="table-responsive">
                     <table class="table align-middle">
                         <thead>
@@ -37,6 +63,7 @@
                                 <th>Calificación</th>
                                 <th>Disponibilidad</th>
                                 <th>Estado</th>
+                                <th>Responsable</th>
                                 <th class="text-end">Acciones</th>
                             </tr>
                         </thead>
@@ -62,6 +89,13 @@
                                     <td>{{ $provider->rating !== null ? number_format((float) $provider->rating, 2) : '-' }}</td>
                                     <td>{{ $provider->availability ?: '-' }}</td>
                                     <td>{{ $provider->is_active ? 'Activo' : 'Inactivo' }}</td>
+                                    <td>
+                                        @if ($provider->is_responsible)
+                                            <span class="badge badge-light-primary">Principal</span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
                                     <td class="text-end">
                                         <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#editProviderModal-{{ $provider->id }}">
                                             Editar
@@ -70,7 +104,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="text-center text-muted py-10">No hay técnicos/proveedores.</td>
+                                    <td colspan="11" class="text-center text-muted py-10">No hay técnicos/proveedores.</td>
                                 </tr>
                             @endforelse
                         </tbody>

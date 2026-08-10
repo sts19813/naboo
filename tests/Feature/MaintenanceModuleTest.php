@@ -78,6 +78,102 @@ class MaintenanceModuleTest extends TestCase
         ]);
     }
 
+    public function test_responsible_technician_is_automatically_assigned_and_notified(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $property = $this->createPropertyFixture($admin);
+        $provider = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico responsable',
+            'email' => 'responsable@example.com',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('maintenance.technicians.responsible'), [
+                'responsible_provider_id' => $provider->id,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($admin)
+            ->post(route('maintenance.store'), [
+                'property_id' => $property->id,
+                'category' => 'plomeria',
+                'priority' => 'media',
+                'title' => 'Ticket asignado al responsable',
+                'exact_location' => 'Baño',
+                'description' => 'Asignación automática',
+                'reported_at' => now()->format('Y-m-d H:i:s'),
+            ])
+            ->assertRedirect();
+
+        $ticket = MaintenanceTicket::query()->where('title', 'Ticket asignado al responsable')->firstOrFail();
+
+        $this->assertTrue($provider->fresh()->is_responsible);
+        $this->assertSame($provider->id, $ticket->current_provider_id);
+        $this->assertSame('asignado', $ticket->status);
+        $this->assertDatabaseHas('maintenance_ticket_assignments', [
+            'ticket_id' => $ticket->id,
+            'provider_id' => $provider->id,
+            'is_current' => true,
+        ]);
+        $this->assertDatabaseHas('maintenance_ticket_notifications', [
+            'ticket_id' => $ticket->id,
+            'event' => 'nuevo_reporte',
+            'recipient' => 'responsable@example.com',
+        ]);
+    }
+
+    public function test_property_technician_overrides_global_assignment_and_global_responsible_is_also_notified(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $propertyTechnician = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico de propiedad',
+            'email' => 'propiedad@example.com',
+            'is_active' => true,
+        ]);
+        $globalTechnician = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico global',
+            'email' => 'global@example.com',
+            'is_active' => true,
+            'is_responsible' => true,
+        ]);
+        $property = $this->createPropertyFixture($admin);
+        $property->update(['technician_provider_id' => $propertyTechnician->id]);
+
+        $this->actingAs($admin)
+            ->post(route('maintenance.store'), [
+                'property_id' => $property->id,
+                'category' => 'electricidad',
+                'priority' => 'alta',
+                'title' => 'Ticket con técnico de propiedad',
+                'exact_location' => 'Cocina',
+                'description' => 'Debe respetar al técnico de la propiedad',
+                'reported_at' => now()->format('Y-m-d H:i:s'),
+                'provider_id' => $globalTechnician->id,
+            ])
+            ->assertRedirect();
+
+        $ticket = MaintenanceTicket::query()->where('title', 'Ticket con técnico de propiedad')->firstOrFail();
+
+        $this->assertSame($propertyTechnician->id, $ticket->current_provider_id);
+        foreach (['propiedad@example.com', 'global@example.com'] as $recipient) {
+            $this->assertDatabaseHas('maintenance_ticket_notifications', [
+                'ticket_id' => $ticket->id,
+                'event' => 'nuevo_reporte',
+                'recipient' => $recipient,
+            ]);
+        }
+    }
+
     public function test_new_ticket_notifies_only_technician_advisor_and_tenant(): void
     {
         Mail::fake();
@@ -297,7 +393,7 @@ class MaintenanceModuleTest extends TestCase
         $ticket->files()->create([
             'uploaded_by_user_id' => $user->id,
             'kind' => 'evidencia',
-            'path' => 'maintenance/' . $ticket->id . '/evidencia/foto.jpg',
+            'path' => 'maintenance/'.$ticket->id.'/evidencia/foto.jpg',
             'original_name' => 'foto.jpg',
             'mime_type' => 'image/jpeg',
             'size' => 123,
@@ -306,7 +402,7 @@ class MaintenanceModuleTest extends TestCase
         $ticket->files()->create([
             'uploaded_by_user_id' => $user->id,
             'kind' => 'video',
-            'path' => 'maintenance/' . $ticket->id . '/video/video.mp4',
+            'path' => 'maintenance/'.$ticket->id.'/video/video.mp4',
             'original_name' => 'video.mp4',
             'mime_type' => 'video/mp4',
             'size' => 456,
@@ -315,7 +411,7 @@ class MaintenanceModuleTest extends TestCase
         $ticket->files()->create([
             'uploaded_by_user_id' => $user->id,
             'kind' => 'documento',
-            'path' => 'maintenance/' . $ticket->id . '/documento/reporte.pdf',
+            'path' => 'maintenance/'.$ticket->id.'/documento/reporte.pdf',
             'original_name' => 'reporte.pdf',
             'mime_type' => 'application/pdf',
             'size' => 789,
@@ -324,7 +420,7 @@ class MaintenanceModuleTest extends TestCase
         $ticket->files()->create([
             'uploaded_by_user_id' => $user->id,
             'kind' => 'trabajo_finalizado',
-            'path' => 'maintenance/' . $ticket->id . '/trabajo_finalizado/final.jpg',
+            'path' => 'maintenance/'.$ticket->id.'/trabajo_finalizado/final.jpg',
             'original_name' => 'final.jpg',
             'mime_type' => 'image/jpeg',
             'size' => 101,
@@ -336,10 +432,10 @@ class MaintenanceModuleTest extends TestCase
             ->get(route('maintenance.show', $ticket));
 
         $response->assertOk();
-        $response->assertSee('/storage/maintenance/' . $ticket->id . '/evidencia/foto.jpg', false);
-        $response->assertSee('/storage/maintenance/' . $ticket->id . '/video/video.mp4', false);
-        $response->assertSee('/storage/maintenance/' . $ticket->id . '/documento/reporte.pdf', false);
-        $response->assertSee('/storage/maintenance/' . $ticket->id . '/trabajo_finalizado/final.jpg', false);
+        $response->assertSee('/storage/maintenance/'.$ticket->id.'/evidencia/foto.jpg', false);
+        $response->assertSee('/storage/maintenance/'.$ticket->id.'/video/video.mp4', false);
+        $response->assertSee('/storage/maintenance/'.$ticket->id.'/documento/reporte.pdf', false);
+        $response->assertSee('/storage/maintenance/'.$ticket->id.'/trabajo_finalizado/final.jpg', false);
         $response->assertSee('<video', false);
         $response->assertSee('ticketFilePreviewModal', false);
         $response->assertSee('application/pdf', false);
@@ -348,8 +444,8 @@ class MaintenanceModuleTest extends TestCase
         $response->assertSee('Evidencias y archivos del trabajo finalizado');
         $response->assertSee('name="kind" value="reporte"', false);
         $response->assertSee('name="kind" value="trabajo_finalizado"', false);
-        $response->assertSee('Evidencia · ' . $ticket->files()->where('original_name', 'foto.jpg')->first()->created_at?->format('d/m/Y H:i'), false);
-        $response->assertSee('Trabajo finalizado · ' . $ticket->files()->where('original_name', 'final.jpg')->first()->created_at?->format('d/m/Y H:i'), false);
+        $response->assertSee('Evidencia · '.$ticket->files()->where('original_name', 'foto.jpg')->first()->created_at?->format('d/m/Y H:i'), false);
+        $response->assertSee('Trabajo finalizado · '.$ticket->files()->where('original_name', 'final.jpg')->first()->created_at?->format('d/m/Y H:i'), false);
         $response->assertDontSee('ticket-file-list', false);
         $response->assertDontSee('http://localhost/storage/maintenance/', false);
         $response->assertDontSee('href="#ticket-chat-section"', false);
@@ -423,13 +519,13 @@ class MaintenanceModuleTest extends TestCase
         $this->actingAs($user)
             ->get(route('expenses.index', ['property' => $property->uuid]))
             ->assertOk()
-            ->assertViewHas('expenses', fn($expenses): bool => $expenses->count() === 2)
-            ->assertViewHas('summary', fn(array $summary): bool => $summary['overdue_total'] + $summary['pending_total'] === 600.0);
+            ->assertViewHas('expenses', fn ($expenses): bool => $expenses->count() === 2)
+            ->assertViewHas('summary', fn (array $summary): bool => $summary['overdue_total'] + $summary['pending_total'] === 600.0);
 
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertViewHas('profitabilitySummary', fn(array $summary): bool => $summary['expense_total'] === 600.0);
+            ->assertViewHas('profitabilitySummary', fn (array $summary): bool => $summary['expense_total'] === 600.0);
     }
 
     public function test_ticket_file_can_be_deleted_from_detail(): void
@@ -451,7 +547,7 @@ class MaintenanceModuleTest extends TestCase
             'description' => 'Archivo para borrar',
             'reported_at' => now(),
         ]);
-        $path = 'maintenance/' . $ticket->id . '/evidencia/foto.jpg';
+        $path = 'maintenance/'.$ticket->id.'/evidencia/foto.jpg';
         Storage::disk('public')->put($path, 'fake-image');
         $file = $ticket->files()->create([
             'uploaded_by_user_id' => $user->id,

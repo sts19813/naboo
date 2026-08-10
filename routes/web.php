@@ -71,6 +71,7 @@ Route::middleware(['auth', 'system.access'])
         Route::put('/propiedades/{property}', [PropertyController::class, 'update'])->name('properties.update');
         Route::put('/propiedades/{property}/inquilino', [PropertyController::class, 'updateTenant'])->name('properties.update.tenant');
         Route::put('/propiedades/{property}/asesores', [PropertyController::class, 'updateAdvisors'])->name('properties.update.advisors');
+        Route::put('/propiedades/{property}/tecnico', [PropertyController::class, 'updateTechnician'])->name('properties.update.technician');
         Route::get('/propiedades/{property}', [PropertyController::class, 'show'])->name('properties.show');
         Route::get('/propiedades/{property}/expediente', [DocumentController::class, 'propertyDossier'])->name('dossiers.properties.show');
         Route::post('/propiedades/{property}/expediente/documentos/{documentType}', [DocumentController::class, 'uploadPropertyDocument'])->name('dossiers.properties.documents.upload');
@@ -178,6 +179,7 @@ Route::middleware(['auth', 'system.access'])
         Route::get('/mantenimiento', [MaintenanceController::class, 'index'])->name('maintenance.index');
         Route::post('/mantenimiento', [MaintenanceController::class, 'store'])->name('maintenance.store');
         Route::get('/mantenimiento/tecnicos', [MaintenanceController::class, 'technicians'])->name('maintenance.technicians.index');
+        Route::put('/mantenimiento/tecnicos/responsable', [MaintenanceController::class, 'updateResponsibleTechnician'])->name('maintenance.technicians.responsible');
         Route::get('/mantenimiento/{maintenance}', [MaintenanceController::class, 'show'])->name('maintenance.show');
         Route::put('/mantenimiento/{maintenance}', [MaintenanceController::class, 'update'])->name('maintenance.update');
         Route::patch('/mantenimiento/{maintenance}/meta', [MaintenanceController::class, 'updateMeta'])->name('maintenance.meta');
