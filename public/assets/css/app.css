@@ -3414,3 +3414,71 @@ table.dataTable .btn.btn-light:focus {
         margin-bottom: 2rem !important;
     }
 }
+
+/* Mobile modals: keep actions visible and scroll only the content area. */
+@media (max-width: 767.98px) {
+    .modal {
+        z-index: 1200 !important;
+        padding: 0 !important;
+    }
+
+    .modal-backdrop {
+        z-index: 1190 !important;
+    }
+
+    .modal .modal-dialog {
+        width: calc(100% - 1rem);
+        max-width: none;
+        max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        margin: calc(.5rem + env(safe-area-inset-top)) auto calc(.5rem + env(safe-area-inset-bottom));
+    }
+
+    .modal .modal-dialog.modal-dialog-centered {
+        min-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+
+    .modal .modal-content,
+    .modal .modal-content > form {
+        display: flex;
+        min-height: 0;
+        max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .modal .modal-header,
+    .modal .modal-footer {
+        flex: 0 0 auto;
+    }
+
+    .modal .modal-body,
+    .modal .modal-content > form > .modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .modal .modal-footer {
+        position: relative;
+        z-index: 2;
+        padding-bottom: calc(var(--bs-modal-padding, 1rem) + env(safe-area-inset-bottom));
+        background: var(--bs-modal-bg, var(--bs-body-bg, #fff));
+        box-shadow: 0 -8px 18px rgba(15, 23, 42, .08);
+    }
+
+    @supports not (height: 100dvh) {
+        .modal .modal-dialog,
+        .modal .modal-dialog.modal-dialog-centered,
+        .modal .modal-content,
+        .modal .modal-content > form {
+            max-height: calc(100vh - 1rem);
+        }
+
+        .modal .modal-dialog.modal-dialog-centered {
+            min-height: calc(100vh - 1rem);
+        }
+    }
+}

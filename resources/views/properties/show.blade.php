@@ -191,12 +191,19 @@
 
                                     </div>
 
-                                    <!-- ASIGNAR INQUILINO -->
-                                    <div class="mt-4">
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-primary dropdown-toggle" type="button"
-                                                data-bs-toggle="dropdown">
-                                                {{ $property->tenant_id ? 'Cambiar inquilino' : 'Asignar inquilino' }}
+                                    <!-- RESPONSABLES DE LA PROPIEDAD -->
+                                    <div class="property-assignment-bar mt-4">
+                                        <div class="dropdown property-assignment-dropdown">
+                                            <button class="btn btn-sm btn-primary dropdown-toggle property-assignment-button" type="button"
+                                                data-bs-toggle="dropdown" title="{{ $property->tenant?->full_name ?: 'Sin inquilino asignado' }}">
+                                                <span class="property-assignment-button__content">
+                                                    <span class="property-assignment-button__label">
+                                                        {{ $property->tenant_id ? 'Cambiar inquilino' : 'Inquilino' }}
+                                                    </span>
+                                                    <span class="property-assignment-button__value">
+                                                        {{ $property->tenant?->full_name ?: 'Asignar inquilino' }}
+                                                    </span>
+                                                </span>
                                             </button>
 
                                             <ul class="dropdown-menu">
@@ -248,6 +255,99 @@
                                                     </li>
                                                 @endforeach
                                             </ul>
+                                        </div>
+
+                                        <div class="dropdown property-assignment-dropdown">
+                                            <button class="btn btn-sm btn-primary dropdown-toggle property-assignment-button" type="button"
+                                                data-bs-toggle="dropdown" title="{{ $property->technicianProvider?->name ?: 'Sin técnico de la propiedad' }}"
+                                                @disabled(! $canManagePropertyTechnician)>
+                                                <span class="property-assignment-button__content">
+                                                    <span class="property-assignment-button__label">
+                                                        {{ $property->technician_provider_id ? 'Cambiar técnico' : 'Técnico' }}
+                                                    </span>
+                                                    <span class="property-assignment-button__value">
+                                                        {{ $property->technicianProvider?->name ?: 'Sin técnico asignado' }}
+                                                    </span>
+                                                </span>
+                                            </button>
+
+                                            @if ($canManagePropertyTechnician)
+                                                <ul class="dropdown-menu">
+                                                    <li><h6 class="dropdown-header">Técnico de la propiedad</h6></li>
+                                                    <li>
+                                                        <form method="POST" action="{{ route('properties.update.technician', $property) }}">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <input type="hidden" name="technician_provider_id" value="">
+                                                            <button type="submit" class="dropdown-item {{ $property->technician_provider_id ? '' : 'active' }}">
+                                                                Sin técnico de la propiedad
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    @foreach ($availablePropertyTechnicians as $technician)
+                                                        <li>
+                                                            <form method="POST" action="{{ route('properties.update.technician', $property) }}">
+                                                                @csrf
+                                                                @method('PUT')
+                                                                <input type="hidden" name="technician_provider_id" value="{{ $technician->id }}">
+                                                                <button type="submit" class="dropdown-item {{ (int) $property->technician_provider_id === $technician->id ? 'active' : '' }}">
+                                                                    {{ $technician->name }}
+                                                                    @if ($technician->specialty)
+                                                                        <span class="text-muted">· {{ $technician->specialty }}</span>
+                                                                    @endif
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            @endif
+                                        </div>
+
+                                        <div class="dropdown property-assignment-dropdown">
+                                            <button class="btn btn-sm btn-primary dropdown-toggle property-assignment-button" type="button"
+                                                data-bs-toggle="dropdown" title="{{ $property->advisor?->name ?: 'Sin asesor responsable' }}"
+                                                @disabled(! $canManagePropertyAdvisors)>
+                                                <span class="property-assignment-button__content">
+                                                    <span class="property-assignment-button__label">
+                                                        {{ $property->advisor_user_id ? 'Cambiar asesor' : 'Asesor' }}
+                                                    </span>
+                                                    <span class="property-assignment-button__value">
+                                                        {{ $property->advisor?->name ?: 'Asignar asesor' }}
+                                                    </span>
+                                                </span>
+                                            </button>
+
+                                            @if ($canManagePropertyAdvisors)
+                                                <ul class="dropdown-menu">
+                                                    <li><h6 class="dropdown-header">Asesor responsable</h6></li>
+                                                    <li>
+                                                        <form method="POST" action="{{ route('properties.update.advisors', $property) }}">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <button type="submit" class="dropdown-item {{ $property->advisor_user_id ? '' : 'active' }}">
+                                                                Sin asesor responsable
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    @foreach ($availableAdvisors as $advisor)
+                                                        <li>
+                                                            <form method="POST" action="{{ route('properties.update.advisors', $property) }}">
+                                                                @csrf
+                                                                @method('PUT')
+                                                                <input type="hidden" name="advisor_user_ids[]" value="{{ $advisor->id }}">
+                                                                <button type="submit" class="dropdown-item {{ (int) $property->advisor_user_id === $advisor->id ? 'active' : '' }}">
+                                                                    {{ $advisor->name }}
+                                                                    @if ($advisor->email)
+                                                                        <span class="text-muted">· {{ $advisor->email }}</span>
+                                                                    @endif
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            @endif
                                         </div>
                                     </div>
 

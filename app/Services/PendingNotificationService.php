@@ -115,8 +115,8 @@ class PendingNotificationService
             'total' => $count,
             'route' => $route,
             'items' => [[
-                'title' => 'Tickets asignados',
-                'subtitle' => 'Visitas y trabajos por atender',
+                'title' => 'Mis tickets de mantenimiento',
+                'subtitle' => 'Asignados y de propiedades a mi cargo',
                 'count' => $count,
                 'route' => $route,
                 'icon' => 'bi-tools',
@@ -196,7 +196,13 @@ class PendingNotificationService
     private function countTechnicianTasks(User $user): int
     {
         $providerIds = MaintenanceProvider::query()
-            ->where('user_id', $user->id)
+            ->where(function ($query) use ($user): void {
+                $query->where('user_id', $user->id);
+
+                if (filled($user->email)) {
+                    $query->orWhere('email', $user->email);
+                }
+            })
             ->pluck('id');
 
         if ($providerIds->isEmpty()) {
@@ -206,7 +212,10 @@ class PendingNotificationService
         $activeStatuses = array_diff(array_keys(MaintenanceTicket::STATUS_LABELS), ['completado', 'cancelado']);
 
         return MaintenanceTicket::query()
-            ->whereIn('current_provider_id', $providerIds)
+            ->where(function ($query) use ($providerIds): void {
+                $query->whereIn('current_provider_id', $providerIds)
+                    ->orWhereHas('property', fn ($propertyQuery) => $propertyQuery->whereIn('technician_provider_id', $providerIds));
+            })
             ->whereIn('status', $activeStatuses)
             ->where(function ($query): void {
                 $query->whereNull('scheduled_visit_at')

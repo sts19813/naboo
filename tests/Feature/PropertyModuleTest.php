@@ -2,16 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Mail\PropertyTechnicianAssignedMail;
 use App\Models\Charge;
+use App\Models\DossierDocumentRequirement;
+use App\Models\MaintenanceProvider;
+use App\Models\MaintenanceTicket;
 use App\Models\Owner;
 use App\Models\Property;
 use App\Models\PropertyType;
-use App\Models\DossierDocumentRequirement;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Zone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -274,6 +278,156 @@ class PropertyModuleTest extends TestCase
         $this->assertSame($advisor->id, $property->fresh()->advisor_user_id);
     }
 
+    public function test_admin_can_select_property_technician_and_sees_both_responsible_selectors(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $advisor = User::factory()->create(['name' => 'Asesor de ficha']);
+        $advisor->assignRole(Role::query()->create(['name' => 'asesores', 'guard_name' => 'web']));
+        $technician = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico de ficha',
+            'email' => 'ficha@example.com',
+            'is_active' => true,
+        ]);
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $zone = Zone::create(['name' => 'Centro', 'slug' => 'centro', 'is_active' => true]);
+        $property = Property::create([
+            'internal_name' => 'Casa con responsables',
+            'property_type_id' => $type->id,
+            'zone_id' => $zone->id,
+            'full_address' => 'Calle Responsables',
+            'status' => Property::STATUS_AVAILABLE,
+            'created_by' => $admin->id,
+            'advisor_user_id' => $advisor->id,
+            'technician_provider_id' => $technician->id,
+        ]);
+        $property->advisors()->attach($advisor->id);
+
+        $this->actingAs($admin)
+            ->get(route('properties.show', $property))
+            ->assertOk()
+            ->assertSee('Técnico de la propiedad')
+            ->assertSee('Técnico de ficha')
+            ->assertSee('Asesor responsable')
+            ->assertSee('Asesor de ficha')
+            ->assertSee('title="Técnico de ficha"', false)
+            ->assertSee('title="Asesor de ficha"', false);
+
+        $this->actingAs($admin)
+            ->from(route('properties.show', $property))
+            ->put(route('properties.update.technician', $property), [
+                'technician_provider_id' => $technician->id,
+            ])
+            ->assertRedirect(route('properties.show', $property));
+
+        $this->assertSame($technician->id, $property->fresh()->technician_provider_id);
+    }
+
+    public function test_changing_property_technician_reassigns_active_tickets_and_sends_summary_email(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $technicianUser = User::factory()->create(['email' => 'nuevo-tecnico@example.com']);
+        $oldProvider = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico anterior',
+            'email' => 'anterior@example.com',
+            'is_active' => true,
+        ]);
+        $newProvider = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico nuevo',
+            'email' => $technicianUser->email,
+            'user_id' => $technicianUser->id,
+            'is_active' => true,
+        ]);
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $zone = Zone::create(['name' => 'Centro', 'slug' => 'centro', 'is_active' => true]);
+        $property = Property::create([
+            'internal_name' => 'Casa con tickets activos',
+            'property_type_id' => $type->id,
+            'zone_id' => $zone->id,
+            'full_address' => 'Calle de los técnicos',
+            'status' => Property::STATUS_AVAILABLE,
+            'created_by' => $admin->id,
+            'technician_provider_id' => $oldProvider->id,
+        ]);
+
+        $createTicket = function (string $status, string $title) use ($property, $admin, $oldProvider): MaintenanceTicket {
+            $ticket = MaintenanceTicket::create([
+                'property_id' => $property->id,
+                'reported_by_user_id' => $admin->id,
+                'current_provider_id' => $oldProvider->id,
+                'reported_by_role' => 'administrador',
+                'reported_by_name' => $admin->name,
+                'category' => 'electricidad',
+                'priority' => 'media',
+                'status' => $status,
+                'title' => $title,
+                'exact_location' => 'Área común',
+                'description' => $title,
+                'reported_at' => now(),
+                'assigned_at' => now(),
+            ]);
+            $ticket->assignments()->create([
+                'provider_id' => $oldProvider->id,
+                'assigned_by_user_id' => $admin->id,
+                'assigned_at' => now(),
+                'is_current' => true,
+            ]);
+
+            return $ticket;
+        };
+
+        $pendingTicket = $createTicket('pendiente', 'Ticket pendiente reasignado');
+        $inProgressTicket = $createTicket('en_proceso', 'Ticket en proceso reasignado');
+        $completedTicket = $createTicket('completado', 'Ticket completado sin cambios');
+        $cancelledTicket = $createTicket('cancelado', 'Ticket cancelado sin cambios');
+
+        $this->actingAs($admin)
+            ->from(route('properties.show', $property))
+            ->put(route('properties.update.technician', $property), [
+                'technician_provider_id' => $newProvider->id,
+            ])
+            ->assertRedirect(route('properties.show', $property))
+            ->assertSessionHas('success', function (string $message): bool {
+                return str_contains($message, 'Se reasignaron 2 tickets pendientes')
+                    && str_contains($message, 'notificado por correo');
+            });
+
+        $this->assertSame($newProvider->id, $property->fresh()->technician_provider_id);
+        $this->assertSame($newProvider->id, $pendingTicket->fresh()->current_provider_id);
+        $this->assertSame($newProvider->id, $inProgressTicket->fresh()->current_provider_id);
+        $this->assertSame($oldProvider->id, $completedTicket->fresh()->current_provider_id);
+        $this->assertSame($oldProvider->id, $cancelledTicket->fresh()->current_provider_id);
+        $this->assertDatabaseHas('maintenance_ticket_assignments', [
+            'ticket_id' => $pendingTicket->id,
+            'provider_id' => $oldProvider->id,
+            'is_current' => false,
+        ]);
+        $this->assertDatabaseHas('maintenance_ticket_assignments', [
+            'ticket_id' => $pendingTicket->id,
+            'provider_id' => $newProvider->id,
+            'is_current' => true,
+        ]);
+
+        Mail::assertSent(PropertyTechnicianAssignedMail::class, function (PropertyTechnicianAssignedMail $mail) use ($property, $newProvider, $pendingTicket, $inProgressTicket): bool {
+            $html = $mail->render();
+
+            return $mail->hasTo('nuevo-tecnico@example.com')
+                && $mail->property->is($property)
+                && $mail->technician->is($newProvider)
+                && $mail->tickets->pluck('id')->sort()->values()->all() === collect([$pendingTicket->id, $inProgressTicket->id])->sort()->values()->all()
+                && str_contains($html, 'Ticket pendiente reasignado')
+                && str_contains($html, 'Ticket en proceso reasignado')
+                && ! str_contains($html, 'Ticket completado sin cambios');
+        });
+        Mail::assertSent(PropertyTechnicianAssignedMail::class, 1);
+    }
+
     public function test_property_advisor_dropdown_only_shows_advisors_and_admins(): void
     {
         $adminRole = Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']);
@@ -438,7 +592,7 @@ class PropertyModuleTest extends TestCase
         $response->assertSee('Asignar inquilino');
         $response->assertSee('suwork:property-tab-restore:', false);
         $this->assertNotNull($property->uuid);
-        $this->assertStringContainsString('/propiedades/' . $property->uuid, route('properties.show', $property));
+        $this->assertStringContainsString('/propiedades/'.$property->uuid, route('properties.show', $property));
     }
 
     public function test_property_can_be_updated_from_edit_flow(): void
@@ -495,7 +649,7 @@ class PropertyModuleTest extends TestCase
             ->get(route('properties.edit', $property))
             ->assertOk();
         $this->assertMatchesRegularExpression(
-            '/<option\s+value="' . $type2->id . '"\s+selected>\s*Terreno\s*<\/option>/',
+            '/<option\s+value="'.$type2->id.'"\s+selected>\s*Terreno\s*<\/option>/',
             $editResponse->getContent(),
         );
         $this->assertDatabaseHas('owner_property', [
