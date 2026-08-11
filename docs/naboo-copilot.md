@@ -1,6 +1,6 @@
 # Naboo Copilot
 
-Esta rama incorpora un MVP conversacional de solo lectura dentro de Naboo. El copiloto permite consultar informacion operativa del sistema en espanol, conserva el historial por usuario, muestra consumo estimado y puede seguir funcionando con respuestas locales si OpenAI no esta configurado o no responde.
+Esta rama incorpora un MVP conversacional de solo lectura dentro de Naboo. El copiloto permite consultar informacion operativa del sistema en espanol, conserva el historial por usuario y muestra consumo estimado. El widget solo se muestra cuando `OPENAI_API_KEY` tiene un valor no vacio; si OpenAI no responde, puede continuar con respuestas locales.
 
 ## Alcance entregado
 
@@ -10,7 +10,7 @@ Esta rama incorpora un MVP conversacional de solo lectura dentro de Naboo. El co
 - Nueve herramientas de consulta sobre propiedades, cobranza, gastos, mantenimiento, expedientes, inventario de almacen e informacion transversal.
 - Restriccion de los datos ligados a propiedades segun el rol y las propiedades asignadas al usuario.
 - Registro de llamadas a herramientas, latencia, resultado, tokens y costo estimado.
-- Fallback local basado en reglas cuando falta la API key o falla la peticion a OpenAI.
+- Fallback local basado en reglas cuando falla la peticion a OpenAI.
 - Dataset local de demostracion con usuarios y datos representativos de todos los modulos que consulta el copiloto.
 
 El MVP no crea, modifica ni elimina informacion de negocio. La unica eliminacion que expone es el reinicio del historial propio del copiloto.
@@ -20,7 +20,7 @@ El MVP no crea, modifica ni elimina informacion de negocio. La unica eliminacion
 1. El navegador envia el mensaje y el identificador de conversacion a `POST /copilot/chat`.
 2. El backend valida que la conversacion pertenezca al usuario autenticado y guarda el mensaje.
 3. Si la pregunta es sobre consumo, la respuesta se calcula localmente sin llamar a OpenAI.
-4. Si no hay API key, se selecciona una consulta local mediante palabras clave y se devuelve un resumen determinista.
+4. Si no hay API key, el layout no renderiza el widget y el flujo no se inicia desde la interfaz.
 5. Con API key, el servicio selecciona solamente las herramientas relacionadas con la intencion del mensaje y llama a la API Responses.
 6. Las llamadas a funciones solicitadas por el modelo se ejecutan contra la base de datos, se auditan y sus resultados vuelven al modelo para redactar la respuesta.
 7. La respuesta, su consumo y hasta tres enlaces relacionados se guardan y se devuelven al widget.
@@ -72,7 +72,7 @@ La visibilidad de propiedades aplicada por las herramientas es:
 Consideraciones importantes antes de aprobar o desplegar:
 
 - Las consultas y metricas de almacen son globales; actualmente no se filtran por propiedad, asesor ni un permiso especifico de almacen.
-- El widget se incluye en el layout general y no tiene un feature flag ni un permiso exclusivo de copiloto. Todo usuario que alcance ese layout y pase `system.access` puede abrirlo.
+- El widget se incluye en el layout general solamente cuando `OPENAI_API_KEY` tiene un valor no vacio. En ese caso, todo usuario que alcance el layout y pase `system.access` puede abrirlo; no existe un permiso exclusivo de copiloto.
 - Nombre, roles, pregunta del usuario y resultados de herramientas necesarios para responder pueden enviarse a OpenAI. Los resultados pueden incluir nombres, importes, estados, notas y vencimientos visibles para ese usuario.
 - Argumentos y resultados completos de las herramientas quedan almacenados en `ai_tool_calls`; la aplicacion no agrega cifrado de campo para esos registros.
 - El prompt indica al modelo que no revele secretos y los errores visibles reemplazan patrones de API keys por `[REDACTED]`, pero esto no sustituye una revision de privacidad y retencion para produccion.
@@ -118,7 +118,7 @@ OPENAI_INPUT_COST_PER_1M=
 OPENAI_OUTPUT_COST_PER_1M=
 ```
 
-- `OPENAI_API_KEY`: habilita respuestas generadas por el modelo. Si queda vacia, el copiloto usa el fallback local.
+- `OPENAI_API_KEY`: habilita y muestra el Copilot. Si no existe, queda vacia o contiene solamente espacios, el widget no se renderiza.
 - `OPENAI_MODEL`: modelo enviado a la API Responses.
 - `OPENAI_TIMEOUT`: timeout HTTP en segundos.
 - `OPENAI_INPUT_COST_PER_1M` y `OPENAI_OUTPUT_COST_PER_1M`: tarifas en USD usadas para estimar costo por millon de tokens.
@@ -135,7 +135,7 @@ php artisan config:clear
 npm run build
 ```
 
-No es necesario configurar OpenAI para comprobar la interfaz, persistencia, permisos y consultas locales.
+Para comprobar la interfaz en cualquier entorno se debe configurar una API key. La clave permanece exclusivamente en el servidor y no se incluye en el HTML.
 
 ## Datos de demostracion
 
@@ -165,7 +165,6 @@ La contrasena local comun esta definida en el seeder. No se debe ejecutar `DemoD
 - Cada respuesta suma tokens de entrada, entrada cacheada, salida y total reportados por OpenAI.
 - El medidor muestra consumo del usuario para hoy y para el mes actual. No es un total global de la organizacion.
 - Preguntas que contienen terminos como `tokens`, `costo`, `consumo` o `precio` se contestan localmente y no generan una llamada adicional a OpenAI.
-- Sin API key, una regla de palabras clave elige una herramienta local y devuelve una respuesta formateada.
 - Si OpenAI falla, el error se reporta al log de Laravel y se intenta la misma clase de fallback local.
 - El costo es estimado y no reemplaza la facturacion del proveedor.
 
@@ -181,7 +180,8 @@ La contrasena local comun esta definida en el seeder. No se debe ejecutar `DemoD
 
 ### Respuestas y datos
 
-- [ ] Sin `OPENAI_API_KEY`, probar resumen, cobranza, mantenimiento, documentos y propiedades; deben responder con datos locales.
+- [ ] Sin `OPENAI_API_KEY`, confirmar que el launcher y el panel no aparecen en ninguna pagina autenticada.
+- [ ] Con `OPENAI_API_KEY` vacia o compuesta solo por espacios, confirmar que el launcher y el panel tampoco aparecen.
 - [ ] Con `OPENAI_API_KEY`, confirmar respuesta en espanol, fuente funcional, enlaces relacionados y registro de tokens.
 - [ ] Preguntar por una propiedad con nombre parcial y probar los casos sin coincidencia, una coincidencia y varias coincidencias.
 - [ ] Preguntar por consumo y confirmar que el contador de solicitudes a OpenAI no aumenta por esa consulta.
@@ -203,6 +203,6 @@ La contrasena local comun esta definida en el seeder. No se debe ejecutar `DemoD
 - Sin selector de conversaciones: solo se recupera la conversacion mas reciente.
 - Reiniciar elimina todo el historial del usuario, no solo la conversacion activa.
 - Sin panel administrativo para auditoria, costos o retencion; la informacion se revisa directamente en base de datos/logs.
-- Sin pruebas automatizadas especificas del copiloto en esta rama; la validacion propuesta arriba es manual.
+- La visibilidad condicional del widget tiene pruebas automatizadas; el flujo conversacional completo conserva validacion manual.
 - La busqueda transversal es lexical y puede omitir sinonimos o coincidencias semanticas.
 - La visibilidad de almacen y la disponibilidad general del widget requieren una decision explicita antes de produccion.
