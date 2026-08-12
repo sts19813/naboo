@@ -11,6 +11,7 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryCheckController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\MaintenanceSettlementController;
 use App\Http\Controllers\NotificationConfigurationController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ProfileController;
@@ -178,6 +179,9 @@ Route::middleware(['auth', 'system.access'])
         Route::get('/mantenimiento', [MaintenanceController::class, 'index'])->name('maintenance.index');
         Route::post('/mantenimiento', [MaintenanceController::class, 'store'])->name('maintenance.store');
         Route::get('/mantenimiento/tecnicos', [MaintenanceController::class, 'technicians'])->name('maintenance.technicians.index');
+        Route::get('/mantenimiento/cortes', [MaintenanceSettlementController::class, 'index'])->name('maintenance.settlements.index');
+        Route::post('/mantenimiento/cortes', [MaintenanceSettlementController::class, 'store'])->name('maintenance.settlements.store');
+        Route::get('/mantenimiento/cortes/{settlement}', [MaintenanceSettlementController::class, 'show'])->name('maintenance.settlements.show');
         Route::get('/mantenimiento/{maintenance}', [MaintenanceController::class, 'show'])->name('maintenance.show');
         Route::put('/mantenimiento/{maintenance}', [MaintenanceController::class, 'update'])->name('maintenance.update');
         Route::patch('/mantenimiento/{maintenance}/meta', [MaintenanceController::class, 'updateMeta'])->name('maintenance.meta');

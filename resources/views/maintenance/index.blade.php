@@ -33,6 +33,7 @@
                 'urgente' => 'red',
                 default => 'neutral',
             };
+            $settlementTone = fn ($value) => $value === \App\Models\MaintenanceTicket::SETTLEMENT_STATUS_SETTLED ? 'green' : 'amber';
 
             $roleTitle = match ($role) {
                 'inquilino' => 'Mis reportes de mantenimiento',
@@ -117,6 +118,11 @@
                         @if ($canManageProviders)
                             <a class="maintenance-soft-btn" href="{{ route('maintenance.technicians.index') }}">
                                 <i class="bi bi-person-gear"></i> Administración de técnicos
+                            </a>
+                        @endif
+                        @if ($canManageCosts)
+                            <a class="maintenance-soft-btn" href="{{ route('maintenance.settlements.index') }}">
+                                <i class="bi bi-receipt-cutoff"></i> Cortes
                             </a>
                         @endif
                     @endif
@@ -327,6 +333,9 @@
                                             @if ((int) $ticket->files_count > 0)
                                                 <span><i class="bi bi-paperclip me-1"></i>{{ (int) $ticket->files_count }}</span>
                                             @endif
+                                            <span class="maintenance-chip maintenance-chip-{{ $settlementTone($ticket->settlement_status) }}">
+                                                {{ $ticket->settlement_status_label }}
+                                            </span>
                                         </span>
                                     </span>
                                     <span class="maintenance-property-cell">

@@ -76,6 +76,7 @@
                     'label' => 'Mantenimiento',
                     'icon' => 'bi-tools',
                     'children' => [
+                        ['patterns' => ['maintenance.settlements.*'], 'route' => 'maintenance.settlements.index', 'label' => 'Cortes', 'icon' => 'bi-receipt-cutoff'],
                         ['patterns' => ['maintenance.*'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
                         ['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam'],
                     ],

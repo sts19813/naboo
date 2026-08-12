@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -43,6 +44,15 @@ class MaintenanceTicket extends Model
         'reabierto' => 'Reabierto',
     ];
 
+    public const SETTLEMENT_STATUS_PENDING = 'pendiente';
+
+    public const SETTLEMENT_STATUS_SETTLED = 'liquidado';
+
+    public const SETTLEMENT_STATUS_LABELS = [
+        self::SETTLEMENT_STATUS_PENDING => 'Pendiente',
+        self::SETTLEMENT_STATUS_SETTLED => 'Liquidado',
+    ];
+
     public const REPORTER_ROLE_LABELS = [
         'administrador' => 'Administrador',
         'propietario' => 'Propietario',
@@ -78,6 +88,8 @@ class MaintenanceTicket extends Model
         'category',
         'priority',
         'status',
+        'settlement_status',
+        'settled_at',
         'title',
         'reference',
         'exact_location',
@@ -99,6 +111,7 @@ class MaintenanceTicket extends Model
     {
         return [
             'reported_at' => 'datetime',
+            'settled_at' => 'datetime',
             'scheduled_visit_at' => 'datetime',
             'assigned_at' => 'datetime',
             'started_at' => 'datetime',
@@ -151,6 +164,18 @@ class MaintenanceTicket extends Model
         return $this->hasMany(MaintenanceTicketCost::class, 'ticket_id');
     }
 
+    public function settlements(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            MaintenanceSettlement::class,
+            'maintenance_settlement_ticket',
+            'maintenance_ticket_id',
+            'maintenance_settlement_id'
+        )
+            ->withPivot(['labor_cost', 'material_cost', 'advance_cost', 'final_cost'])
+            ->withTimestamps();
+    }
+
     public function statusHistory(): HasMany
     {
         return $this->hasMany(MaintenanceTicketStatusHistory::class, 'ticket_id')->latest('changed_at');
@@ -177,5 +202,10 @@ class MaintenanceTicket extends Model
         }
 
         return Str::upper(Str::substr((string) $this->uuid, 0, 8));
+    }
+
+    public function getSettlementStatusLabelAttribute(): string
+    {
+        return self::SETTLEMENT_STATUS_LABELS[$this->settlement_status] ?? (string) $this->settlement_status;
     }
 }

@@ -710,6 +710,8 @@ class CopilotToolRegistry
             'property' => $ticket->property?->internal_name,
             'status' => $ticket->status,
             'status_label' => MaintenanceTicket::STATUS_LABELS[$ticket->status] ?? $ticket->status,
+            'settlement_status' => $ticket->settlement_status,
+            'settlement_status_label' => $ticket->settlement_status_label,
             'priority' => $ticket->priority,
             'priority_label' => MaintenanceTicket::PRIORITY_LABELS[$ticket->priority] ?? $ticket->priority,
             'category' => $ticket->category,
