@@ -11,6 +11,7 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryCheckController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\MaintenanceCutController;
 use App\Http\Controllers\NotificationConfigurationController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ProfileController;
@@ -177,6 +178,8 @@ Route::middleware(['auth', 'system.access'])
         Route::delete('/gastos/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
 
         Route::get('/mantenimiento', [MaintenanceController::class, 'index'])->name('maintenance.index');
+        Route::get('/mantenimiento/cortes', [MaintenanceCutController::class, 'index'])->name('maintenance-cuts.index');
+        Route::post('/mantenimiento/cortes', [MaintenanceCutController::class, 'store'])->name('maintenance-cuts.store');
         Route::post('/mantenimiento', [MaintenanceController::class, 'store'])->name('maintenance.store');
         Route::get('/mantenimiento/tecnicos', [MaintenanceController::class, 'technicians'])->name('maintenance.technicians.index');
         Route::get('/mantenimiento/{maintenance}', [MaintenanceController::class, 'show'])->name('maintenance.show');

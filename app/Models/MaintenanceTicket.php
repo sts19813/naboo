@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class MaintenanceTicket extends Model
@@ -149,6 +150,11 @@ class MaintenanceTicket extends Model
     public function costs(): HasMany
     {
         return $this->hasMany(MaintenanceTicketCost::class, 'ticket_id');
+    }
+
+    public function cutItem(): HasOne
+    {
+        return $this->hasOne(MaintenanceCutItem::class, 'ticket_id');
     }
 
     public function statusHistory(): HasMany

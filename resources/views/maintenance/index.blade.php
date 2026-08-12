@@ -409,6 +409,11 @@
                                         <span class="maintenance-chip maintenance-chip-{{ $statusTone($ticket->status) }}">
                                             {{ \App\Models\MaintenanceTicket::STATUS_LABELS[$ticket->status] ?? $ticket->status }}
                                         </span>
+                                        @if ($ticket->cutItem)
+                                            <span class="maintenance-chip maintenance-chip-green mt-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i> Pagado
+                                            </span>
+                                        @endif
                                     </span>
                                 </div>
                             @endforeach

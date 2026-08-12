@@ -106,6 +106,11 @@
                             <span class="maintenance-chip maintenance-chip-neutral">
                                 {{ $categoryOptions[$ticket->category] ?? $ticket->category }}
                             </span>
+                            @if ($isMaintenancePaid)
+                                <span class="maintenance-chip maintenance-chip-green">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Pagado
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -310,16 +315,27 @@
                         @endif
                     </section>
 
-                    @if ($canManageCosts)
+                    @if ($canViewCosts)
                         <section class="ticket-panel">
                             <div class="ticket-panel-header">
                                 <div>
                                     <h2 class="ticket-panel-title">Costos y gastos del incidente</h2>
-                                    <div class="text-muted mt-1">Cada registro se agrega automáticamente a los gastos de la propiedad.</div>
+                                    @if ($isMaintenancePaid)
+                                        <div class="text-success mt-1">
+                                            <i class="bi bi-lock-fill me-1"></i>
+                                            Pagado el {{ $ticket->cutItem?->cut?->paid_at?->format('d/m/Y H:i') }}. Estos costos quedaron cerrados y son de solo lectura.
+                                        </div>
+                                    @else
+                                        <div class="text-muted mt-1">Cada registro se agrega automáticamente a los gastos de la propiedad.</div>
+                                    @endif
                                 </div>
-                                <button type="button" class="maintenance-primary-btn" data-bs-toggle="modal" data-bs-target="#createMaintenanceCostModal">
-                                    <i class="bi bi-plus-lg"></i> Agregar costo
-                                </button>
+                                @if ($canManageCosts)
+                                    <button type="button" class="maintenance-primary-btn" data-bs-toggle="modal" data-bs-target="#createMaintenanceCostModal">
+                                        <i class="bi bi-plus-lg"></i> Agregar costo
+                                    </button>
+                                @else
+                                    <span class="maintenance-chip maintenance-chip-green"><i class="bi bi-lock-fill me-1"></i> Pagado</span>
+                                @endif
                             </div>
                             <div class="table-responsive">
                                 <table class="table align-middle mb-0">

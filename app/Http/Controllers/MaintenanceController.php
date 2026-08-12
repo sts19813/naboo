@@ -79,6 +79,7 @@ class MaintenanceController extends Controller
                 'property:id,uuid,internal_name,internal_reference',
                 'reporter:id,name,email',
                 'currentProvider:id,uuid,user_id,name,type,email,phone,specialty,rating,availability',
+                'cutItem:id,maintenance_cut_id,ticket_id',
             ])
             ->withCount(['files', 'messages']);
 
@@ -368,6 +369,7 @@ class MaintenanceController extends Controller
             'messages.sender:id,name,email',
             'messages.recipient:id,name,email',
             'notifications',
+            'cutItem.cut:id,uuid,paid_at,grand_total',
         ]);
 
         $providers = MaintenanceProvider::query()
@@ -394,6 +396,10 @@ class MaintenanceController extends Controller
                 array_flip(['revisado', 'programado', 'en_proceso', 'esperando_material', 'completado', 'cancelado', 'reabierto'])
             );
 
+        $canViewCosts = $role === 'administrador'
+            || ($role === 'tecnico' && $this->isPropertyTechnician($maintenance, $user));
+        $isMaintenancePaid = $maintenance->cutItem !== null;
+
         return view('maintenance.show', [
             'ticket' => $maintenance,
             'providers' => $providers,
@@ -408,8 +414,9 @@ class MaintenanceController extends Controller
             'paymentRuleOptions' => MaintenanceTicket::PAYMENT_RULE_LABELS,
             'messageChannels' => MaintenanceTicketMessage::CHANNEL_LABELS,
             'canManageAssignments' => in_array($role, ['administrador', 'tecnico'], true),
-            'canManageCosts' => $role === 'administrador'
-                || ($role === 'tecnico' && $this->isPropertyTechnician($maintenance, $user)),
+            'canViewCosts' => $canViewCosts,
+            'canManageCosts' => $canViewCosts && ! $isMaintenancePaid,
+            'isMaintenancePaid' => $isMaintenancePaid,
             'canEditTicket' => $role === 'administrador',
             'canChangeStatus' => in_array($role, ['administrador', 'tecnico'], true),
             'canQuickScheduleVisit' => in_array($role, ['administrador', 'tecnico'], true),
@@ -787,6 +794,9 @@ class MaintenanceController extends Controller
         if ($role !== 'administrador' && ($role !== 'tecnico' || ! $this->isPropertyTechnician($maintenance, $user))) {
             abort(403);
         }
+        if ($maintenance->cutItem()->exists()) {
+            abort(409, 'Este ticket ya fue pagado y sus costos no se pueden modificar.');
+        }
 
         $validated = $request->validate([
             'labor_cost' => ['required', 'numeric', 'min:0'],
@@ -802,9 +812,14 @@ class MaintenanceController extends Controller
         $totalCost = round((float) $validated['labor_cost'] + (float) $validated['material_cost'], 2);
 
         DB::transaction(function () use ($maintenance, $validated, $request, $user, $totalCost): void {
+            $lockedTicket = MaintenanceTicket::query()->whereKey($maintenance->id)->lockForUpdate()->firstOrFail();
+            if ($lockedTicket->cutItem()->exists()) {
+                abort(409, 'Este ticket ya fue pagado y sus costos no se pueden modificar.');
+            }
+
             $payer = (string) $validated['payer'];
             $paymentRule = $validated['payment_rule'] ?? null;
-            $cost = $maintenance->costs()->create([
+            $cost = $lockedTicket->costs()->create([
                 'labor_cost' => (float) $validated['labor_cost'],
                 'material_cost' => (float) $validated['material_cost'],
                 'advance_cost' => 0,
@@ -816,8 +831,8 @@ class MaintenanceController extends Controller
             ]);
 
             $expense = Expense::create([
-                'property_id' => $maintenance->property_id,
-                'concept' => Str::limit('Mantenimiento '.$maintenance->display_reference.': '.$maintenance->title, 190, ''),
+                'property_id' => $lockedTicket->property_id,
+                'concept' => Str::limit('Mantenimiento '.$lockedTicket->display_reference.': '.$lockedTicket->title, 190, ''),
                 'amount' => $totalCost,
                 'excluded_from_totals' => $payer === 'inquilino',
                 'due_date' => now()->toDateString(),

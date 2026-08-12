@@ -72,11 +72,12 @@
                     ],
                 ],
                 [
-                    'patterns' => ['maintenance.*', 'storage_items.*'],
+                    'patterns' => ['maintenance.*', 'maintenance-cuts.*', 'storage_items.*'],
                     'label' => 'Mantenimiento',
                     'icon' => 'bi-tools',
                     'children' => [
                         ['patterns' => ['maintenance.*'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
+                        ...($isAdmin ? [['patterns' => ['maintenance-cuts.*'], 'route' => 'maintenance-cuts.index', 'label' => 'Corte de mantenimiento', 'icon' => 'bi-cash-coin']] : []),
                         ['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam'],
                     ],
                 ],
