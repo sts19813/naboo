@@ -787,6 +787,11 @@ class MaintenanceController extends Controller
         if ($role !== 'administrador' && ($role !== 'tecnico' || ! $this->isPropertyTechnician($maintenance, $user))) {
             abort(403);
         }
+        if ($maintenance->settlement_status === MaintenanceTicket::SETTLEMENT_STATUS_SETTLED) {
+            return redirect()
+                ->back()
+                ->with('error', 'Este ticket ya fue liquidado en un corte. No es posible agregar nuevos costos.');
+        }
 
         $validated = $request->validate([
             'labor_cost' => ['required', 'numeric', 'min:0'],

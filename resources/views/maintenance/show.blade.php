@@ -42,6 +42,7 @@
                 'urgente' => 'red',
                 default => 'neutral',
             };
+            $settlementTone = $ticket->settlement_status === \App\Models\MaintenanceTicket::SETTLEMENT_STATUS_SETTLED ? 'green' : 'amber';
             $maintenanceCosts = $ticket->costs->sortByDesc('created_at')->values();
             $visibleMessages = $ticket->messages
                 ->filter(function ($message) use ($role) {
@@ -105,6 +106,9 @@
                             </span>
                             <span class="maintenance-chip maintenance-chip-neutral">
                                 {{ $categoryOptions[$ticket->category] ?? $ticket->category }}
+                            </span>
+                            <span class="maintenance-chip maintenance-chip-{{ $settlementTone }}">
+                                Liquidación: {{ $ticket->settlement_status_label }}
                             </span>
                         </div>
                     </div>
@@ -317,9 +321,13 @@
                                     <h2 class="ticket-panel-title">Costos y gastos del incidente</h2>
                                     <div class="text-muted mt-1">Cada registro se agrega automáticamente a los gastos de la propiedad.</div>
                                 </div>
-                                <button type="button" class="maintenance-primary-btn" data-bs-toggle="modal" data-bs-target="#createMaintenanceCostModal">
-                                    <i class="bi bi-plus-lg"></i> Agregar costo
-                                </button>
+                                @if ($ticket->settlement_status !== \App\Models\MaintenanceTicket::SETTLEMENT_STATUS_SETTLED)
+                                    <button type="button" class="maintenance-primary-btn" data-bs-toggle="modal" data-bs-target="#createMaintenanceCostModal">
+                                        <i class="bi bi-plus-lg"></i> Agregar costo
+                                    </button>
+                                @else
+                                    <span class="maintenance-chip maintenance-chip-green">Ticket liquidado</span>
+                                @endif
                             </div>
                             <div class="table-responsive">
                                 <table class="table align-middle mb-0">
@@ -659,7 +667,7 @@
         </div>
     </div>
 
-    @if ($canManageCosts)
+    @if ($canManageCosts && $ticket->settlement_status !== \App\Models\MaintenanceTicket::SETTLEMENT_STATUS_SETTLED)
         <div class="modal fade" id="createMaintenanceCostModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content">

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Mail\MaintenanceTicketEventMail;
 use App\Models\Expense;
 use App\Models\MaintenanceProvider;
+use App\Models\MaintenanceSettlement;
 use App\Models\MaintenanceTicket;
 use App\Models\Owner;
 use App\Models\Property;
@@ -797,6 +798,128 @@ class MaintenanceModuleTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertViewHas('profitabilitySummary', fn (array $summary): bool => $summary['expense_total'] === 600.0);
+    }
+
+    public function test_admin_can_generate_maintenance_settlement_for_selected_pending_tickets(): void
+    {
+        Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole('administrador');
+        $property = $this->createPropertyFixture($admin);
+
+        $firstTicket = MaintenanceTicket::create([
+            'property_id' => $property->id,
+            'reported_by_user_id' => $admin->id,
+            'reported_by_role' => 'administrador',
+            'reported_by_name' => $admin->name,
+            'category' => 'plomeria',
+            'priority' => 'alta',
+            'status' => 'pendiente',
+            'title' => 'Cambio de mezcladora',
+            'exact_location' => 'Cocina',
+            'description' => 'Se cambia mezcladora dañada',
+            'reported_at' => now(),
+        ]);
+        $secondTicket = MaintenanceTicket::create([
+            'property_id' => $property->id,
+            'reported_by_user_id' => $admin->id,
+            'reported_by_role' => 'administrador',
+            'reported_by_name' => $admin->name,
+            'category' => 'electricidad',
+            'priority' => 'media',
+            'status' => 'pendiente',
+            'title' => 'Revisión de centro de carga',
+            'exact_location' => 'Cuarto de servicio',
+            'description' => 'Diagnóstico eléctrico',
+            'reported_at' => now(),
+        ]);
+
+        $firstExpense = Expense::create([
+            'property_id' => $property->id,
+            'concept' => 'Mantenimiento: cambio de mezcladora',
+            'amount' => 550,
+            'excluded_from_totals' => false,
+            'due_date' => now()->toDateString(),
+            'created_by' => $admin->id,
+        ]);
+        $secondExpense = Expense::create([
+            'property_id' => $property->id,
+            'concept' => 'Mantenimiento: revisión eléctrica',
+            'amount' => 900,
+            'excluded_from_totals' => false,
+            'due_date' => now()->toDateString(),
+            'created_by' => $admin->id,
+        ]);
+
+        $firstTicket->costs()->create([
+            'expense_id' => $firstExpense->id,
+            'labor_cost' => 350,
+            'material_cost' => 200,
+            'advance_cost' => 0,
+            'final_cost' => 550,
+            'currency' => 'MXN',
+            'payer' => 'administracion',
+            'payment_rule' => 'preventivo',
+        ]);
+        $secondTicket->costs()->create([
+            'expense_id' => $secondExpense->id,
+            'labor_cost' => 700,
+            'material_cost' => 200,
+            'advance_cost' => 0,
+            'final_cost' => 900,
+            'currency' => 'MXN',
+            'payer' => 'administracion',
+            'payment_rule' => 'preventivo',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('maintenance.settlements.index'))
+            ->assertOk()
+            ->assertSee('Cortes de mantenimiento')
+            ->assertSee('Cambio de mezcladora')
+            ->assertSee('Revisión de centro de carga');
+
+        $response = $this->actingAs($admin)
+            ->post(route('maintenance.settlements.store'), [
+                'ticket_ids' => [$firstTicket->id],
+                'notes' => 'Pago parcial al proveedor',
+            ]);
+
+        $settlement = MaintenanceSettlement::query()->firstOrFail();
+        $response->assertRedirect(route('maintenance.settlements.show', $settlement));
+        $this->assertSame(1, $settlement->total_tickets);
+        $this->assertSame(350.0, (float) $settlement->total_labor_cost);
+        $this->assertSame(200.0, (float) $settlement->total_material_cost);
+        $this->assertSame(550.0, (float) $settlement->total_amount);
+        $this->assertDatabaseHas('maintenance_settlement_ticket', [
+            'maintenance_settlement_id' => $settlement->id,
+            'maintenance_ticket_id' => $firstTicket->id,
+            'final_cost' => 550,
+        ]);
+
+        $this->assertSame(MaintenanceTicket::SETTLEMENT_STATUS_SETTLED, $firstTicket->fresh()->settlement_status);
+        $this->assertNotNull($firstTicket->fresh()->settled_at);
+        $this->assertNotNull($firstExpense->fresh()->paid_at);
+        $this->assertSame(MaintenanceTicket::SETTLEMENT_STATUS_PENDING, $secondTicket->fresh()->settlement_status);
+        $this->assertNull($secondExpense->fresh()->paid_at);
+
+        $this->actingAs($admin)
+            ->get(route('maintenance.settlements.index'))
+            ->assertOk()
+            ->assertDontSee('Cambio de mezcladora')
+            ->assertSee('Revisión de centro de carga');
+
+        $this->actingAs($admin)
+            ->from(route('maintenance.show', $firstTicket))
+            ->put(route('maintenance.costs', $firstTicket), [
+                'labor_cost' => 100,
+                'material_cost' => 100,
+                'payer' => 'administracion',
+                'payment_rule' => 'preventivo',
+            ])
+            ->assertRedirect(route('maintenance.show', $firstTicket))
+            ->assertSessionHas('error', 'Este ticket ya fue liquidado en un corte. No es posible agregar nuevos costos.');
+        $this->assertSame(1, $firstTicket->costs()->count());
     }
 
     public function test_ticket_file_can_be_deleted_from_detail(): void
