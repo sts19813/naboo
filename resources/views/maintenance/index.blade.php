@@ -5,18 +5,17 @@
 @section('content')
     <div class="maintenance-module py-8">
         @php
-            $calendarEvents = $calendarItems->map(function ($item) {
-                return [
-                    'title' => ($item->currentProvider?->name ?? 'Sin asignar') . ' · ' . $item->display_reference,
-                    'start' => $item->scheduled_visit_at?->toIso8601String(),
-                    'url' => route('maintenance.show', $item),
-                    'extendedProps' => [
-                        'property' => $item->property?->internal_name ?? '-',
-                        'ticket' => $item->title,
-                        'priority' => $item->priority,
-                    ],
-                ];
-            })->values()->all();
+            $calendarEvents = $calendarItems
+                ->filter(fn ($item) => $item->scheduled_visit_at)
+                ->groupBy(fn ($item) => $item->scheduled_visit_at->format('Y-m-d'))
+                ->map(fn ($items, $date) => [
+                    'title' => (string) $items->count(),
+                    'start' => $date,
+                    'allDay' => true,
+                    'extendedProps' => ['count' => $items->count()],
+                ])
+                ->values()
+                ->all();
 
             $statusTone = fn ($value) => match ($value) {
                 'completado' => 'green',
@@ -439,7 +438,8 @@
                     <aside class="maintenance-side">
                         <div class="maintenance-side-panel">
                             <h3 class="maintenance-panel-title">Agenda del equipo</h3>
-                            <div id="maintenance-team-calendar" style="min-height: 470px;"></div>
+                            <div class="maintenance-calendar-hint">El número indica los tickets agendados por día.</div>
+                            <div id="maintenance-team-calendar"></div>
                         </div>
 
                         <div class="maintenance-side-panel">
@@ -1036,6 +1036,52 @@
     @endif
 
     <style>
+        .maintenance-calendar-hint {
+            margin: 4px 0 14px;
+            color: var(--maint-muted);
+            font-size: 11px;
+        }
+
+        #maintenance-team-calendar {
+            min-width: 0;
+        }
+
+        #maintenance-team-calendar .fc-toolbar {
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        #maintenance-team-calendar .fc-toolbar-title {
+            color: var(--maint-ink);
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: capitalize;
+        }
+
+        #maintenance-team-calendar .fc-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            padding: 0 !important;
+            border: 1px solid var(--maint-border) !important;
+            border-radius: 8px !important;
+            background: #fff !important;
+            color: var(--maint-text) !important;
+            box-shadow: none !important;
+        }
+
+        #maintenance-team-calendar .fc-col-header-cell-cushion,
+        #maintenance-team-calendar .fc-daygrid-day-number {
+            color: var(--maint-text);
+            font-size: 11px;
+        }
+
+        #maintenance-team-calendar .fc-daygrid-day-frame {
+            min-height: 54px;
+        }
+
         #maintenance-team-calendar .fc-event {
             border: 0 !important;
             background: transparent !important;
@@ -1043,56 +1089,20 @@
         }
 
         #maintenance-team-calendar .fc-daygrid-event {
-            white-space: normal !important;
-            margin-top: 4px;
+            margin: 2px 4px 4px;
         }
 
-        #maintenance-team-calendar .fc-ticket-event {
-            display: flex;
-            align-items: flex-start;
-            gap: 6px;
-            width: 100%;
-            padding: 6px 7px;
-            border-radius: 8px;
-            background: color-mix(in srgb, var(--ticket-color) 14%, white);
-            border-left: 4px solid var(--ticket-color);
-            color: #181C32;
-            font-size: 12px;
-            line-height: 1.25;
-            overflow: hidden;
-        }
-
-        #maintenance-team-calendar .fc-ticket-dot {
-            width: 8px;
-            height: 8px;
-            min-width: 8px;
-            margin-top: 4px;
+        #maintenance-team-calendar .fc-ticket-count {
+            display: grid;
+            place-items: center;
+            width: 24px;
+            height: 24px;
+            margin: 0 auto;
             border-radius: 50%;
-            background: var(--ticket-color);
-        }
-
-        #maintenance-team-calendar .fc-ticket-text {
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        #maintenance-team-calendar .fc-ticket-time {
-            font-size: 10px;
-            font-weight: 700;
-            color: #5E6278;
-        }
-
-        #maintenance-team-calendar .fc-ticket-title {
-            font-weight: 600;
-            color: #181C32;
-            word-break: break-word;
-        }
-
-        #maintenance-team-calendar .fc-more-link {
-            font-size: 12px;
-            font-weight: 600;
-            color: #3E97FF;
+            background: var(--maint-primary);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
         }
     </style>
 @endsection
@@ -1113,43 +1123,23 @@
             const calendarEl = document.getElementById('maintenance-team-calendar');
             if (calendarEl && window.FullCalendar?.Calendar) {
                 const events = @json($calendarEvents);
-                const priorityColorMap = {
-                    'baja': '#54B81C',
-                    'media': '#3699FF',
-                    'alta': '#FFC700',
-                    'urgente': '#F1416C'
-                };
                 const calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
                     locale: 'es',
                     headerToolbar: {
-                        left: 'prev,next today',
+                        left: 'prev',
                         center: 'title',
-                        right: 'dayGridMonth,timeGridWeek',
+                        right: 'next',
                     },
-                    events: events.filter((event) => !!event.start),
-                    eventClick: (info) => {
-                        if (!info.event.url) return;
-                        info.jsEvent.preventDefault();
-                        window.location.href = info.event.url;
-                    },
+                    fixedWeekCount: false,
+                    showNonCurrentDates: true,
+                    displayEventTime: false,
+                    height: 'auto',
+                    events,
                     eventContent: (arg) => {
-                        const priority = arg.event.extendedProps?.priority ?? 'media';
-                        const color = priorityColorMap[priority] || '#3699FF';
-
-                        const title = arg.event.title || 'Sin título';
-                        const time = arg.timeText ? `<span class="fc-ticket-time">${arg.timeText}</span>` : '';
-
+                        const count = Number(arg.event.extendedProps?.count || 0);
                         return {
-                            html: `
-                                    <div class="fc-ticket-event" style="--ticket-color: ${color};">
-                                        <span class="fc-ticket-dot"></span>
-                                        <div class="fc-ticket-text">
-                                            ${time}
-                                            <span class="fc-ticket-title">${title}</span>
-                                        </div>
-                                    </div>
-                                `
+                            html: `<span class="fc-ticket-count" title="${count} ticket${count === 1 ? '' : 's'} agendado${count === 1 ? '' : 's'}">${count}</span>`
                         };
                     },
                 });
