@@ -18,6 +18,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyControlController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\StorageItemController;
+use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\UserAccessController;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
@@ -53,6 +54,7 @@ Route::post('/stripe/webhook', [ChargePaymentController::class, 'webhook'])
 Route::middleware(['auth', 'system.access'])
     ->group(function () {
         Route::get('/perfil', [ProfileController::class, 'index'])->name('profile.index');
+        Route::get('/suscripcion', SubscriptionController::class)->name('subscription.index');
         Route::post('/perfil/actualizar', [ProfileController::class, 'update'])->name('profile.update');
         Route::post('/perfil/foto', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
         Route::post('/perfil/password', [ProfileController::class, 'updatePassword'])->name('profile.update.password');

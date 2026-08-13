@@ -82,7 +82,7 @@
                     ],
                 ],
                 [
-                    'patterns' => ['settings.dossiers.*', 'settings.notifications.*', 'access.*', 'profile.*'],
+                    'patterns' => ['settings.dossiers.*', 'settings.notifications.*', 'access.*', 'subscription.*', 'profile.*'],
                     'label' => 'Configuración',
                     'icon' => 'bi-gear',
                     'children' => [
@@ -95,6 +95,9 @@
                         ] : []),
                         ...($canManageAccess ? [
                             ['patterns' => ['access.*'], 'route' => 'access.index', 'label' => 'Usuarios y permisos', 'icon' => 'bi-shield-lock'],
+                        ] : []),
+                        ...($isAdmin ? [
+                            ['patterns' => ['subscription.*'], 'route' => 'subscription.index', 'label' => 'Suscripción', 'icon' => 'bi-credit-card'],
                         ] : []),
                         ['patterns' => ['profile.*'], 'route' => 'profile.index', 'label' => 'Perfil', 'icon' => 'bi-person-circle'],
                     ],

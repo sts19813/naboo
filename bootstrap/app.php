@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\GenerateRecurringExpensesCommand;
+use App\Console\Commands\ReportBillingUsage;
 use App\Console\Commands\SendExpenseNotificationsCommand;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,10 +18,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         GenerateRecurringExpensesCommand::class,
         SendExpenseNotificationsCommand::class,
+        ReportBillingUsage::class,
     ])
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('expenses:generate-recurring')->dailyAt('07:45')->withoutOverlapping();
         $schedule->command('expenses:notify')->dailyAt('08:00');
+        $schedule->command('billing:report-usage')->everyFifteenMinutes()->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
