@@ -20,7 +20,10 @@ class MaintenanceCutController extends Controller
         $tickets = MaintenanceTicket::query()
             ->where('status', 'completado')
             ->whereDoesntHave('cutItem')
-            ->with('property:id,uuid,internal_name,internal_reference')
+            ->with([
+                'property:id,uuid,internal_name,internal_reference',
+                'currentProvider:id,name',
+            ])
             ->withSum('costs as labor_total', 'labor_cost')
             ->withSum('costs as material_total', 'material_cost')
             ->withSum('costs as grand_total', 'final_cost')
@@ -73,6 +76,18 @@ class MaintenanceCutController extends Controller
             if ($tickets->count() !== $ticketIds->count()) {
                 throw ValidationException::withMessages([
                     'ticket_ids' => 'Uno o más tickets ya fueron pagados o dejaron de estar completados. Actualiza la página e inténtalo nuevamente.',
+                ]);
+            }
+
+            $technicianKeys = $tickets
+                ->map(fn (MaintenanceTicket $ticket): string => $ticket->current_provider_id
+                    ? (string) $ticket->current_provider_id
+                    : 'unassigned')
+                ->unique();
+
+            if ($technicianKeys->count() > 1) {
+                throw ValidationException::withMessages([
+                    'ticket_ids' => 'Todos los tickets del corte deben pertenecer al mismo técnico.',
                 ]);
             }
 

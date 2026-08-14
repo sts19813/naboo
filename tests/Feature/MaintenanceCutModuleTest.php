@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\MaintenanceProvider;
 use App\Models\MaintenanceTicket;
 use App\Models\Property;
 use App\Models\PropertyType;
@@ -109,6 +110,43 @@ class MaintenanceCutModuleTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('maintenance-cuts.store'), ['ticket_ids' => [$pending->id]])
+            ->assertSessionHasErrors('ticket_ids');
+
+        $this->assertDatabaseCount('maintenance_cuts', 0);
+        $this->assertDatabaseCount('maintenance_cut_items', 0);
+    }
+
+    public function test_completed_tickets_from_different_technicians_cannot_share_a_cut(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $property = $this->createProperty($admin);
+        $alejandro = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Alejandro',
+            'email' => 'alejandro@example.test',
+            'is_active' => true,
+        ]);
+        $aldair = MaintenanceProvider::create([
+            'type' => 'tecnico_interno',
+            'name' => 'Aldair',
+            'email' => 'aldair@example.test',
+            'is_active' => true,
+        ]);
+        $first = $this->createTicket($property, 'Ticket de Alejandro', 'completado');
+        $first->update(['current_provider_id' => $alejandro->id]);
+        $second = $this->createTicket($property, 'Ticket de Aldair', 'completado');
+        $second->update(['current_provider_id' => $aldair->id]);
+
+        $this->actingAs($admin)
+            ->get(route('maintenance-cuts.index'))
+            ->assertOk()
+            ->assertSee('Técnico')
+            ->assertSee('Alejandro')
+            ->assertSee('Aldair');
+
+        $this->actingAs($admin)
+            ->post(route('maintenance-cuts.store'), ['ticket_ids' => [$first->id, $second->id]])
             ->assertSessionHasErrors('ticket_ids');
 
         $this->assertDatabaseCount('maintenance_cuts', 0);
