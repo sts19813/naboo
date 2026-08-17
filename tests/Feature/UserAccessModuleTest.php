@@ -70,6 +70,25 @@ class UserAccessModuleTest extends TestCase
             ->assertDontSee('<!DOCTYPE html>', false);
     }
 
+    public function test_access_forms_use_the_module_handler_and_datatables_has_no_remote_language_dependency(): void
+    {
+        $admin = $this->adminUser();
+
+        $response = $this->actingAs($admin)
+            ->get(route('access.index'))
+            ->assertOk()
+            ->assertSee("language: dataTablesLanguage(emptyTableMessage)", false)
+            ->assertDontSee('cdn.datatables.net/plug-ins', false);
+
+        preg_match_all('/<form\\b[^>]*data-access-form[^>]*>/', $response->getContent(), $accessForms);
+
+        $this->assertNotEmpty($accessForms[0]);
+
+        foreach ($accessForms[0] as $accessForm) {
+            $this->assertStringContainsString('data-no-ajax', $accessForm);
+        }
+    }
+
     public function test_tenant_role_users_are_shown_in_separate_final_tab(): void
     {
         $admin = $this->adminUser();

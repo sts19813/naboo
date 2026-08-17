@@ -116,6 +116,28 @@
                 document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
             };
 
+            const dataTablesLanguage = (emptyTableMessage) => ({
+                emptyTable: emptyTableMessage,
+                info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
+                infoEmpty: 'Mostrando 0 a 0 de 0 registros',
+                infoFiltered: '(filtrado de _MAX_ registros)',
+                lengthMenu: 'Mostrar _MENU_ registros',
+                loadingRecords: 'Cargando...',
+                processing: 'Procesando...',
+                search: 'Buscar:',
+                zeroRecords: 'No se encontraron resultados',
+                paginate: {
+                    first: 'Primero',
+                    last: 'Último',
+                    next: 'Siguiente',
+                    previous: 'Anterior'
+                },
+                aria: {
+                    sortAscending: ': activar para ordenar ascendente',
+                    sortDescending: ': activar para ordenar descendente'
+                }
+            });
+
             const initTables = () => {
                 if (!window.jQuery || !$.fn.DataTable) return;
 
@@ -129,10 +151,7 @@
                         order: [],
                         responsive: true,
                         dom: searchInputSelector ? 'rt<"d-flex flex-wrap justify-content-between align-items-center gap-3 pt-5"ip>' : undefined,
-                        language: {
-                            url: '//cdn.datatables.net/plug-ins/2.3.2/i18n/es-MX.json',
-                            emptyTable: emptyTableMessage
-                        }
+                        language: dataTablesLanguage(emptyTableMessage)
                     });
 
                     const searchInput = searchInputSelector ? document.querySelector(searchInputSelector) : null;

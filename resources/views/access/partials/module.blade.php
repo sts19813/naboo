@@ -171,7 +171,7 @@
                                             <button type="button" class="btn btn-sm btn-success me-2" data-bs-toggle="modal" data-bs-target="#editRoleModal-{{ $role->id }}">
                                                 <i class="bi bi-pencil-square me-1"></i> Editar
                                             </button>
-                                            <form method="POST" action="{{ route('access.roles.destroy', $role) }}" class="d-inline" data-access-form>
+                                            <form method="POST" action="{{ route('access.roles.destroy', $role) }}" class="d-inline" data-access-form data-no-ajax>
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-secondary" data-access-delete data-confirm-message="Solo se eliminará si ningún usuario lo tiene asignado.">
@@ -211,7 +211,7 @@
                                             <button type="button" class="btn btn-sm btn-success me-2" data-bs-toggle="modal" data-bs-target="#editPermissionModal-{{ $permission->id }}">
                                                 <i class="bi bi-pencil-square me-1"></i> Editar
                                             </button>
-                                            <form method="POST" action="{{ route('access.permissions.destroy', $permission) }}" class="d-inline" data-access-form>
+                                            <form method="POST" action="{{ route('access.permissions.destroy', $permission) }}" class="d-inline" data-access-form data-no-ajax>
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-secondary" data-access-delete data-confirm-message="Solo se eliminará si no está asignado a roles ni usuarios.">
@@ -293,7 +293,7 @@
     <div class="modal fade" id="createUserModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
-                <form method="POST" action="{{ route('access.users.store') }}" data-access-form>
+                <form method="POST" action="{{ route('access.users.store') }}" data-access-form data-no-ajax>
                     @csrf
                     <div class="modal-header">
                         <h5 class="modal-title">Nuevo usuario</h5>
@@ -315,7 +315,7 @@
     <div class="modal fade" id="createRoleModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <form method="POST" action="{{ route('access.roles.store') }}" data-access-form>
+                <form method="POST" action="{{ route('access.roles.store') }}" data-access-form data-no-ajax>
                     @csrf
                     <div class="modal-header">
                         <h5 class="modal-title">Crear rol</h5>
@@ -337,7 +337,7 @@
     <div class="modal fade" id="createPermissionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form method="POST" action="{{ route('access.permissions.store') }}" data-access-form>
+                <form method="POST" action="{{ route('access.permissions.store') }}" data-access-form data-no-ajax>
                     @csrf
                     <div class="modal-header">
                         <h5 class="modal-title">Crear permiso</h5>
@@ -360,7 +360,7 @@
         <div class="modal fade" id="editUserModal-{{ $userItem->id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <form method="POST" action="{{ route('access.users.update', $userItem) }}" data-access-form>
+                    <form method="POST" action="{{ route('access.users.update', $userItem) }}" data-access-form data-no-ajax>
                         @csrf
                         @method('PUT')
                         <div class="modal-header">
@@ -385,7 +385,7 @@
         <div class="modal fade" id="editRoleModal-{{ $roleItem->id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <form method="POST" action="{{ route('access.roles.update', $roleItem) }}" data-access-form>
+                    <form method="POST" action="{{ route('access.roles.update', $roleItem) }}" data-access-form data-no-ajax>
                         @csrf
                         @method('PUT')
                         <div class="modal-header">
@@ -410,7 +410,7 @@
         <div class="modal fade" id="editPermissionModal-{{ $permissionItem->id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form method="POST" action="{{ route('access.permissions.update', $permissionItem) }}" data-access-form>
+                    <form method="POST" action="{{ route('access.permissions.update', $permissionItem) }}" data-access-form data-no-ajax>
                         @csrf
                         @method('PUT')
                         <div class="modal-header">
