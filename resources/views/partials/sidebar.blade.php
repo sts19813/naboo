@@ -14,6 +14,7 @@
     $canViewPropertyControl = $user->can('propiedades.control_ver') || $user->hasRole('administrador') || $user->hasRole('admin');
     $canConfigureDossiers = $user->can('expedientes.configurar') || $user->hasRole('administrador') || $user->hasRole('admin');
     $canConfigureNotifications = $user->can('notificaciones.configurar') || $user->hasRole('administrador') || $user->hasRole('admin');
+    $canManageMaintenanceProviders = $user->can('administracion de tecnicos') || $user->hasRole('administrador') || $user->hasRole('admin');
     $homeRoute = $isAdvisor ? 'advisor.tasks.index' : (($isTenant || $isTechnician) ? 'maintenance.index' : 'dashboard');
     $roleLabel = $isTenant ? 'Panel de inquilino' : ($isTechnician ? 'Panel técnico' : ($isAdvisor ? 'Panel de asesor' : 'Panel Naboo'));
     $currentHour = now()->hour;
@@ -23,7 +24,7 @@
     $menuItems = $isTenant
         ? [
             ['patterns' => ['charges.*'], 'route' => 'charges.index', 'label' => 'Cobranza', 'icon' => 'bi-wallet2'],
-            ['patterns' => ['maintenance.*'], 'route' => 'maintenance.index', 'label' => 'Mantenimiento', 'icon' => 'bi-tools'],
+            ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Mantenimiento', 'icon' => 'bi-tools'],
             [
                 'patterns' => ['profile.*'],
                 'label' => 'Configuración',
@@ -35,7 +36,7 @@
         ]
         : ($isTechnician
             ? [
-                ['patterns' => ['maintenance.*'], 'route' => 'maintenance.index', 'label' => 'Mantenimiento', 'icon' => 'bi-tools'],
+                ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Mantenimiento', 'icon' => 'bi-tools'],
                 ['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam'],
                 [
                     'patterns' => ['profile.*'],
@@ -76,8 +77,12 @@
                     'label' => 'Mantenimiento',
                     'icon' => 'bi-tools',
                     'children' => [
-                        ['patterns' => ['maintenance.*'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
+                        ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
                         ...($isAdmin ? [['patterns' => ['maintenance-cuts.*'], 'route' => 'maintenance-cuts.index', 'label' => 'Corte de mantenimiento', 'icon' => 'bi-cash-coin']] : []),
+                        ...($canManageMaintenanceProviders ? [
+                            ['patterns' => ['maintenance.technicians.index'], 'route' => 'maintenance.technicians.index', 'label' => 'Técnicos', 'icon' => 'bi-person-gear'],
+                            ['patterns' => ['maintenance.providers.index'], 'route' => 'maintenance.providers.index', 'label' => 'Proveedores', 'icon' => 'bi-building'],
+                        ] : []),
                         ['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam'],
                     ],
                 ],
@@ -111,11 +116,11 @@
     $mobilePrimaryItems = $isTenant
         ? [
             ['patterns' => ['charges.*'], 'route' => 'charges.index', 'label' => 'Cobranza', 'icon' => 'bi-wallet2'],
-            ['patterns' => ['maintenance.*'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
+            ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
         ]
         : ($isTechnician
             ? [
-                ['patterns' => ['maintenance.*'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
+                ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
                 ['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam'],
             ]
             : [
@@ -123,7 +128,7 @@
                 ...($isAdmin ? [['patterns' => ['admin.tasks.*'], 'route' => 'admin.tasks.index', 'label' => 'Pendientes', 'icon' => 'bi-list-check']] : []),
                 ['patterns' => ['properties.index', 'properties.create', 'properties.show', 'properties.edit', 'properties.inventory.edit', 'inventory-checks.*'], 'route' => 'properties.index', 'label' => 'Propiedades', 'icon' => 'bi-house-door'],
                 ['patterns' => ['charges.*'], 'route' => 'charges.index', 'label' => 'Cobranza', 'icon' => 'bi-wallet2'],
-                ['patterns' => ['maintenance.*'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
+                ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
             ]);
 
     $mobileSecondaryItems = $flatMenuItems

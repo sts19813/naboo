@@ -610,7 +610,7 @@
                                 @endif
                             </div>
                             <div>
-                                <label class="form-label">Técnico asignado</label>
+                                <label class="form-label">Técnico o proveedor asignado</label>
                                 @if (in_array($role, ['administrador', 'tecnico'], true))
                                     <select class="form-select js-ticket-meta" data-field="provider_id" data-ticket-uuid="{{ $ticket->uuid }}" data-scheduled-visit-at="{{ $ticket->scheduled_visit_at?->format('Y-m-d\\TH:i:s') }}">
                                         <option value="">Sin asignar</option>

@@ -14,7 +14,6 @@ class MaintenanceProvider extends Model
 
     public const TYPE_LABELS = [
         'tecnico_interno' => 'Técnico interno',
-        'empresa_externa' => 'Empresa externa',
         'proveedor' => 'Proveedor',
     ];
 
@@ -26,6 +25,7 @@ class MaintenanceProvider extends Model
         'email',
         'phone',
         'specialty',
+        'category',
         'average_cost',
         'rating',
         'availability',
@@ -53,6 +53,16 @@ class MaintenanceProvider extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    public function isTechnician(): bool
+    {
+        return $this->type === 'tecnico_interno';
+    }
+
+    public function isSupplier(): bool
+    {
+        return $this->type === 'proveedor';
     }
 
     public function user(): BelongsTo

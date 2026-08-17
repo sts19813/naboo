@@ -135,6 +135,7 @@ class AdvisorTaskController extends Controller
         }
 
         $providerIds = MaintenanceProvider::query()
+            ->where('type', 'tecnico_interno')
             ->where(function ($query) use ($user): void {
                 $query->where('user_id', $user->id);
 

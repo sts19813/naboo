@@ -196,6 +196,7 @@ class PendingNotificationService
     private function countTechnicianTasks(User $user): int
     {
         $providerIds = MaintenanceProvider::query()
+            ->where('type', 'tecnico_interno')
             ->where(function ($query) use ($user): void {
                 $query->where('user_id', $user->id);
 

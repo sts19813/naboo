@@ -45,9 +45,13 @@ use Illuminate\Support\Str;
 class DemoDataSeeder extends Seeder
 {
     private User $admin;
+
     private User $advisor;
+
     private User $advisorSecondary;
+
     private User $technician;
+
     private User $tenantUser;
 
     /**
@@ -312,8 +316,8 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Owner> $owners
-     * @param array<string, Tenant> $tenants
+     * @param  array<string, Owner>  $owners
+     * @param  array<string, Tenant>  $tenants
      * @return array<string, Property>
      */
     private function seedProperties(array $owners, array $tenants): array
@@ -517,7 +521,7 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Property> $properties
+     * @param  array<string, Property>  $properties
      */
     private function seedInventory(array $properties): void
     {
@@ -607,7 +611,7 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Property> $properties
+     * @param  array<string, Property>  $properties
      */
     private function seedCharges(array $properties): void
     {
@@ -686,7 +690,7 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Property> $properties
+     * @param  array<string, Property>  $properties
      * @return array<int, Expense>
      */
     private function seedExpenses(array $properties): array
@@ -782,21 +786,21 @@ class DemoDataSeeder extends Seeder
     {
         $rows = [
             'clima' => [
-                'type' => 'empresa_externa',
+                'type' => 'proveedor',
                 'name' => 'Climas del Mayab',
                 'email' => 'servicio@climasmayab.example.com',
                 'phone' => '9994108822',
-                'specialty' => 'Aire acondicionado y refrigeracion',
+                'category' => 'Aire acondicionado y refrigeracion',
                 'average_cost' => 1350,
                 'rating' => 4.7,
                 'availability' => 'Lunes a sabado, atencion 24h para urgencias.',
             ],
             'plomeria' => [
-                'type' => 'empresa_externa',
+                'type' => 'proveedor',
                 'name' => 'Hidrosoluciones Peninsular',
                 'email' => 'agenda@hidrosoluciones.example.com',
                 'phone' => '9995332244',
-                'specialty' => 'Plomeria, bombas y tinacos',
+                'category' => 'Plomeria, bombas y tinacos',
                 'average_cost' => 950,
                 'rating' => 4.5,
                 'availability' => 'Citas de 9:00 a 18:00 con guardia nocturna.',
@@ -823,9 +827,9 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Property> $properties
-     * @param array<string, MaintenanceProvider> $providers
-     * @param array<int, Expense> $expenses
+     * @param  array<string, Property>  $properties
+     * @param  array<string, MaintenanceProvider>  $providers
+     * @param  array<int, Expense>  $expenses
      */
     private function seedMaintenance(array $properties, array $providers, array $expenses): void
     {
@@ -1066,9 +1070,9 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Property> $properties
-     * @param array<string, Owner> $owners
-     * @param array<string, Tenant> $tenants
+     * @param  array<string, Property>  $properties
+     * @param  array<string, Owner>  $owners
+     * @param  array<string, Tenant>  $tenants
      */
     private function seedDossiers(array $properties, array $owners, array $tenants): void
     {

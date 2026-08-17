@@ -16,6 +16,8 @@ use App\Support\NotificationSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -42,8 +44,8 @@ class MaintenanceModuleTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
 
-        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('maintenance_providers', 'is_responsible'));
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('maintenance.technicians.responsible'));
+        $this->assertFalse(Schema::hasColumn('maintenance_providers', 'is_responsible'));
+        $this->assertFalse(Route::has('maintenance.technicians.responsible'));
 
         $this->actingAs($admin)
             ->get(route('maintenance.technicians.index'))
@@ -1008,7 +1010,7 @@ class MaintenanceModuleTest extends TestCase
 
         $indexResponse->assertOk();
         $indexResponse->assertSee('Cambiar urgencia de', false);
-        $indexResponse->assertSee('Cambiar técnico de', false);
+        $indexResponse->assertSee('Cambiar técnico o proveedor de', false);
         $indexResponse->assertSee(route('maintenance.meta', $ticket), false);
 
         $response = $this
@@ -1042,10 +1044,15 @@ class MaintenanceModuleTest extends TestCase
         $this->actingAs($advisor)
             ->get(route('maintenance.index'))
             ->assertOk()
-            ->assertDontSee('Administración de técnicos');
+            ->assertDontSee(route('maintenance.technicians.index'), false)
+            ->assertDontSee(route('maintenance.providers.index'), false);
 
         $this->actingAs($advisor)
             ->get(route('maintenance.technicians.index'))
+            ->assertForbidden();
+
+        $this->actingAs($advisor)
+            ->get(route('maintenance.providers.index'))
             ->assertForbidden();
     }
 
@@ -1062,12 +1069,24 @@ class MaintenanceModuleTest extends TestCase
         $this->actingAs($advisor)
             ->get(route('maintenance.index'))
             ->assertOk()
-            ->assertSee('Administración de técnicos');
+            ->assertSee(route('maintenance.technicians.index'), false)
+            ->assertSee(route('maintenance.providers.index'), false);
 
         $this->actingAs($advisor)
             ->get(route('maintenance.technicians.index'))
             ->assertOk()
-            ->assertSee('Administración de técnicos');
+            ->assertSee('<h1>Técnicos</h1>', false)
+            ->assertSee('Nuevo técnico')
+            ->assertDontSee('Nuevo proveedor')
+            ->assertDontSee('data-bs-toggle="tab"', false);
+
+        $this->actingAs($advisor)
+            ->get(route('maintenance.providers.index'))
+            ->assertOk()
+            ->assertSee('<h1>Proveedores</h1>', false)
+            ->assertSee('Nuevo proveedor')
+            ->assertDontSee('Nuevo técnico')
+            ->assertDontSee('data-bs-toggle="tab"', false);
 
         $response = $this->actingAs($advisor)
             ->post(route('maintenance.providers.store'), [
@@ -1093,6 +1112,154 @@ class MaintenanceModuleTest extends TestCase
             'user_id' => $linkedUser->id,
             'is_active' => true,
         ]);
+    }
+
+    public function test_supplier_can_be_created_without_a_system_account(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $existingUser = User::factory()->create();
+        $usersBefore = User::query()->count();
+
+        $this->actingAs($admin)
+            ->get(route('maintenance.providers.index'))
+            ->assertOk()
+            ->assertSee('<h1>Proveedores</h1>', false)
+            ->assertSee('Nuevo proveedor')
+            ->assertDontSee('Nuevo técnico')
+            ->assertDontSee('Empresa externa');
+
+        $this->actingAs($admin)
+            ->post(route('maintenance.providers.store'), [
+                'type' => 'proveedor',
+                'name' => 'Servicios Peninsulares',
+                'email' => 'contacto@servicios.test',
+                'phone' => '9991234567',
+                'category' => 'Aire acondicionado',
+                'availability' => 'Lunes a sábado',
+                'is_active' => '1',
+                'user_id' => $existingUser->id,
+                'create_user_account' => '1',
+                'account_email' => 'cuenta-proveedor@example.test',
+                'account_password' => 'password-proveedor',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('maintenance_providers', [
+            'type' => 'proveedor',
+            'name' => 'Servicios Peninsulares',
+            'category' => 'Aire acondicionado',
+            'availability' => 'Lunes a sábado',
+            'user_id' => null,
+        ]);
+        $this->assertSame($usersBefore, User::query()->count());
+    }
+
+    public function test_technicians_and_suppliers_are_listed_in_separate_modules(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+
+        MaintenanceProvider::query()->create([
+            'type' => 'tecnico_interno',
+            'name' => 'Técnico exclusivo del catálogo',
+            'is_active' => true,
+        ]);
+        MaintenanceProvider::query()->create([
+            'type' => 'proveedor',
+            'name' => 'Proveedor exclusivo del catálogo',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('maintenance.technicians.index'))
+            ->assertOk()
+            ->assertSee('Técnico exclusivo del catálogo')
+            ->assertDontSee('Proveedor exclusivo del catálogo');
+
+        $this->actingAs($admin)
+            ->get(route('maintenance.providers.index'))
+            ->assertOk()
+            ->assertSee('Proveedor exclusivo del catálogo')
+            ->assertDontSee('Técnico exclusivo del catálogo');
+    }
+
+    public function test_supplier_assignment_notifies_responsible_advisor_who_can_manage_ticket_content(): void
+    {
+        Mail::fake();
+        Storage::fake('public');
+
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $advisor = User::factory()->create(['email' => 'asesor.proveedor@example.test']);
+        $advisor->assignRole(Role::query()->create(['name' => 'asesores', 'guard_name' => 'web']));
+        $property = $this->createPropertyFixture($admin);
+        $property->update(['advisor_user_id' => $advisor->id]);
+        $property->advisors()->attach($advisor->id);
+        $supplier = MaintenanceProvider::create([
+            'type' => 'proveedor',
+            'name' => 'Proveedor sin acceso',
+            'email' => 'proveedor.sin.cuenta@example.test',
+            'category' => 'Plomería',
+            'availability' => 'Guardias 24 horas',
+            'is_active' => true,
+        ]);
+        $supplierContactUser = User::factory()->create(['email' => $supplier->email]);
+        $supplierContactUser->assignRole(Role::query()->create(['name' => 'tecnico', 'guard_name' => 'web']));
+        $ticket = MaintenanceTicket::create([
+            'property_id' => $property->id,
+            'reported_by_user_id' => $admin->id,
+            'reported_by_role' => 'administrador',
+            'reported_by_name' => $admin->name,
+            'category' => 'plomeria',
+            'priority' => 'alta',
+            'status' => 'pendiente',
+            'title' => 'Ticket atendido por proveedor',
+            'exact_location' => 'Baño',
+            'description' => 'Requiere proveedor externo',
+            'reported_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('maintenance.assign', $ticket), ['provider_id' => $supplier->id])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('maintenance_ticket_notifications', [
+            'ticket_id' => $ticket->id,
+            'event' => 'asignacion',
+            'recipient' => $advisor->email,
+        ]);
+        $this->assertDatabaseMissing('maintenance_ticket_notifications', [
+            'ticket_id' => $ticket->id,
+            'event' => 'asignacion',
+            'recipient' => $supplier->email,
+        ]);
+
+        $this->actingAs($supplierContactUser)
+            ->get(route('maintenance.show', $ticket))
+            ->assertForbidden();
+
+        $this->actingAs($advisor)
+            ->get(route('maintenance.show', $ticket))
+            ->assertOk()
+            ->assertSee('Agregar costo');
+
+        $this->actingAs($advisor)
+            ->put(route('maintenance.costs', $ticket), [
+                'labor_cost' => 350,
+                'material_cost' => 150,
+                'payer' => 'administracion',
+            ])
+            ->assertRedirect();
+        $this->actingAs($advisor)
+            ->post(route('maintenance.files', $ticket), [
+                'kind' => 'evidencia',
+                'files' => [UploadedFile::fake()->image('evidencia.jpg')],
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('maintenance_ticket_costs', ['ticket_id' => $ticket->id, 'final_cost' => 500]);
+        $this->assertDatabaseHas('maintenance_ticket_files', ['ticket_id' => $ticket->id, 'uploaded_by_user_id' => $advisor->id]);
     }
 
     private function createPropertyFixture(User $user): Property

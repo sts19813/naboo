@@ -115,7 +115,10 @@
                         </button>
                         @if ($canManageProviders)
                             <a class="maintenance-soft-btn" href="{{ route('maintenance.technicians.index') }}">
-                                <i class="bi bi-person-gear"></i> Administración de técnicos
+                                <i class="bi bi-person-gear"></i> Técnicos
+                            </a>
+                            <a class="maintenance-soft-btn" href="{{ route('maintenance.providers.index') }}">
+                                <i class="bi bi-building"></i> Proveedores
                             </a>
                         @endif
                     @endif
@@ -272,7 +275,7 @@
                                 <span>Folio</span>
                                 <span>Ticket</span>
                                 <span>Propiedad</span>
-                                <span>Técnico</span>
+                                <span>Responsable</span>
                                 <span>Estado</span>
                             </div>
                             @foreach ($bucketTickets as $ticket)
@@ -340,9 +343,9 @@
                                             <span class="dropdown maintenance-inline-dropdown maintenance-provider-dropdown" data-maintenance-row-action>
                                                 <button class="maintenance-provider-trigger dropdown-toggle" type="button"
                                                     data-bs-toggle="dropdown" aria-expanded="false"
-                                                    aria-label="Cambiar técnico de {{ $ticket->display_reference }}">
+                                                    aria-label="Cambiar técnico o proveedor de {{ $ticket->display_reference }}">
                                                     @if ($ticket->currentProvider)
-                                                        <span class="maintenance-avatar">{{ $providerInitials ?: 'T' }}</span>
+                                                        <span class="maintenance-avatar">{{ $providerInitials ?: ($ticket->currentProvider->isSupplier() ? 'P' : 'T') }}</span>
                                                         <span class="min-w-0">
                                                             <span class="maintenance-cell-title" title="{{ $ticket->currentProvider->name }}">{{ $ticket->currentProvider->name }}</span>
                                                             <span class="maintenance-cell-subtitle">{{ \App\Models\MaintenanceProvider::TYPE_LABELS[$ticket->currentProvider->type] ?? $ticket->currentProvider->type }}</span>
@@ -362,7 +365,7 @@
                                                             <span class="maintenance-cell-icon"><i class="bi bi-person-dash"></i></span>
                                                             <span class="min-w-0">
                                                                 <span class="maintenance-cell-title">Sin asignar</span>
-                                                                <span class="maintenance-cell-subtitle">Quitar técnico actual</span>
+                                                                <span class="maintenance-cell-subtitle">Quitar responsable actual</span>
                                                             </span>
                                                         </button>
                                                     </form>
@@ -381,11 +384,11 @@
                                                             <input type="hidden" name="notes" value="Asignación rápida desde panel">
                                                             <button class="dropdown-item maintenance-provider-option {{ (int) $ticket->current_provider_id === (int) $provider->id ? 'active' : '' }}"
                                                                 type="submit" {{ (int) $ticket->current_provider_id === (int) $provider->id ? 'disabled' : '' }}>
-                                                                <span class="maintenance-avatar">{{ $optionInitials ?: 'T' }}</span>
+                                                                <span class="maintenance-avatar">{{ $optionInitials ?: ($provider->isSupplier() ? 'P' : 'T') }}</span>
                                                                 <span class="min-w-0">
                                                                     <span class="maintenance-cell-title">{{ $provider->name }}</span>
                                                                     <span class="maintenance-cell-subtitle">
-                                                                        {{ \App\Models\MaintenanceProvider::TYPE_LABELS[$provider->type] ?? $provider->type }}{{ $provider->is_active ? '' : ' · Inactivo' }}
+                                                                        {{ \App\Models\MaintenanceProvider::TYPE_LABELS[$provider->type] ?? $provider->type }}{{ $provider->isSupplier() && $provider->category ? ' · '.$provider->category : ($provider->specialty ? ' · '.$provider->specialty : '') }}{{ $provider->is_active ? '' : ' · Inactivo' }}
                                                                     </span>
                                                                 </span>
                                                             </button>
@@ -465,7 +468,10 @@
                             <div class="maintenance-side-panel">
                                 <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                                     <h3 class="maintenance-panel-title mb-0">Equipo</h3>
-                                    <a class="maintenance-soft-btn py-2" href="{{ route('maintenance.technicians.index') }}">Administrar</a>
+                                    <div class="d-flex gap-2">
+                                        <a class="maintenance-soft-btn py-2" href="{{ route('maintenance.technicians.index') }}">Técnicos</a>
+                                        <a class="maintenance-soft-btn py-2" href="{{ route('maintenance.providers.index') }}">Proveedores</a>
+                                    </div>
                                 </div>
                                 @forelse ($providers->take(5) as $provider)
                                     <div class="maintenance-mini-row">
@@ -653,7 +659,7 @@
 
                                     <div class="col-md-6">
                                         <label class="form-label">
-                                            Técnico asignado
+                                            Técnico o proveedor
                                         </label>
 
                                         <select class="form-select" name="provider_id" id="createTicketProvider">
@@ -816,225 +822,6 @@
             </div>
         </div>
     @endif
-    @if ($canManageProviders)
-        <div class="modal fade" id="createProviderModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <form method="POST" action="{{ route('maintenance.providers.store') }}">
-                        @csrf
-                        <div class="modal-header">
-                            <h3 class="modal-title">Nuevo técnico/proveedor</h3>
-                            <button type="button" class="btn btn-icon btn-sm btn-light" data-bs-dismiss="modal">×</button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row g-4">
-                                <div class="col-md-4">
-                                    <label class="form-label required">Tipo</label>
-                                    <select class="form-select" name="type" required>
-                                        @foreach (\App\Models\MaintenanceProvider::TYPE_LABELS as $key => $label)
-                                            <option value="{{ $key }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-8">
-                                    <label class="form-label required">Nombre</label>
-                                    <input class="form-control" type="text" name="name" maxlength="190" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Correo</label>
-                                    <input class="form-control" type="email" name="email" maxlength="190">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Teléfono</label>
-                                    <input class="form-control" type="text" name="phone" maxlength="40">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Especialidad</label>
-                                    <input class="form-control" type="text" name="specialty" maxlength="190">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Costo promedio</label>
-                                    <input class="form-control" type="number" step="0.01" min="0" name="average_cost">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Calificación</label>
-                                    <input class="form-control" type="number" step="0.01" min="0" max="5" name="rating">
-                                </div>
-                                <div class="col-md-12">
-                                    <label class="form-label">Disponibilidad</label>
-                                    <input class="form-control" type="text" name="availability" maxlength="255">
-                                </div>
-                                <div class="col-12">
-                                    <hr class="my-1">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Vincular usuario existente</label>
-                                    <select class="form-select" name="user_id">
-                                        <option value="">Sin vincular</option>
-                                        @foreach ($users as $userRow)
-                                            <option value="{{ $userRow->id }}">{{ $userRow->name }} · {{ $userRow->email }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-6 d-flex align-items-end">
-                                    <div class="form-check form-check-custom form-check-solid">
-                                        <input class="form-check-input" type="checkbox" value="1" id="create_user_account_new"
-                                            name="create_user_account">
-                                        <label class="form-check-label" for="create_user_account_new">Crear cuenta nueva para
-                                            técnico</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Nombre cuenta</label>
-                                    <input class="form-control" type="text" name="account_name" maxlength="255">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Correo cuenta</label>
-                                    <input class="form-control" type="email" name="account_email" maxlength="190">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Contraseña cuenta</label>
-                                    <input class="form-control" type="text" name="account_password" maxlength="120">
-                                </div>
-                                <div class="col-md-6 d-flex align-items-end">
-                                    <div class="form-check form-check-custom form-check-solid">
-                                        <input class="form-check-input" type="checkbox" value="1"
-                                            id="send_credentials_email_new" name="send_credentials_email">
-                                        <label class="form-check-label" for="send_credentials_email_new">Enviar acceso por
-                                            correo</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Guardar</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        @foreach ($providers as $provider)
-            <div class="modal fade" id="editProviderModal-{{ $provider->id }}" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <form method="POST" action="{{ route('maintenance.providers.update', $provider) }}">
-                            @csrf
-                            @method('PUT')
-                            <div class="modal-header">
-                                <h3 class="modal-title">Editar técnico/proveedor</h3>
-                                <button type="button" class="btn btn-icon btn-sm btn-light" data-bs-dismiss="modal">×</button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row g-4">
-                                    <div class="col-md-4">
-                                        <label class="form-label required">Tipo</label>
-                                        <select class="form-select" name="type" required>
-                                            @foreach (\App\Models\MaintenanceProvider::TYPE_LABELS as $key => $label)
-                                                <option value="{{ $key }}" {{ $provider->type === $key ? 'selected' : '' }}>{{ $label }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-md-8">
-                                        <label class="form-label required">Nombre</label>
-                                        <input class="form-control" type="text" name="name" maxlength="190"
-                                            value="{{ $provider->name }}" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Correo</label>
-                                        <input class="form-control" type="email" name="email" maxlength="190"
-                                            value="{{ $provider->email }}">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Teléfono</label>
-                                        <input class="form-control" type="text" name="phone" maxlength="40"
-                                            value="{{ $provider->phone }}">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Especialidad</label>
-                                        <input class="form-control" type="text" name="specialty" maxlength="190"
-                                            value="{{ $provider->specialty }}">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Costo promedio</label>
-                                        <input class="form-control" type="number" step="0.01" min="0" name="average_cost"
-                                            value="{{ $provider->average_cost }}">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Calificación</label>
-                                        <input class="form-control" type="number" step="0.01" min="0" max="5" name="rating"
-                                            value="{{ $provider->rating }}">
-                                    </div>
-                                    <div class="col-md-8">
-                                        <label class="form-label">Disponibilidad</label>
-                                        <input class="form-control" type="text" name="availability" maxlength="255"
-                                            value="{{ $provider->availability }}">
-                                    </div>
-                                    <div class="col-md-4 d-flex align-items-end">
-                                        <div class="form-check form-check-custom form-check-solid">
-                                            <input class="form-check-input" type="checkbox" value="1" name="is_active"
-                                                id="provider_active_{{ $provider->id }}" {{ $provider->is_active ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="provider_active_{{ $provider->id }}">Activo</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <hr class="my-1">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Vincular usuario existente</label>
-                                        <select class="form-select" name="user_id">
-                                            <option value="">Sin vincular</option>
-                                            @foreach ($users as $userRow)
-                                                <option value="{{ $userRow->id }}" {{ (int) $provider->user_id === (int) $userRow->id ? 'selected' : '' }}>
-                                                    {{ $userRow->name }} · {{ $userRow->email }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6 d-flex align-items-end">
-                                        <div class="form-check form-check-custom form-check-solid">
-                                            <input class="form-check-input" type="checkbox" value="1"
-                                                id="create_user_account_{{ $provider->id }}" name="create_user_account">
-                                            <label class="form-check-label" for="create_user_account_{{ $provider->id }}">Crear
-                                                cuenta nueva</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Nombre cuenta</label>
-                                        <input class="form-control" type="text" name="account_name" maxlength="255"
-                                            value="{{ $provider->name }}">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Correo cuenta</label>
-                                        <input class="form-control" type="email" name="account_email" maxlength="190">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Contraseña cuenta</label>
-                                        <input class="form-control" type="text" name="account_password" maxlength="120">
-                                    </div>
-                                    <div class="col-md-6 d-flex align-items-end">
-                                        <div class="form-check form-check-custom form-check-solid">
-                                            <input class="form-check-input" type="checkbox" value="1"
-                                                id="send_credentials_email_{{ $provider->id }}" name="send_credentials_email">
-                                            <label class="form-check-label" for="send_credentials_email_{{ $provider->id }}">Enviar
-                                                acceso por correo</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Guardar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        @endforeach
-    @endif
-
     <style>
         .maintenance-calendar-hint {
             margin: 4px 0 14px;

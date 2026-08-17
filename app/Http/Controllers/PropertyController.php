@@ -198,7 +198,9 @@ class PropertyController extends Controller
             'technician_provider_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('maintenance_providers', 'id')->where('is_active', true),
+                Rule::exists('maintenance_providers', 'id')->where(fn ($query) => $query
+                    ->where('is_active', true)
+                    ->where('type', 'tecnico_interno')),
             ],
         ]);
 
@@ -582,6 +584,7 @@ class PropertyController extends Controller
             'canDeletePaidCharges' => $canManageCharges && (bool) auth()->user()?->can('cobranza.eliminar_pagados'),
             'availablePropertyTechnicians' => MaintenanceProvider::query()
                 ->where('is_active', true)
+                ->where('type', 'tecnico_interno')
                 ->orderBy('name')
                 ->get(['id', 'uuid', 'name', 'email', 'type', 'specialty']),
             'availableAdvisors' => $this->availableAdvisors(),
