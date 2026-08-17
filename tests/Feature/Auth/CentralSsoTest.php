@@ -22,6 +22,7 @@ class CentralSsoTest extends TestCase
             'workspace' => 'tayde',
             'client_id' => 'tayde-client',
             'client_secret' => 'tayde-secret',
+            'sync_users' => false,
         ]);
     }
 

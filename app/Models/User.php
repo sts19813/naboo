@@ -27,6 +27,9 @@ class User extends Authenticatable
         'name',
         'email',
         'sso_subject',
+        'sso_synced_at',
+        'sso_sync_pending',
+        'sso_sync_error',
         'password',
         'is_active',
         'profile_photo',
@@ -57,6 +60,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'google_token_expires_at' => 'datetime',
+            'sso_synced_at' => 'datetime',
+            'sso_sync_pending' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

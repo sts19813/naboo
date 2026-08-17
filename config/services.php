@@ -53,6 +53,7 @@ return [
         'workspace' => env('CENTRAL_SSO_WORKSPACE'),
         'client_id' => env('CENTRAL_SSO_CLIENT_ID'),
         'client_secret' => env('CENTRAL_SSO_CLIENT_SECRET'),
+        'sync_users' => env('CENTRAL_SSO_SYNC_USERS', false),
     ],
 
     'openai' => [
