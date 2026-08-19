@@ -15,6 +15,7 @@
     $canConfigureDossiers = $user->can('expedientes.configurar') || $user->hasRole('administrador') || $user->hasRole('admin');
     $canConfigureNotifications = $user->can('notificaciones.configurar') || $user->hasRole('administrador') || $user->hasRole('admin');
     $canManageMaintenanceProviders = $user->can('administracion de tecnicos') || $user->hasRole('administrador') || $user->hasRole('admin');
+    $subscriptionModuleEnabled = (bool) config('features.subscription_module_enabled');
     $homeRoute = $isAdvisor ? 'advisor.tasks.index' : (($isTenant || $isTechnician) ? 'maintenance.index' : 'dashboard');
     $roleLabel = $isTenant ? 'Panel de inquilino' : ($isTechnician ? 'Panel técnico' : ($isAdvisor ? 'Panel de asesor' : 'Panel Naboo'));
     $currentHour = now()->hour;
@@ -87,7 +88,7 @@
                     ],
                 ],
                 [
-                    'patterns' => ['settings.dossiers.*', 'settings.notifications.*', 'access.*', 'subscription.*', 'profile.*'],
+                    'patterns' => ['settings.dossiers.*', 'settings.notifications.*', 'access.*', 'profile.*'],
                     'label' => 'Configuración',
                     'icon' => 'bi-gear',
                     'children' => [
@@ -101,7 +102,7 @@
                         ...($canManageAccess ? [
                             ['patterns' => ['access.*'], 'route' => 'access.index', 'label' => 'Usuarios y permisos', 'icon' => 'bi-shield-lock'],
                         ] : []),
-                        ...($isAdmin ? [
+                        ...($subscriptionModuleEnabled && $isAdmin ? [
                             ['patterns' => ['subscription.*'], 'route' => 'subscription.index', 'label' => 'Suscripción', 'icon' => 'bi-credit-card'],
                         ] : []),
                         ['patterns' => ['profile.*'], 'route' => 'profile.index', 'label' => 'Perfil', 'icon' => 'bi-person-circle'],
