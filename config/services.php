@@ -60,6 +60,7 @@ return [
         'key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4.1-mini'),
         'timeout' => env('OPENAI_TIMEOUT', 45),
+        'show_costs' => env('OPENAI_SHOW_COSTS', true),
         'input_cost_per_1m' => env('OPENAI_INPUT_COST_PER_1M'),
         'output_cost_per_1m' => env('OPENAI_OUTPUT_COST_PER_1M'),
     ],
