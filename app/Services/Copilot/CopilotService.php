@@ -465,15 +465,23 @@ class CopilotService
         $today = $summary['today'];
         $month = $summary['month'];
 
-        $answer = sprintf(
-            "Consumo de Naboo Copilot:\n- Hoy: %s tokens en %s llamada(s), costo estimado $%s USD.\n- Este mes: %s tokens en %s llamada(s), costo estimado $%s USD.\n- Esta consulta de consumo se resolvio localmente, sin llamar a OpenAI.\n\nFuente: ai_messages.meta.",
-            number_format((int) $today['total_tokens']),
-            number_format((int) $today['requests']),
-            number_format((float) $today['estimated_cost_usd'], 6),
-            number_format((int) $month['total_tokens']),
-            number_format((int) $month['requests']),
-            number_format((float) $month['estimated_cost_usd'], 6),
-        );
+        $answer = config('services.openai.show_costs', true)
+            ? sprintf(
+                "Consumo de Naboo Copilot:\n- Hoy: %s tokens en %s llamada(s), costo estimado $%s USD.\n- Este mes: %s tokens en %s llamada(s), costo estimado $%s USD.\n- Esta consulta de consumo se resolvio localmente, sin llamar a OpenAI.\n\nFuente: ai_messages.meta.",
+                number_format((int) $today['total_tokens']),
+                number_format((int) $today['requests']),
+                number_format((float) $today['estimated_cost_usd'], 6),
+                number_format((int) $month['total_tokens']),
+                number_format((int) $month['requests']),
+                number_format((float) $month['estimated_cost_usd'], 6),
+            )
+            : sprintf(
+                "Consumo de Naboo Copilot:\n- Hoy: %s tokens en %s llamada(s).\n- Este mes: %s tokens en %s llamada(s).\n- Esta consulta de consumo se resolvio localmente, sin llamar a OpenAI.\n\nFuente: ai_messages.meta.",
+                number_format((int) $today['total_tokens']),
+                number_format((int) $today['requests']),
+                number_format((int) $month['total_tokens']),
+                number_format((int) $month['requests']),
+            );
 
         $assistantMessage = $conversation->messages()->create([
             'role' => 'assistant',

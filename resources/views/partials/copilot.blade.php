@@ -1,3 +1,5 @@
+@php($showCopilotCosts = (bool) config('services.openai.show_costs', true))
+
 <div
     class="naboo-copilot"
     data-copilot
@@ -46,7 +48,7 @@
             </div>
         </div>
 
-        <div class="naboo-copilot__usage" data-copilot-usage hidden>
+        <div class="naboo-copilot__usage {{ $showCopilotCosts ? '' : 'is-cost-hidden' }}" data-copilot-usage hidden>
             <div>
                 <span class="naboo-copilot__usage-label">Hoy</span>
                 <strong data-copilot-usage-today>0 tokens</strong>
@@ -55,10 +57,12 @@
                 <span class="naboo-copilot__usage-label">Mes</span>
                 <strong data-copilot-usage-month>0 tokens</strong>
             </div>
-            <div>
-                <span class="naboo-copilot__usage-label">Costo est.</span>
-                <strong data-copilot-usage-cost>$0.0000 USD</strong>
-            </div>
+            @if ($showCopilotCosts)
+                <div>
+                    <span class="naboo-copilot__usage-label">Costo est.</span>
+                    <strong data-copilot-usage-cost>$0.0000 USD</strong>
+                </div>
+            @endif
         </div>
 
         <form class="naboo-copilot__composer" data-copilot-form>
@@ -396,6 +400,10 @@
         background: #f8fafc;
     }
 
+    .naboo-copilot__usage.is-cost-hidden {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
     .naboo-copilot__usage > div {
         min-width: 0;
         padding: 8px 9px;
@@ -620,7 +628,9 @@
             const month = summary.month || {};
             usageToday.textContent = `${formatNumber(today.total_tokens)} tokens`;
             usageMonth.textContent = `${formatNumber(month.total_tokens)} tokens`;
-            usageCost.textContent = formatUsd(month.estimated_cost_usd);
+            if (usageCost) {
+                usageCost.textContent = formatUsd(month.estimated_cost_usd);
+            }
             usagePanel.hidden = false;
         };
 
