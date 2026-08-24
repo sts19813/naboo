@@ -48,22 +48,22 @@
             </div>
         </div>
 
-        <div class="naboo-copilot__usage {{ $showCopilotCosts ? '' : 'is-cost-hidden' }}" data-copilot-usage hidden>
-            <div>
-                <span class="naboo-copilot__usage-label">Hoy</span>
-                <strong data-copilot-usage-today>0 tokens</strong>
-            </div>
-            <div>
-                <span class="naboo-copilot__usage-label">Mes</span>
-                <strong data-copilot-usage-month>0 tokens</strong>
-            </div>
-            @if ($showCopilotCosts)
+        @if ($showCopilotCosts)
+            <div class="naboo-copilot__usage" data-copilot-usage hidden>
+                <div>
+                    <span class="naboo-copilot__usage-label">Hoy</span>
+                    <strong data-copilot-usage-today>0 tokens</strong>
+                </div>
+                <div>
+                    <span class="naboo-copilot__usage-label">Mes</span>
+                    <strong data-copilot-usage-month>0 tokens</strong>
+                </div>
                 <div>
                     <span class="naboo-copilot__usage-label">Costo est.</span>
                     <strong data-copilot-usage-cost>$0.0000 USD</strong>
                 </div>
-            @endif
-        </div>
+            </div>
+        @endif
 
         <form class="naboo-copilot__composer" data-copilot-form>
             <textarea
@@ -398,10 +398,6 @@
         padding: 10px 12px;
         border-top: 1px solid var(--copilot-line);
         background: #f8fafc;
-    }
-
-    .naboo-copilot__usage.is-cost-hidden {
-        grid-template-columns: repeat(2, 1fr);
     }
 
     .naboo-copilot__usage > div {

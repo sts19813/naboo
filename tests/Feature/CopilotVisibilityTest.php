@@ -33,10 +33,12 @@ class CopilotVisibilityTest extends TestCase
             ->assertOk()
             ->assertSee('data-copilot', false)
             ->assertSee('AI Copilot')
+            ->assertSee('<span class="naboo-copilot__usage-label">Hoy</span>', false)
+            ->assertSee('<span class="naboo-copilot__usage-label">Mes</span>', false)
             ->assertSee('Costo est.');
     }
 
-    public function test_copilot_costs_are_hidden_when_disabled(): void
+    public function test_copilot_usage_summary_is_hidden_when_costs_are_disabled(): void
     {
         config([
             'services.openai.key' => 'test-openai-api-key',
@@ -47,8 +49,9 @@ class CopilotVisibilityTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('data-copilot', false)
-            ->assertSee('Hoy')
-            ->assertSee('Mes')
+            ->assertDontSee('<div class="naboo-copilot__usage"', false)
+            ->assertDontSee('<span class="naboo-copilot__usage-label">Hoy</span>', false)
+            ->assertDontSee('<span class="naboo-copilot__usage-label">Mes</span>', false)
             ->assertDontSee('Costo est.')
             ->assertDontSee('<strong data-copilot-usage-cost', false);
     }
