@@ -19,6 +19,7 @@ use App\Http\Controllers\PropertyControlController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\StorageItemController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\TenantSuggestionController;
 use App\Http\Controllers\UserAccessController;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +67,10 @@ Route::middleware(['auth', 'system.access'])
 
         Route::get('/asesor/pendientes', [AdvisorTaskController::class, 'index'])->name('advisor.tasks.index');
         Route::get('/administracion/pendientes', [AdvisorTaskController::class, 'adminIndex'])->name('admin.tasks.index');
+
+        Route::get('/sugerencias', [TenantSuggestionController::class, 'create'])->name('tenant-suggestions.create');
+        Route::post('/sugerencias', [TenantSuggestionController::class, 'store'])->name('tenant-suggestions.store');
+        Route::get('/buzon', [TenantSuggestionController::class, 'index'])->name('mailbox.index');
 
         Route::get('/propiedades', [PropertyController::class, 'index'])->name('properties.index');
         Route::get('/propiedades/control', [PropertyControlController::class, 'index'])->name('properties.control');

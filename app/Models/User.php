@@ -86,6 +86,11 @@ class User extends Authenticatable
         return $this->hasMany(MaintenanceTicket::class, 'reported_by_user_id');
     }
 
+    public function tenantSuggestions(): HasMany
+    {
+        return $this->hasMany(TenantSuggestion::class, 'sender_user_id');
+    }
+
     public function assignedProperties(): HasMany
     {
         return $this->hasMany(Property::class, 'advisor_user_id');

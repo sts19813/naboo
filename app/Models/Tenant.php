@@ -93,6 +93,11 @@ class Tenant extends Model
         return $this->hasMany(Charge::class);
     }
 
+    public function suggestions(): HasMany
+    {
+        return $this->hasMany(TenantSuggestion::class);
+    }
+
     public function getDossierStatusLabelAttribute(): string
     {
         return self::DOSSIER_STATUS_LABELS[$this->dossier_status] ?? ucfirst(str_replace('_', ' ', $this->dossier_status));

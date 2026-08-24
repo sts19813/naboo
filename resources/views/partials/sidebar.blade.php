@@ -26,6 +26,7 @@
         ? [
             ['patterns' => ['charges.*'], 'route' => 'charges.index', 'label' => 'Cobranza', 'icon' => 'bi-wallet2'],
             ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Mantenimiento', 'icon' => 'bi-tools'],
+            ['patterns' => ['tenant-suggestions.*'], 'route' => 'tenant-suggestions.create', 'label' => 'Sugerencias', 'icon' => 'bi-chat-square-text'],
             [
                 'patterns' => ['profile.*'],
                 'label' => 'Configuración',
@@ -52,6 +53,7 @@
                 ['patterns' => ['dashboard'], 'route' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'bi-speedometer2'],
                 ...($isAdvisor ? [['patterns' => ['advisor.tasks.*'], 'route' => 'advisor.tasks.index', 'label' => 'Pendientes', 'icon' => 'bi-list-check']] : []),
                 ...($isAdmin ? [['patterns' => ['admin.tasks.*'], 'route' => 'admin.tasks.index', 'label' => 'Pendientes', 'icon' => 'bi-list-check']] : []),
+                ...($isAdmin ? [['patterns' => ['mailbox.*'], 'route' => 'mailbox.index', 'label' => 'Buzón', 'icon' => 'bi-inbox']] : []),
                 ['patterns' => ['properties.index', 'properties.create', 'properties.show', 'properties.edit', 'properties.inventory.edit', 'inventory-checks.*'], 'route' => 'properties.index', 'label' => 'Propiedades', 'icon' => 'bi-house-door'],
                 ...($canViewPropertyControl ? [['patterns' => ['properties.control'], 'route' => 'properties.control', 'label' => 'Control de propiedades', 'icon' => 'bi-clipboard-data']] : []),
                 [
@@ -118,6 +120,7 @@
         ? [
             ['patterns' => ['charges.*'], 'route' => 'charges.index', 'label' => 'Cobranza', 'icon' => 'bi-wallet2'],
             ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
+            ['patterns' => ['tenant-suggestions.*'], 'route' => 'tenant-suggestions.create', 'label' => 'Sugerencias', 'icon' => 'bi-chat-square-text'],
         ]
         : ($isTechnician
             ? [

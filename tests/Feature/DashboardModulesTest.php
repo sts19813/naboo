@@ -81,6 +81,7 @@ class DashboardModulesTest extends TestCase
         $this->assertSame([
             'Dashboard',
             'Pendientes',
+            'Buzón',
             'Propiedades',
             'Control de propiedades',
             'Expedientes',
@@ -90,6 +91,7 @@ class DashboardModulesTest extends TestCase
         ], $topLevelMenuTitles);
 
         $response
+            ->assertSee('Buzón')
             ->assertSee('Propietarios')
             ->assertSee('Inquilinos')
             ->assertSee('Documentos')
