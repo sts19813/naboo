@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\InventoryCheck;
 use App\Models\InventoryCheckItem;
 use App\Models\Property;
@@ -14,6 +13,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\View\View;
 use App\Models\PropertyInventoryItem;
 use App\Models\PropertyInventoryItemPhoto;
+use App\Services\InventoryPdfExporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -340,7 +340,7 @@ class InventoryCheckController extends Controller
     {
         $property->load([
             'inventoryAreas.photos',
-            'inventoryAreas.items.photos.versions',
+            'inventoryAreas.items.photos.latestVersion',
             'inventoryChecks.items',
             'tenant',
         ]);
@@ -362,15 +362,116 @@ class InventoryCheckController extends Controller
                 ->map(fn($rows) => $rows->first());
         }
 
-        $pdf = Pdf::loadView('inventory-checks.export-pdf', [
-            'property' => $property,
-            'latestStatuses' => $latestStatuses,
-            'generatedAt' => now(),
-        ])->setPaper('a4', 'portrait');
+        $generatedAt = now();
+        $imagePreviews = $this->createPdfImagePreviews(
+            $property->inventoryAreas->flatMap(function (PropertyInventoryArea $area) {
+                return $area->photos->pluck('file_path')->concat(
+                    $area->items
+                        ->map(fn (PropertyInventoryItem $item) => $item->photos->first()?->latestVersion?->file_path)
+                        ->filter()
+                );
+            })
+        );
+
+        $pdf = app(InventoryPdfExporter::class)->generate($property, $latestStatuses, $imagePreviews, $generatedAt);
 
         $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $property->internal_name ?: 'propiedad');
 
-        return $pdf->download('inventario_' . $safeName . '_' . now()->format('Ymd_His') . '.pdf');
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="inventario_' . $safeName . '_' . $generatedAt->format('Ymd_His') . '.pdf"',
+        ]);
+    }
+
+    /**
+     * @param  iterable<int, string|null>  $imagePaths
+     * @return array<string, string>
+     */
+    private function createPdfImagePreviews(iterable $imagePaths): array
+    {
+        if (! function_exists('imagecreatetruecolor')) {
+            return [];
+        }
+
+        $previewDirectory = storage_path('framework/cache/pdf-image-previews');
+        if (! is_dir($previewDirectory) && ! @mkdir($previewDirectory, 0755, true) && ! is_dir($previewDirectory)) {
+            return [];
+        }
+
+        $previews = [];
+        foreach (collect($imagePaths)->filter()->unique() as $relativePath) {
+            $relativePath = ltrim((string) $relativePath, '/');
+            $sourcePath = storage_path('app/public/' . $relativePath);
+            if (! is_file($sourcePath)) {
+                continue;
+            }
+
+            $sourceInfo = @getimagesize($sourcePath);
+            if ($sourceInfo === false) {
+                continue;
+            }
+
+            $sourceWidth = (int) ($sourceInfo[0] ?? 0);
+            $sourceHeight = (int) ($sourceInfo[1] ?? 0);
+            $sourceType = (int) ($sourceInfo[2] ?? 0);
+            if ($sourceWidth < 1 || $sourceHeight < 1) {
+                continue;
+            }
+
+            $previewPath = $previewDirectory . '/' . sha1($relativePath . '|' . filemtime($sourcePath) . '|' . filesize($sourcePath)) . '.jpg';
+            if (! is_file($previewPath)) {
+                $temporaryPreviewPath = $previewPath . '.' . uniqid('', true) . '.tmp';
+                if (! $this->createPdfImagePreview($sourcePath, $temporaryPreviewPath, $sourceWidth, $sourceHeight, $sourceType)) {
+                    @unlink($temporaryPreviewPath);
+
+                    continue;
+                }
+
+                if (! @rename($temporaryPreviewPath, $previewPath)) {
+                    @unlink($temporaryPreviewPath);
+                    continue;
+                }
+            }
+
+            $previews[$relativePath] = $previewPath;
+        }
+
+        return $previews;
+    }
+
+    private function createPdfImagePreview(string $sourcePath, string $previewPath, int $sourceWidth, int $sourceHeight, int $sourceType): bool
+    {
+        $source = match ($sourceType) {
+            IMAGETYPE_JPEG => @imagecreatefromjpeg($sourcePath),
+            IMAGETYPE_PNG => @imagecreatefrompng($sourcePath),
+            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($sourcePath) : null,
+            default => null,
+        };
+        if (! $source) {
+            return false;
+        }
+
+        $largestSide = max($sourceWidth, $sourceHeight);
+        $scale = min(1, 360 / $largestSide);
+        $targetWidth = max(1, (int) round($sourceWidth * $scale));
+        $targetHeight = max(1, (int) round($sourceHeight * $scale));
+        $preview = imagecreatetruecolor($targetWidth, $targetHeight);
+        if (! $preview) {
+            imagedestroy($source);
+
+            return false;
+        }
+
+        try {
+            $background = imagecolorallocate($preview, 255, 255, 255);
+            imagefilledrectangle($preview, 0, 0, $targetWidth, $targetHeight, $background);
+            imagecopyresampled($preview, $source, 0, 0, 0, 0, $targetWidth, $targetHeight, $sourceWidth, $sourceHeight);
+
+            return @imagejpeg($preview, $previewPath, 76);
+        } finally {
+            imagedestroy($preview);
+            imagedestroy($source);
+        }
     }
 
     public function addNewItem(Request $request, Property $property, InventoryCheck $check)

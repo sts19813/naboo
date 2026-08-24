@@ -1340,7 +1340,7 @@
                                      <a href="{{ route('inventory-checks.index', $property) }}"
                                     class="btn btn-sm btn-light-primary">Checks Entrada /salida</a>
                                     <a href="{{ route('inventory-checks.export-pdf', $property) }}"
-                                        class="btn btn-sm btn-light-success">
+                                        class="btn btn-sm btn-light-success" data-inventory-pdf-export>
                                         <i class="ki-outline ki-file-down fs-5 me-1"></i> Descargar PDF
                                     </a>
                                 </div>
@@ -1549,6 +1549,7 @@
 
 @push('scripts')
     @include('charges.partials.delete-confirmation-script')
+    @include('inventory-checks.partials.export-pdf-progress-script')
 
     <script>
         (() => {

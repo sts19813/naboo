@@ -45,7 +45,8 @@
                 </a>
             </div>
             <div class="col-lg-3">
-                <a href="{{ route('inventory-checks.export-pdf', $property) }}" class="btn btn-light-success btn-lg w-100">
+                <a href="{{ route('inventory-checks.export-pdf', $property) }}" class="btn btn-light-success btn-lg w-100"
+                    data-inventory-pdf-export>
                     <i class="ki-outline ki-file-down fs-4 me-2"></i> Exportar PDF
                 </a>
             </div>
@@ -196,3 +197,7 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    @include('inventory-checks.partials.export-pdf-progress-script')
+@endpush
