@@ -16,12 +16,48 @@
         }
 
         .expenses-list-toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) minmax(360px, 1fr) auto;
+            align-items: end;
+            gap: 12px;
             margin-bottom: 20px;
+        }
+
+        .expenses-list-property-filter {
+            min-width: 0;
+        }
+
+        .expenses-list-property-filter .select2-container {
+            width: 100% !important;
+        }
+
+        .expenses-list-property-filter .select2-selection--single {
+            display: flex;
+            align-items: center;
+            height: 52px !important;
+            border: 1px solid var(--el-line) !important;
+            border-radius: 16px !important;
+            background: #fbfcfe !important;
+            color: var(--el-ink);
+            box-shadow: none !important;
+        }
+
+        .expenses-list-property-filter .select2-container--open .select2-selection--single,
+        .expenses-list-property-filter .select2-container--focus .select2-selection--single {
+            border-color: var(--el-accent) !important;
+            box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.06) !important;
+        }
+
+        .expenses-list-property-filter .select2-selection__rendered {
+            padding-left: 16px !important;
+            color: var(--el-ink) !important;
+            font-weight: 650;
+            line-height: normal !important;
+        }
+
+        .expenses-list-property-filter .select2-selection__arrow {
+            height: 100% !important;
+            right: 12px !important;
         }
 
         .expenses-list-search {
@@ -169,6 +205,29 @@
         }
 
         @media (max-width: 991px) {
+            .expenses-list-toolbar {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .expenses-list-property-filter .select2-selection--single {
+                height: 46px !important;
+                border-radius: 8px !important;
+            }
+
+            .expenses-list-search {
+                min-width: 0;
+            }
+
+            .expenses-list-search .form-control {
+                height: 46px;
+                border-radius: 8px;
+            }
+
+            .expenses-list-results {
+                width: 100%;
+            }
+
             .expenses-list-table-card .dataTables_info,
             .expenses-list-table-card .dataTables_paginate {
                 padding-left: 16px;
@@ -240,6 +299,22 @@
         @include('expenses.partials.summary-cards', ['summary' => $summary])
 
         <div class="expenses-list-toolbar">
+            <form method="GET" action="{{ route('expenses.index') }}" id="expensesPropertyFilterForm" class="expenses-list-property-filter mb-0">
+                <label for="expensesPropertyFilter" class="visually-hidden">Filtrar por propiedad</label>
+                <select name="property" id="expensesPropertyFilter" class="form-select"
+                    data-control="select2" data-placeholder="Todas las propiedades" data-allow-clear="true">
+                    <option value="">Todas las propiedades</option>
+                    @foreach ($properties as $property)
+                        <option value="{{ $property->uuid }}" {{ (string) $selectedProperty?->uuid === (string) $property->uuid ? 'selected' : '' }}>
+                            {{ $property->internal_name }}{{ $property->internal_reference ? ' · ' . $property->internal_reference : '' }}
+                        </option>
+                    @endforeach
+                </select>
+                <noscript>
+                    <button type="submit" class="btn btn-primary mt-2">Aplicar propiedad</button>
+                </noscript>
+            </form>
+
             <form method="GET" action="{{ route('expenses.index', $selectedProperty ? ['property' => $selectedProperty->uuid] : []) }}"
                 id="expensesSearchForm" class="expenses-list-search mb-0">
                 <i class="bi bi-search"></i>
@@ -857,6 +932,8 @@
 @push('scripts')
     <script>
         (() => {
+            const propertyFilterForm = document.getElementById('expensesPropertyFilterForm');
+            const propertyFilterSelect = document.getElementById('expensesPropertyFilter');
             const form = document.getElementById('expensesSearchForm');
             const input = document.getElementById('expensesSearchInput');
             const table = document.getElementById('expensesTable');
@@ -894,6 +971,16 @@
             form?.addEventListener('submit', (event) => {
                 event.preventDefault();
             });
+
+            if (propertyFilterForm && propertyFilterSelect) {
+                const submitPropertyFilter = () => propertyFilterForm.submit();
+
+                if (typeof $ !== 'undefined') {
+                    $(propertyFilterSelect).on('change', submitPropertyFilter);
+                } else {
+                    propertyFilterSelect.addEventListener('change', submitPropertyFilter);
+                }
+            }
 
             if (!table || typeof $ === 'undefined' || !$.fn.DataTable) {
                 return;
