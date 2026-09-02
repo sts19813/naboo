@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdvisorTaskController;
+use App\Http\Controllers\CashCutController;
 use App\Http\Controllers\ChargeController;
 use App\Http\Controllers\ChargePaymentController;
 use App\Http\Controllers\CopilotController;
@@ -173,6 +174,9 @@ Route::middleware(['auth', 'system.access'])
         Route::post('/cobranza/{charge}/notificar', [ChargeController::class, 'sendReminder'])->name('charges.notify');
         Route::post('/cobranza/generar/preview', [ChargeController::class, 'previewBulk'])->name('charges.bulk.preview');
         Route::post('/cobranza/generar', [ChargeController::class, 'storeBulk'])->name('charges.bulk.store');
+
+        Route::get('/finanzas/cortes', [CashCutController::class, 'index'])->name('cash-cuts.index');
+        Route::post('/finanzas/cortes', [CashCutController::class, 'store'])->name('cash-cuts.store');
 
         Route::get('/gastos', [ExpenseController::class, 'index'])->name('expenses.index');
         Route::post('/gastos', [ExpenseController::class, 'store'])->name('expenses.store');

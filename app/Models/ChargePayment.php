@@ -5,26 +5,38 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ChargePayment extends Model
 {
     use HasFactory;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_PENDING_VALIDATION = 'pending_validation';
+
     public const STATUS_SUCCEEDED = 'succeeded';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_REFUNDED = 'refunded';
 
     public const SOURCE_ADMIN = 'admin';
+
     public const SOURCE_STRIPE = 'stripe';
+
     public const SOURCE_PUBLIC_TRANSFER = 'public_transfer';
 
     public const METHOD_SPEI = 'spei';
+
     public const METHOD_CASH = 'cash';
+
     public const METHOD_CARD = 'card';
+
     public const METHOD_TRANSFER = 'transfer';
+
     public const METHOD_BANK_DEPOSIT = 'bank_deposit';
+
     public const METHOD_OTHER = 'other';
 
     public const METHOD_LABELS = [
@@ -80,9 +92,19 @@ class ChargePayment extends Model
         return $this->belongsTo(Charge::class);
     }
 
+    public function registeredBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'registered_by');
+    }
+
+    public function cashCutItem(): HasOne
+    {
+        return $this->hasOne(CashCutItem::class, 'charge_payment_id');
+    }
+
     public function getMethodLabelAttribute(): string
     {
-        if (!filled($this->payment_method)) {
+        if (! filled($this->payment_method)) {
             return '-';
         }
 
