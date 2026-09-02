@@ -32,6 +32,58 @@ class ExpenseModuleTest extends TestCase
         $response->assertSee('js-expense-delete-form', false);
     }
 
+    public function test_expenses_can_be_filtered_by_property_with_a_searchable_selector(): void
+    {
+        $user = User::factory()->create();
+        $selectedProperty = $this->createPropertyFixture($user);
+        $selectedProperty->update(['internal_reference' => 'REF-GASTO-SELECCIONADO']);
+        $otherProperty = Property::create([
+            'internal_name' => 'Casa Norte Gastos',
+            'internal_reference' => 'REF-GASTO-NORTE',
+            'property_type_id' => $selectedProperty->property_type_id,
+            'zone_id' => $selectedProperty->zone_id,
+            'full_address' => 'Calle Norte 200',
+            'status' => Property::STATUS_OCCUPIED,
+            'onboarding_step' => 5,
+            'created_by' => $user->id,
+        ]);
+        $selectedExpense = Expense::create([
+            'property_id' => $selectedProperty->id,
+            'concept' => 'Gasto propiedad seleccionada',
+            'amount' => 1250,
+            'due_date' => now()->addDay()->toDateString(),
+            'created_by' => $user->id,
+        ]);
+        $otherExpense = Expense::create([
+            'property_id' => $otherProperty->id,
+            'concept' => 'Gasto de otra propiedad',
+            'amount' => 900,
+            'due_date' => now()->addDay()->toDateString(),
+            'created_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('expenses.index', [
+            'property' => $selectedProperty->uuid,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('id="expensesPropertyFilter"', false);
+        $response->assertSee('data-control="select2"', false);
+        $response->assertSee('Todas las propiedades');
+        $response->assertSee('Depto 301');
+        $response->assertSee('Casa Norte Gastos');
+        $response->assertSee('REF-GASTO-NORTE');
+        $response->assertSee('value="'.$selectedProperty->uuid.'" selected', false);
+        $response->assertSee('placeholder="Buscar concepto, propiedad, estado, fecha..."', false);
+        $this->assertTrue($response->viewData('expenses')->contains($selectedExpense));
+        $this->assertFalse($response->viewData('expenses')->contains($otherExpense));
+        $this->assertSame(1250.0, $response->viewData('summary')['pending_total']);
+        $this->assertEqualsCanonicalizing(
+            [$selectedProperty->id, $otherProperty->id],
+            $response->viewData('properties')->pluck('id')->all(),
+        );
+    }
+
     public function test_expense_can_be_created_with_attachments(): void
     {
         Storage::fake('public');
@@ -108,7 +160,7 @@ class ExpenseModuleTest extends TestCase
                 'phones' => '9991234567',
             ]);
 
-        $response->assertRedirect(route('properties.show', $property) . '#tab-expenses');
+        $response->assertRedirect(route('properties.show', $property).'#tab-expenses');
         $this->assertDatabaseHas('properties', [
             'id' => $property->id,
             'use_global_expense_notifications' => false,
@@ -138,7 +190,7 @@ class ExpenseModuleTest extends TestCase
                     'description' => 'Cuota mensual del edificio',
                 ])
                 ->assertSessionHasNoErrors()
-                ->assertRedirect(route('properties.show', $property) . '#tab-expenses');
+                ->assertRedirect(route('properties.show', $property).'#tab-expenses');
 
             $item = RecurringExpenseItem::query()->where('property_id', $property->id)->firstOrFail();
 
@@ -235,7 +287,7 @@ class ExpenseModuleTest extends TestCase
                     ],
                 ])
                 ->assertSessionHasNoErrors()
-                ->assertRedirect(route('properties.show', $property) . '#tab-expenses');
+                ->assertRedirect(route('properties.show', $property).'#tab-expenses');
 
             $item = RecurringExpenseItem::query()->where('property_id', $property->id)->firstOrFail();
             $expenses = $item->expenses()->with('files')->orderBy('due_date')->get();
@@ -263,7 +315,7 @@ class ExpenseModuleTest extends TestCase
                     'property_context' => $property->uuid,
                 ])
                 ->assertSessionHasNoErrors()
-                ->assertRedirect(route('properties.show', $property) . '#tab-expenses');
+                ->assertRedirect(route('properties.show', $property).'#tab-expenses');
 
             Storage::disk('public')->assertMissing($firstOriginalPath);
             Storage::disk('public')->assertExists($secondOriginalPath);
