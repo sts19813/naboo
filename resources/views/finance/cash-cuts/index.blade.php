@@ -237,14 +237,30 @@ document.addEventListener('DOMContentLoaded', function () {
         compatible.forEach(box => box.checked = shouldSelect);
         updateSummary();
     });
-    form.addEventListener('submit', event => {
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
         const count = boxes.filter(box => box.checked).length;
-        if (!count || !window.confirm(`¿Confirmas que recibiste el efectivo de ${count} pago(s)?`)) {
-            event.preventDefault();
-            return;
-        }
+        if (!count || receiveButton.disabled) return;
+
+        const result = await window.Swal.fire({
+            title: 'Confirmar recepción',
+            text: `¿Confirmas que recibiste el efectivo de ${count} pago(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, confirmar recepción',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true,
+            buttonsStyling: false,
+            customClass: {
+                confirmButton: 'btn btn-primary',
+                cancelButton: 'btn btn-light',
+            },
+        });
+        if (!result.isConfirmed) return;
+
         receiveButton.disabled = true;
         receiveButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Confirmando recepción...';
+        form.submit();
     });
     updateSummary();
 });

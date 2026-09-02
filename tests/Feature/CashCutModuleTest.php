@@ -36,7 +36,10 @@ class CashCutModuleTest extends TestCase
             ->assertSee('Corte de efectivo')
             ->assertSee('Renta septiembre 2026')
             ->assertSee('Asesor de Cobranza')
-            ->assertSee('$7,500.00');
+            ->assertSee('$7,500.00')
+            ->assertSee('window.Swal.fire', false)
+            ->assertSee('Confirmar recepción')
+            ->assertDontSee('window.confirm', false);
 
         $this->actingAs($admin)
             ->post(route('cash-cuts.store'), ['payment_ids' => [$first->id, $second->id]])
