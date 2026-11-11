@@ -78,6 +78,7 @@ class Property extends Model
         'rental_requirements',
         'amenities',
         'status',
+        'archived_at',
         'tenant_id',
         'current_tenant_name',
         'contract_starts_at',
@@ -102,6 +103,7 @@ class Property extends Model
             'expense_notification_emails' => 'array',
             'expense_notification_phones' => 'array',
             'rent_charge_plan' => 'array',
+            'archived_at' => 'datetime',
         ];
     }
 

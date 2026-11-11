@@ -22,6 +22,8 @@ class AccessControlSeeder extends Seeder
             'propiedades.control_ver',
             'propiedades.ver_propias',
             'propiedades.asignar_asesores',
+            'propiedades.archivar',
+            'propiedades.eliminar',
             'propietarios.eliminar',
             'cobranza.eliminar_pagados',
             'administracion de tecnicos',

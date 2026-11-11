@@ -223,6 +223,47 @@ class ChargeModuleTest extends TestCase
         $this->assertSame(Charge::STATUS_IN_VALIDATION, $charge->status);
     }
 
+    public function test_exact_decimal_balance_can_be_paid_but_one_cent_more_is_rejected(): void
+    {
+        $user = User::factory()->create();
+        $charge = $this->createChargeFixture();
+        $charge->update(['amount' => '5736.20', 'paid_amount' => '5537.68', 'status' => Charge::STATUS_PARTIAL]);
+        ChargePayment::create([
+            'charge_id' => $charge->id,
+            'amount' => '5537.68',
+            'currency' => 'mxn',
+            'status' => ChargePayment::STATUS_SUCCEEDED,
+        ]);
+        $payment = ['payment_date' => now()->toDateString(), 'payment_method' => ChargePayment::METHOD_TRANSFER];
+
+        $this->actingAs($user)->post(route('charges.payments.store', $charge), $payment + ['amount' => '198.53'])
+            ->assertSessionHas('error', 'El monto no puede ser mayor al saldo pendiente.');
+        $this->actingAs($user)->post(route('charges.payments.store', $charge), $payment + ['amount' => '198.52'])
+            ->assertSessionHas('success');
+
+        $this->assertSame(Charge::STATUS_PAID, $charge->fresh()->status);
+        $this->assertDatabaseHas('charge_payments', ['charge_id' => $charge->id, 'amount' => '198.52']);
+    }
+
+    public function test_public_transfer_accepts_exact_decimal_balance(): void
+    {
+        Storage::fake('public');
+        $charge = $this->createChargeFixture();
+        $charge->update(['amount' => '5736.20', 'paid_amount' => '5537.68', 'status' => Charge::STATUS_PARTIAL]);
+
+        $this->post(route('charges.public.transfer-proof', ['token' => $charge->payment_token]), [
+            'amount' => '198.52',
+            'payment_date' => now()->toDateString(),
+            'receipt' => UploadedFile::fake()->image('proof.png'),
+        ])->assertSessionHas('success');
+
+        $this->assertDatabaseHas('charge_payments', [
+            'charge_id' => $charge->id,
+            'amount' => '198.52',
+            'status' => ChargePayment::STATUS_PENDING_VALIDATION,
+        ]);
+    }
+
     public function test_admin_can_validate_transfer_proof_and_complete_charge(): void
     {
         $user = User::factory()->create();

@@ -22,6 +22,7 @@ use App\Models\TenantDocument;
 use App\Models\User;
 use App\Models\Zone;
 use App\Services\DossierDocumentRequirementService;
+use App\Services\PropertyDeletionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,16 +56,30 @@ class PropertyController extends Controller
         'Playa',
     ];
 
-    public function __construct(private readonly DossierDocumentRequirementService $requirements) {}
+    public function __construct(
+        private readonly DossierDocumentRequirementService $requirements,
+        private readonly PropertyDeletionService $propertyDeletion,
+    ) {}
 
     public function index(Request $request): View
     {
         $availableAdvisors = $this->availableAdvisors();
+        $canArchiveProperties = (bool) $request->user()?->can('propiedades.archivar');
+        $canDeleteProperties = (bool) $request->user()?->can('propiedades.eliminar');
+        $showArchived = $request->query('view') === 'archived';
+
+        abort_if($showArchived && ! $canArchiveProperties, 403);
 
         $properties = Property::query()
+            ->when($showArchived, fn ($query) => $query->whereNotNull('archived_at'))
+            ->when(! $showArchived, fn ($query) => $query->whereNull('archived_at'))
             ->with(['type', 'zone', 'tenant', 'advisor', 'advisors:id,name,email'])
             ->withCount([
                 'documents as incidents_count' => fn ($query) => $query->where('status', PropertyDocument::STATUS_PENDING),
+                'charges as pending_payments_count' => fn ($query) => $query->where(function ($query): void {
+                    $query->whereIn('status', [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL, Charge::STATUS_IN_VALIDATION])
+                        ->orWhereHas('payments', fn ($query) => $query->whereIn('status', [ChargePayment::STATUS_PENDING, ChargePayment::STATUS_PENDING_VALIDATION]));
+                }),
             ])
             ->latest()
             ->get();
@@ -73,6 +88,9 @@ class PropertyController extends Controller
             'properties' => $properties,
             'availableAdvisors' => $availableAdvisors,
             'canManagePropertyAdvisors' => $this->canManagePropertyAssignments($request->user()),
+            'canArchiveProperties' => $canArchiveProperties,
+            'canDeleteProperties' => $canDeleteProperties,
+            'showArchived' => $showArchived,
         ]);
     }
 
@@ -99,6 +117,8 @@ class PropertyController extends Controller
 
     public function edit(Request $request, Property $property): View
     {
+        $this->ensureCanViewArchivedProperty($request, $property);
+
         $property->load([
             'owners',
             'documents.versions',
@@ -112,6 +132,8 @@ class PropertyController extends Controller
 
     public function update(StorePropertyRequest $request, Property $property): RedirectResponse|JsonResponse
     {
+        $this->ensureCanViewArchivedProperty($request, $property);
+
         $property = $this->saveProperty($request, $property);
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
@@ -348,6 +370,8 @@ class PropertyController extends Controller
 
     public function show(Property $property): View
     {
+        $this->ensureCanViewArchivedProperty(request(), $property);
+
         $property->load([
             'type',
             'zone',
@@ -590,7 +614,39 @@ class PropertyController extends Controller
             'availableAdvisors' => $this->availableAdvisors(),
             'canManagePropertyAdvisors' => $this->canManagePropertyAssignments(auth()->user()),
             'canManagePropertyTechnician' => $this->canManagePropertyTechnician(auth()->user()),
+            'canArchiveProperty' => (bool) auth()->user()?->can('propiedades.archivar'),
+            'canDeleteProperty' => (bool) auth()->user()?->can('propiedades.eliminar'),
+            'propertyHasPendingPayments' => $this->propertyDeletion->hasPendingPayments($property),
+            'propertyDeleteBlockedMessage' => PropertyDeletionService::PENDING_PAYMENT_MESSAGE,
         ]);
+    }
+
+    public function archive(Request $request, Property $property): RedirectResponse
+    {
+        abort_unless($request->user()?->can('propiedades.archivar'), 403);
+        if (! $property->archived_at) {
+            $property->update(['archived_at' => now()]);
+        }
+
+        return redirect()->route('properties.index')->with('success', 'La propiedad fue archivada y se quitó del listado activo.');
+    }
+
+    public function restore(Request $request, Property $property): RedirectResponse
+    {
+        abort_unless($request->user()?->can('propiedades.archivar'), 403);
+        if ($property->archived_at) {
+            $property->update(['archived_at' => null]);
+        }
+
+        return redirect()->route('properties.index', ['view' => 'archived'])->with('success', 'La propiedad fue restaurada al listado activo.');
+    }
+
+    public function destroy(Request $request, Property $property): RedirectResponse
+    {
+        abort_unless($request->user()?->can('propiedades.eliminar'), 403);
+        $this->propertyDeletion->delete($property);
+
+        return redirect()->route('properties.index')->with('success', 'La propiedad y toda su información relacionada fueron eliminadas. Los propietarios e inquilinos se conservaron.');
     }
 
     private function propertyChangeFieldLabels(): array
@@ -620,6 +676,7 @@ class PropertyController extends Controller
             'rental_requirements' => 'Requisitos de renta',
             'amenities' => 'Amenidades',
             'status' => 'Estatus',
+            'archived_at' => 'Archivada',
             'tenant_id' => 'Inquilino',
             'current_tenant_name' => 'Nombre inquilino actual',
             'charge_deleted' => 'Cargo eliminado',
@@ -766,6 +823,13 @@ class PropertyController extends Controller
     private function isAdminUser(?User $user): bool
     {
         return (bool) $user && ($user->hasRole('administrador') || $user->hasRole('admin'));
+    }
+
+    private function ensureCanViewArchivedProperty(Request $request, Property $property): void
+    {
+        if ($property->archived_at) {
+            abort_unless($request->user()?->can('propiedades.archivar'), 403);
+        }
     }
 
     private function ensureCanManagePropertyAssignments(Request $request): void

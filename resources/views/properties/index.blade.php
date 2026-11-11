@@ -407,15 +407,29 @@
             </div>
         @endif
 
+        @error('property')
+            <div class="alert alert-danger d-flex align-items-center p-5 mb-8">
+                <i class="ki-outline ki-information-5 fs-2hx text-danger me-4"></i>
+                <div class="fw-semibold">{{ $message }}</div>
+            </div>
+        @enderror
+
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-4 mb-8">
             <div>
-                <h1 class="mb-1 fw-bold text-dark">Propiedades</h1>
+                <h1 class="mb-1 fw-bold text-dark">{{ $showArchived ? 'Propiedades archivadas' : 'Propiedades' }}</h1>
                 <div class="text-muted fs-6">{{ $properties->count() }} propiedades encontradas</div>
             </div>
             <a href="{{ route('properties.create') }}" class="btn btn-primary fw-bold">
                 <i class="ki-outline ki-plus fs-4 me-1"></i> Nueva Propiedad
             </a>
         </div>
+
+        @if ($canArchiveProperties)
+            <ul class="nav nav-tabs nav-line-tabs mb-8 fs-6 fw-semibold">
+                <li class="nav-item"><a class="nav-link {{ $showArchived ? '' : 'active' }}" href="{{ route('properties.index') }}">Activas</a></li>
+                <li class="nav-item"><a class="nav-link {{ $showArchived ? 'active' : '' }}" href="{{ route('properties.index', ['view' => 'archived']) }}">Archivadas</a></li>
+            </ul>
+        @endif
 
         <div class="property-list-toolbar">
             <form method="GET" action="{{ route('properties.index') }}"
@@ -602,6 +616,22 @@
                                                 Ver
                                             </a>
 
+                                            @if ($canArchiveProperties)
+                                                <form method="POST" action="{{ $showArchived ? route('properties.restore', $property) : route('properties.archive', $property) }}" class="d-inline js-property-archive-form" data-action="{{ $showArchived ? 'restaurar' : 'archivar' }}" data-property-name="{{ $property->internal_name }}">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="btn btn-sm btn-light-warning">{{ $showArchived ? 'Restaurar' : 'Archivar' }}</button>
+                                                </form>
+                                            @endif
+
+                                            @if ($canDeleteProperties)
+                                                <form method="POST" action="{{ route('properties.destroy', $property) }}" class="d-inline js-property-delete-form" data-property-name="{{ $property->internal_name }}">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-light-danger" @disabled($property->pending_payments_count > 0) title="{{ $property->pending_payments_count > 0 ? 'No se puede eliminar porque tiene pagos pendientes.' : 'Eliminar permanentemente' }}">Eliminar</button>
+                                                </form>
+                                            @endif
+
                                             {{--
 
                                             <a href="{{ route('dossiers.properties.show', $property) }}"
@@ -648,6 +678,31 @@
             const tableElement = document.getElementById('properties_table');
             const textSearchInput = document.getElementById('properties_text_search');
             const resultCount = document.getElementById('propertyResultCount');
+
+            document.querySelectorAll('.js-property-archive-form').forEach((archiveForm) => {
+                archiveForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const action = archiveForm.dataset.action || 'archivar';
+                    const propertyName = archiveForm.dataset.propertyName || 'esta propiedad';
+                    const message = action === 'restaurar' ? `${propertyName} volverá al listado de propiedades activas.` : `${propertyName} se ocultará del listado activo, pero conservará toda su información.`;
+                    const confirmed = window.Swal?.fire
+                        ? (await window.Swal.fire({ icon: 'question', title: `¿${action === 'restaurar' ? 'Restaurar' : 'Archivar'} propiedad?`, text: message, showCancelButton: true, confirmButtonText: action === 'restaurar' ? 'Sí, restaurar' : 'Sí, archivar', cancelButtonText: 'Cancelar' })).isConfirmed
+                        : window.confirm(message);
+                    if (confirmed) archiveForm.submit();
+                });
+            });
+
+            document.querySelectorAll('.js-property-delete-form').forEach((deleteForm) => {
+                deleteForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const propertyName = deleteForm.dataset.propertyName || 'esta propiedad';
+                    const warning = `Se eliminará permanentemente ${propertyName}, incluyendo su expediente, inventario, imágenes, cobranza, gastos y mantenimiento. Los propietarios e inquilinos NO serán eliminados. Esta acción no se puede deshacer.`;
+                    const confirmed = window.Swal?.fire
+                        ? (await window.Swal.fire({ icon: 'warning', title: '¿Eliminar propiedad definitivamente?', text: warning, showCancelButton: true, confirmButtonText: 'Sí, eliminar definitivamente', cancelButtonText: 'Cancelar', confirmButtonColor: '#d33' })).isConfirmed
+                        : window.confirm(warning);
+                    if (confirmed) deleteForm.submit();
+                });
+            });
 
             form?.addEventListener('submit', (event) => {
                 event.preventDefault();

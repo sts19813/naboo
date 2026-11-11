@@ -30,11 +30,41 @@
     @endphp
 
     <div class="py-10 property-module">
-        <div class="mb-8">
-            <a href="{{ route('properties.index') }}" class="text-gray-600 text-hover-primary fw-semibold">
+        <div class="mb-8 d-flex flex-wrap align-items-center justify-content-between gap-4">
+            <a href="{{ route('properties.index', $property->archived_at ? ['view' => 'archived'] : []) }}" class="text-gray-600 text-hover-primary fw-semibold">
                 <i class="ki-outline ki-arrow-left fs-4 me-1"></i> Volver al listado
             </a>
+            <div class="d-flex flex-wrap gap-2">
+                @if ($canArchiveProperty)
+                    <form method="POST" action="{{ $property->archived_at ? route('properties.restore', $property) : route('properties.archive', $property) }}" class="js-property-archive-form" data-action="{{ $property->archived_at ? 'restaurar' : 'archivar' }}" data-property-name="{{ $property->internal_name }}">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" class="btn btn-sm btn-light-warning">{{ $property->archived_at ? 'Restaurar propiedad' : 'Archivar propiedad' }}</button>
+                    </form>
+                @endif
+                @if ($canDeleteProperty)
+                    <form method="POST" action="{{ route('properties.destroy', $property) }}" class="js-property-delete-form" data-property-name="{{ $property->internal_name }}">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-sm btn-danger" @disabled($propertyHasPendingPayments) title="{{ $propertyHasPendingPayments ? $propertyDeleteBlockedMessage : 'Eliminar permanentemente' }}">Eliminar propiedad</button>
+                    </form>
+                @endif
+            </div>
         </div>
+
+        @if ($property->archived_at)
+            <div class="alert alert-warning d-flex align-items-center p-5 mb-8">
+                <i class="ki-outline ki-archive fs-2hx text-warning me-4"></i>
+                <div class="fw-semibold">Esta propiedad está archivada y no aparece en el listado activo.</div>
+            </div>
+        @endif
+
+        @error('property')
+            <div class="alert alert-danger d-flex align-items-center p-5 mb-8">
+                <i class="ki-outline ki-information-5 fs-2hx text-danger me-4"></i>
+                <div class="fw-semibold">{{ $message }}</div>
+            </div>
+        @enderror
 
         @if (session('success'))
             <div class="alert alert-success d-flex align-items-center p-5 mb-8">
@@ -1741,4 +1771,31 @@
             })();
         </script>
     @endif
+
+    <script>
+        document.querySelectorAll('.js-property-archive-form').forEach((archiveForm) => {
+            archiveForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const action = archiveForm.dataset.action || 'archivar';
+                const propertyName = archiveForm.dataset.propertyName || 'esta propiedad';
+                const message = action === 'restaurar' ? `${propertyName} volverá al listado activo.` : `${propertyName} se ocultará del listado activo y conservará toda su información.`;
+                const confirmed = window.Swal?.fire
+                    ? (await window.Swal.fire({ title: `¿${action === 'restaurar' ? 'Restaurar' : 'Archivar'} propiedad?`, text: message, icon: 'question', showCancelButton: true, confirmButtonText: action === 'restaurar' ? 'Sí, restaurar' : 'Sí, archivar', cancelButtonText: 'Cancelar' })).isConfirmed
+                    : window.confirm(message);
+                if (confirmed) archiveForm.submit();
+            });
+        });
+
+        document.querySelectorAll('.js-property-delete-form').forEach((deleteForm) => {
+            deleteForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const propertyName = deleteForm.dataset.propertyName || 'esta propiedad';
+                const warning = `Se eliminará permanentemente ${propertyName}, incluyendo su expediente, inventario, imágenes, cobranza, gastos y mantenimiento. Los propietarios e inquilinos NO serán eliminados. Esta acción no se puede deshacer.`;
+                const confirmed = window.Swal?.fire
+                    ? (await window.Swal.fire({ title: '¿Eliminar propiedad definitivamente?', text: warning, icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, eliminar definitivamente', cancelButtonText: 'Cancelar', confirmButtonColor: '#d9214e', reverseButtons: true })).isConfirmed
+                    : window.confirm(warning);
+                if (confirmed) deleteForm.submit();
+            });
+        });
+    </script>
 @endpush

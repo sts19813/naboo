@@ -145,7 +145,10 @@ class Charge extends Model
 
     public function getOutstandingAmountAttribute(): float
     {
-        return max(0.0, (float) $this->amount - (float) $this->paid_amount);
+        $amountCents = (int) round((float) $this->amount * 100);
+        $paidCents = (int) round((float) $this->paid_amount * 100);
+
+        return max(0, $amountCents - $paidCents) / 100;
     }
 
     public function getIsOverdueAttribute(): bool
@@ -173,7 +176,7 @@ class Charge extends Model
             ->exists();
 
         $nextStatus = match (true) {
-            $totalPaid >= (float) $this->amount => self::STATUS_PAID,
+            (int) round($totalPaid * 100) >= (int) round((float) $this->amount * 100) => self::STATUS_PAID,
             $hasPendingValidation => self::STATUS_IN_VALIDATION,
             $totalPaid > 0 => self::STATUS_PARTIAL,
             default => self::STATUS_PENDING,
