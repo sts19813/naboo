@@ -474,7 +474,7 @@
                         </button>
                     </div>
                     <div class="modal-body tenant-modal-body">
-                        @include('tenants.partials.form-fields')
+                        @include('tenants.partials.form-fields', ['tenant' => null])
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>

@@ -46,6 +46,42 @@ class TenantModuleTest extends TestCase
         $response->assertSee('Expediente');
     }
 
+    public function test_new_tenant_form_is_empty_and_edit_form_shows_the_selected_tenant(): void
+    {
+        $user = User::factory()->create();
+        $tenant = Tenant::create([
+            'full_name' => 'Inquilino Existente',
+            'phone_primary' => '9991112233',
+            'email' => 'existente@example.com',
+            'employer' => 'Empresa Existente',
+            'dossier_status' => Tenant::DOSSIER_COMPLETE,
+            'is_active' => true,
+        ]);
+
+        foreach ([route('tenants.index') => '', route('tenants.edit', $tenant) => 'Inquilino Existente'] as $url => $expectedName) {
+            $response = $this->actingAs($user)->get($url)->assertOk();
+            $dom = new \DOMDocument();
+            @$dom->loadHTML($response->getContent());
+            $xpath = new \DOMXPath($dom);
+            $scope = $expectedName === '' ? $xpath->query('//*[@id="createTenantModal"]')->item(0) : $dom->documentElement;
+            $this->assertNotNull($scope);
+            $this->assertSame($expectedName, $xpath->query('.//input[@name="full_name"]', $scope)->item(0)->getAttribute('value'));
+            $this->assertSame($expectedName === '' ? '' : 'existente@example.com', $xpath->query('.//input[@name="email"]', $scope)->item(0)->getAttribute('value'));
+            $this->assertSame($expectedName === '' ? '' : 'Empresa Existente', $xpath->query('.//input[@name="employer"]', $scope)->item(0)->getAttribute('value'));
+        }
+    }
+
+    public function test_new_tenant_form_preserves_submitted_input_after_validation_error(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->from(route('tenants.index'))->post(route('tenants.store'), [
+            'full_name' => 'Nombre Capturado',
+        ])->assertSessionHasErrors();
+
+        $this->get(route('tenants.index'))->assertSee('value="Nombre Capturado"', false);
+    }
+
     public function test_tenant_can_be_created(): void
     {
         $user = User::factory()->create();
