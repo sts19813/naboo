@@ -35,6 +35,7 @@ class UpdateChargeRequest extends FormRequest
             'type' => ['required', 'string', Rule::in(array_keys(Charge::TYPE_LABELS))],
             'charge_uuid' => ['nullable', 'string'],
             'property_context' => ['nullable', 'string'],
+            'apply_following_rents' => ['nullable', 'boolean'],
         ];
     }
 }

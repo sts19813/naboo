@@ -200,6 +200,65 @@ class ChargeModuleTest extends TestCase
         $this->assertEquals(18000.0, (float) $charge->paid_amount);
     }
 
+    public function test_rent_increase_updates_only_unpaid_following_rents_for_same_tenant_property_and_year(): void
+    {
+        $user = User::factory()->create();
+        $charge = $this->createChargeFixture();
+        $makeCharge = function (array $attributes) use ($charge): Charge {
+            $copy = $charge->replicate(['uuid', 'payment_token']);
+            $copy->fill($attributes)->save();
+            return $copy;
+        };
+        $previous = $makeCharge(['period_month' => 2]);
+        $next = $makeCharge(['period_month' => 4]);
+        $paid = $makeCharge(['period_month' => 5, 'status' => Charge::STATUS_PAID, 'paid_amount' => 18000]);
+        $partial = $makeCharge(['period_month' => 6, 'status' => Charge::STATUS_PARTIAL, 'paid_amount' => 100]);
+        $withProof = $makeCharge(['period_month' => 7]);
+        ChargePayment::create(['charge_id' => $withProof->id, 'amount' => 100, 'status' => ChargePayment::STATUS_PENDING_VALIDATION]);
+        $nextYear = $makeCharge(['period_month' => 1, 'period_year' => 2027]);
+        $otherType = $makeCharge(['period_month' => 8, 'type' => 'other']);
+        $otherTenant = Tenant::create(['full_name' => 'Otro inquilino', 'phone_primary' => '9995551234', 'email' => 'otro@example.com', 'dossier_status' => Tenant::DOSSIER_INCOMPLETE, 'is_active' => true]);
+        $otherTenantCharge = $makeCharge(['period_month' => 9, 'tenant_id' => $otherTenant->id]);
+        $otherProperty = $charge->property->replicate(['uuid']);
+        $otherProperty->save();
+        $otherPropertyCharge = $makeCharge(['period_month' => 10, 'property_id' => $otherProperty->id]);
+        $charge->property->update(['rent_charge_plan' => [
+            ['type' => Charge::TYPE_RENT, 'period_month' => 11, 'period_year' => 2026, 'due_date' => '2026-11-01', 'amount' => 18000, 'concept' => 'Renta noviembre'],
+            ['type' => Charge::TYPE_RENT, 'period_month' => 2, 'period_year' => 2027, 'due_date' => '2027-02-01', 'amount' => 18000, 'concept' => 'Renta febrero'],
+        ]]);
+
+        $this->actingAs($user)->put(route('charges.update', $charge), [
+            'type' => Charge::TYPE_RENT, 'due_date' => '2026-03-01', 'amount' => '20000.00',
+            'period_month' => 3, 'period_year' => 2026, 'concept' => 'Renta marzo', 'apply_following_rents' => '1',
+        ])->assertSessionHas('success', fn ($message) => str_contains($message, '1 cargos de renta posteriores') && str_contains($message, '3 cargos'));
+
+        $this->assertSame('20000.00', $charge->fresh()->amount);
+        $this->assertSame('20000.00', $next->fresh()->amount);
+        foreach ([$previous, $paid, $partial, $withProof, $nextYear, $otherType, $otherTenantCharge, $otherPropertyCharge] as $unchanged) {
+            $this->assertSame('18000.00', $unchanged->fresh()->amount);
+        }
+        $plan = collect($charge->property->fresh()->rent_charge_plan)->keyBy('period_month');
+        $this->assertEquals(20000, $plan[4]['amount']);
+        $this->assertEquals(20000, $plan[11]['amount']);
+        $this->assertEquals(18000, $plan[2]['amount']);
+    }
+
+    public function test_rent_edit_can_leave_following_months_unchanged(): void
+    {
+        $user = User::factory()->create();
+        $charge = $this->createChargeFixture();
+        $next = $charge->replicate(['uuid', 'payment_token']);
+        $next->period_month = 4;
+        $next->save();
+
+        $this->actingAs($user)->put(route('charges.update', $charge), [
+            'type' => Charge::TYPE_RENT, 'due_date' => '2026-03-01', 'amount' => '20000.00',
+            'period_month' => 3, 'period_year' => 2026, 'concept' => 'Renta marzo', 'apply_following_rents' => '0',
+        ])->assertSessionHas('success');
+
+        $this->assertSame('18000.00', $next->fresh()->amount);
+    }
+
     public function test_public_transfer_proof_sets_charge_in_validation(): void
     {
         Storage::fake('public');

@@ -412,7 +412,14 @@ class ChargeController extends Controller
             );
         }
 
-        DB::transaction(function () use ($charge, $validated): void {
+        $applyFollowing = $request->boolean('apply_following_rents')
+            && $charge->type === Charge::TYPE_RENT
+            && $validated['type'] === Charge::TYPE_RENT
+            && (int) round($newAmount * 100) !== (int) round((float) $charge->amount * 100);
+        $updatedFollowing = 0;
+        $skippedFollowing = 0;
+
+        DB::transaction(function () use ($charge, $validated, $applyFollowing, &$updatedFollowing, &$skippedFollowing): void {
             $charge->update([
                 'type' => $validated['type'],
                 'due_date' => $validated['due_date'],
@@ -425,11 +432,63 @@ class ChargeController extends Controller
 
             $charge->refreshPaymentStatus();
             $this->syncPropertyPlanWithCharge($charge);
+
+            if ($applyFollowing && $charge->property_id && $charge->tenant_id) {
+                $following = Charge::query()
+                    ->where('property_id', $charge->property_id)
+                    ->where('tenant_id', $charge->tenant_id)
+                    ->where('type', Charge::TYPE_RENT)
+                    ->where('period_year', $charge->period_year)
+                    ->where('period_month', '>', $charge->period_month)
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($following as $nextCharge) {
+                    if ($nextCharge->status !== Charge::STATUS_PENDING
+                        || (float) $nextCharge->paid_amount > 0
+                        || $nextCharge->payments()->exists()) {
+                        $skippedFollowing++;
+                        continue;
+                    }
+
+                    $nextCharge->update(['amount' => $validated['amount']]);
+                    $this->syncPropertyPlanWithCharge($nextCharge);
+                    $updatedFollowing++;
+                }
+
+                $property = Property::query()->lockForUpdate()->find($charge->property_id);
+                if ($property && (int) $property->tenant_id === (int) $charge->tenant_id) {
+                    $existingPeriods = Charge::query()
+                        ->where('property_id', $charge->property_id)
+                        ->where('type', Charge::TYPE_RENT)
+                        ->where('period_year', $charge->period_year)
+                        ->pluck('period_month')->map(fn ($month) => (int) $month)->all();
+                    $plan = $this->normalizeBulkRows($property->rent_charge_plan)->map(function (array $row) use ($charge, $existingPeriods, $validated): array {
+                        if ($row['type'] === Charge::TYPE_RENT
+                            && (int) $row['period_year'] === (int) $charge->period_year
+                            && (int) $row['period_month'] > (int) $charge->period_month
+                            && !in_array((int) $row['period_month'], $existingPeriods, true)) {
+                            $row['amount'] = (float) $validated['amount'];
+                            $row['is_custom_amount'] = true;
+                        }
+                        return $row;
+                    });
+                    $property->forceFill(['rent_charge_plan' => $plan->values()->all()])->save();
+                }
+            }
         });
+
+        $message = 'Cargo actualizado correctamente.';
+        if ($applyFollowing) {
+            $message .= " Se actualizaron {$updatedFollowing} cargos de renta posteriores del mismo año.";
+            if ($skippedFollowing > 0) {
+                $message .= " Se omitieron {$skippedFollowing} cargos por su estado o porque tienen pagos registrados.";
+            }
+        }
 
         return redirect()
             ->route('charges.index', $this->chargesIndexRouteParamsFromRequest($request))
-            ->with('success', 'Cargo actualizado correctamente.');
+            ->with('success', $message);
     }
 
     public function show(Request $request, Charge $charge): View

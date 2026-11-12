@@ -1129,6 +1129,14 @@
                                 <input type="number" min="0.01" step="0.01" name="amount" id="editChargeAmount"
                                     class="form-control" value="{{ old('amount') }}" required>
                             </div>
+                            <div class="col-12" id="applyFollowingRentsContainer">
+                                <label class="form-check form-check-custom form-check-solid">
+                                    <input type="hidden" name="apply_following_rents" value="0">
+                                    <input type="checkbox" name="apply_following_rents" value="1" class="form-check-input" id="applyFollowingRents" @checked(old('apply_following_rents', '1') == '1')>
+                                    <span class="form-check-label">Aplicar el nuevo monto a las rentas posteriores del mismo año</span>
+                                </label>
+                                <div class="form-text">Se aplica al cambiar el monto, solo para esta propiedad y el mismo inquilino. Se omiten cargos con pagos o comprobantes y los del siguiente año.</div>
+                            </div>
                             <div class="col-md-3">
                                 <label class="form-label required">Mes (periodo)</label>
                                 <input type="number" min="1" max="12" name="period_month" id="editChargePeriodMonth"
@@ -1458,6 +1466,12 @@
             const editChargePeriodYear = document.getElementById('editChargePeriodYear');
             const editChargeConcept = document.getElementById('editChargeConcept');
             const editChargeNotes = document.getElementById('editChargeNotes');
+            const applyFollowingRents = document.getElementById('applyFollowingRents');
+            const applyFollowingRentsContainer = document.getElementById('applyFollowingRentsContainer');
+            const syncFollowingRentsVisibility = () => {
+                if (applyFollowingRentsContainer) applyFollowingRentsContainer.hidden = editChargeType?.value !== 'rent';
+            };
+            editChargeType?.addEventListener('change', syncFollowingRentsVisibility);
 
             document.addEventListener('click', async (event) => {
                 const target = event.target instanceof Element ? event.target : null;
@@ -1523,6 +1537,8 @@
                     editChargeForm.setAttribute('action', editChargeButton.getAttribute('data-action') || '');
                     if (editChargeUuid) editChargeUuid.value = editChargeButton.getAttribute('data-charge') || '';
                     if (editChargeType) editChargeType.value = editChargeButton.getAttribute('data-type') || 'rent';
+                    if (applyFollowingRents) applyFollowingRents.checked = true;
+                    syncFollowingRentsVisibility();
                     if (editChargeDueDate) editChargeDueDate.value = editChargeButton.getAttribute('data-due-date') || '';
                     if (editChargeAmount) editChargeAmount.value = editChargeButton.getAttribute('data-amount') || '';
                     if (editChargePeriodMonth) editChargePeriodMonth.value = editChargeButton.getAttribute('data-period-month') || '';
