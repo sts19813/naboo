@@ -119,7 +119,7 @@
                                         $materials = (float) ($ticket->material_total ?? 0);
                                         $grand = (float) ($ticket->grand_total ?? 0);
                                     @endphp
-                                    <tr class="cut-ticket-row" data-cut-row data-property-id="{{ $ticket->property_id }}" data-technician-key="{{ $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned' }}">
+                                    <tr class="cut-ticket-row" data-cut-row data-property-id="{{ $ticket->property_id }}" data-property-ids="{{ collect([$ticket->property_id])->merge($ticket->childTickets->pluck('property_id'))->filter()->unique()->implode(',') }}" data-technician-key="{{ $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned' }}">
                                         <td class="cut-check-column">
                                             <input class="form-check-input cut-ticket-checkbox" type="checkbox"
                                                 name="ticket_ids[]" value="{{ $ticket->id }}"
@@ -133,6 +133,9 @@
                                                 <strong>#{{ $ticket->display_reference }}</strong>
                                                 <span>{{ $ticket->title }}</span>
                                             </a>
+                                            @foreach ($ticket->childTickets as $child)
+                                                <small class="d-block text-muted">#{{ $child->display_reference }} · {{ $child->title }} · {{ $child->property?->internal_name }}</small>
+                                            @endforeach
                                         </td>
                                         <td>
                                             <strong class="d-block">{{ $ticket->property?->internal_name ?? '-' }}</strong>
@@ -195,9 +198,9 @@
                                 <thead><tr><th>Seleccionar</th><th>Ticket</th><th>Propiedad</th><th>Técnico</th><th>Completado</th></tr></thead>
                                 <tbody>
                                     @foreach ($zeroCostTickets as $ticket)
-                                        <tr data-cut-row data-property-id="{{ $ticket->property_id }}" data-technician-key="{{ $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned' }}">
+                                        <tr data-cut-row data-property-id="{{ $ticket->property_id }}" data-property-ids="{{ collect([$ticket->property_id])->merge($ticket->childTickets->pluck('property_id'))->filter()->unique()->implode(',') }}" data-technician-key="{{ $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned' }}">
                                             <td><input class="form-check-input zero-cost-checkbox" type="checkbox" name="ticket_ids[]" value="{{ $ticket->id }}" data-technician-key="{{ $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned' }}" aria-label="Seleccionar ticket {{ $ticket->display_reference }}"></td>
-                                            <td><a class="cut-ticket-link" href="{{ route('maintenance.show', $ticket) }}">#{{ $ticket->display_reference }} · {{ $ticket->title }}</a></td>
+                                            <td><a class="cut-ticket-link" href="{{ route('maintenance.show', $ticket) }}">#{{ $ticket->display_reference }} · {{ $ticket->title }}</a>@foreach ($ticket->childTickets as $child)<small class="d-block text-muted">#{{ $child->display_reference }} · {{ $child->title }} · {{ $child->property?->internal_name }}</small>@endforeach</td>
                                             <td>{{ $ticket->property?->internal_name ?? '-' }}</td>
                                             <td>{{ $ticket->currentProvider?->name ?? 'Sin técnico asignado' }}</td>
                                             <td>{{ $ticket->completed_at?->format('d/m/Y H:i') ?: '-' }}</td>
@@ -247,6 +250,9 @@
                                                 <a href="{{ route('maintenance.show', $item->ticket) }}" class="cut-ticket-link">
                                                     <strong>#{{ $item->ticket->display_reference }}</strong><span>{{ $item->ticket->title }}</span>
                                                 </a>
+                                                @foreach ($item->ticket->childTickets as $child)
+                                                    <a href="{{ route('maintenance.show', $child) }}" class="d-block small">#{{ $child->display_reference }} · {{ $child->title }} · {{ $child->property?->internal_name }}</a>
+                                                @endforeach
                                             @else
                                                 <span class="text-muted">Ticket no disponible</span>
                                             @endif
@@ -309,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function applyFilters() {
             let count = 0;
             rows.forEach(row => {
-                const visible = (property.value === 'all' || row.dataset.propertyId === property.value)
+                const visible = (property.value === 'all' || (row.dataset.propertyIds || row.dataset.propertyId).split(',').includes(property.value))
                     && (technician.value === 'all' || row.dataset.technicianKey === technician.value)
                     && normalize(row.textContent).includes(normalize(search.value));
                 row.classList.toggle('d-none', !visible);

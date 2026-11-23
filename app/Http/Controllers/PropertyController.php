@@ -241,7 +241,7 @@ class PropertyController extends Controller
         $activeTickets = collect();
 
         if ($previousProviderId !== $newProviderId) {
-            DB::transaction(function () use ($property, $technician, $newProviderId, $request, &$activeTickets): void {
+            DB::transaction(function () use ($property, $technician, $newProviderId, $previousProviderId, $request, &$activeTickets): void {
                 $property->update(['technician_provider_id' => $newProviderId]);
 
                 if (! $technician) {
@@ -250,6 +250,14 @@ class PropertyController extends Controller
 
                 $activeTickets = $property->maintenanceTickets()
                     ->whereNotIn('status', ['completado', 'cancelado'])
+                    ->whereNull('master_ticket_id')
+                    ->whereDoesntHave('childTickets')
+                    ->where(function (Builder $query) use ($previousProviderId): void {
+                        $query->whereNull('current_provider_id');
+                        if ($previousProviderId) {
+                            $query->orWhere('current_provider_id', $previousProviderId);
+                        }
+                    })
                     ->orderBy('reported_at')
                     ->orderBy('id')
                     ->get();

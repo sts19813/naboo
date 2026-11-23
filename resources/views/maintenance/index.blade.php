@@ -258,6 +258,15 @@
                         </div>
                     </div>
 
+                    @if ($canGroupTickets)
+                        <form id="maintenanceGroupForm" method="POST" action="{{ route('maintenance.group') }}" class="d-flex flex-wrap align-items-end gap-3 p-4 border-bottom">
+                            @csrf
+                            <label class="flex-grow-1"><span class="form-label">Nombre del ticket agrupado</span><input class="form-control" name="title" maxlength="190" required placeholder="Ej. Cierre semanal de mantenimiento"></label>
+                            <button class="maintenance-primary-btn" type="submit"><i class="bi bi-collection"></i> Agrupar seleccionados</button>
+                        </form>
+                        @error('ticket_ids')<div class="alert alert-danger m-4">{{ $message }}</div>@enderror
+                        @error('title')<div class="alert alert-danger m-4">{{ $message }}</div>@enderror
+                    @endif
                     @forelse ($ticketBuckets as $bucketKey => $bucketTickets)
                         @continue($bucketTickets->isEmpty())
                         @php $meta = $bucketMeta[$bucketKey]; @endphp
@@ -292,8 +301,13 @@
                                 <div class="maintenance-ticket-row" role="link" tabindex="0" data-maintenance-row-url="{{ route('maintenance.show', $ticket) }}">
                                     <span class="maintenance-priority-bar maintenance-priority-{{ $ticket->priority }}"></span>
                                     <span class="maintenance-priority-cell">
+                                        @if ($canGroupTickets && !$ticket->cutItem && !$ticket->master_ticket_id && !$ticket->child_tickets_count)
+                                            <label class="d-flex align-items-center gap-1 mb-1" data-maintenance-row-action>
+                                                <input class="form-check-input" type="checkbox" name="ticket_ids[]" value="{{ $ticket->id }}" form="maintenanceGroupForm" aria-label="Seleccionar ticket {{ $ticket->display_reference }}"> <span class="text-muted fs-8">Agrupar</span>
+                                            </label>
+                                        @endif
                                         <span class="maintenance-reference">#{{ $ticket->display_reference }}</span>
-                                        @if ($canUpdateTicketMeta)
+                                        @if ($canUpdateTicketMeta && !$ticket->master_ticket_id && !$ticket->child_tickets_count)
                                             <span class="dropdown maintenance-inline-dropdown mt-2" data-maintenance-row-action>
                                                 <button class="maintenance-chip maintenance-chip-button maintenance-chip-{{ $priorityTone($ticket->priority) }} dropdown-toggle"
                                                     type="button" data-bs-toggle="dropdown" aria-expanded="false"
@@ -341,7 +355,7 @@
                                         </span>
                                     </span>
                                     <span class="maintenance-provider-cell">
-                                        @if ($canUpdateTicketMeta)
+                                        @if ($canUpdateTicketMeta && !$ticket->master_ticket_id && !$ticket->child_tickets_count)
                                             <span class="dropdown maintenance-inline-dropdown maintenance-provider-dropdown" data-maintenance-row-action>
                                                 <button class="maintenance-provider-trigger dropdown-toggle" type="button"
                                                     data-bs-toggle="dropdown" aria-expanded="false"

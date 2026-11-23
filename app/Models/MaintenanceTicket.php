@@ -13,6 +13,8 @@ class MaintenanceTicket extends Model
 {
     use HasFactory;
 
+    public const PRIORITY_SORT_ORDER = ['urgente' => 0, 'alta' => 1, 'media' => 2, 'baja' => 3, 'sin_asignar' => 4];
+
     public const CATEGORY_LABELS = [
         'sin_categoria' => 'Sin categoría',
         'plomeria' => 'Plomería',
@@ -74,6 +76,7 @@ class MaintenanceTicket extends Model
         'property_id',
         'reported_by_user_id',
         'current_provider_id',
+        'master_ticket_id',
         'reported_by_role',
         'reported_by_name',
         'category',
@@ -135,6 +138,16 @@ class MaintenanceTicket extends Model
     public function currentProvider(): BelongsTo
     {
         return $this->belongsTo(MaintenanceProvider::class, 'current_provider_id');
+    }
+
+    public function masterTicket(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'master_ticket_id');
+    }
+
+    public function childTickets(): HasMany
+    {
+        return $this->hasMany(self::class, 'master_ticket_id');
     }
 
     public function assignments(): HasMany

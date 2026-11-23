@@ -153,6 +153,22 @@
 
             <div class="ticket-grid">
                 <main class="ticket-stack">
+                    @if ($ticket->masterTicket)
+                        <section class="ticket-panel"><div class="ticket-panel-header"><h2 class="ticket-panel-title">Ticket agrupado</h2></div>
+                            <a href="{{ route('maintenance.show', $ticket->masterTicket) }}">{{ $ticket->masterTicket->title }}</a>
+                            <div class="text-muted">Los costos y el cierre se gestionan desde el ticket principal.</div>
+                        </section>
+                    @endif
+                    @if ($ticket->childTickets->isNotEmpty())
+                        <section class="ticket-panel"><div class="ticket-panel-header"><h2 class="ticket-panel-title">Tickets agrupados</h2></div>
+                            @foreach ($ticket->childTickets as $child)
+                                <div class="mb-2"><a href="{{ route('maintenance.show', $child) }}">#{{ $child->display_reference }} · {{ $child->title }}</a> <span class="text-muted">{{ $child->property?->internal_name }}</span></div>
+                                @foreach ($child->files as $file)
+                                    <a href="{{ $file->url }}" target="_blank" rel="noopener" class="btn btn-sm btn-light mb-2">{{ $file->original_name }}</a>
+                                @endforeach
+                            @endforeach
+                        </section>
+                    @endif
                     <section class="ticket-panel">
                         <div class="ticket-panel-header">
                             <h2 class="ticket-panel-title">Trabajo</h2>
@@ -354,7 +370,11 @@
                                     <tbody>
                                         @forelse ($maintenanceCosts as $costRow)
                                             <tr>
-                                                <td>{{ $costRow->created_at?->format('d/m/Y H:i') ?: '-' }}</td>
+                                                <td>{{ $costRow->created_at?->format('d/m/Y H:i') ?: '-' }}
+                                                    @if ($costRow->originTicket)
+                                                        <div class="text-muted fs-8">Origen: <a href="{{ route('maintenance.show', $costRow->originTicket) }}">#{{ $costRow->originTicket->display_reference }} · {{ $costRow->originTicket->title }}</a></div>
+                                                    @endif
+                                                </td>
                                                 <td>${{ number_format((float) $costRow->labor_cost, 2) }}</td>
                                                 <td>${{ number_format((float) $costRow->material_cost, 2) }}</td>
                                                 <td class="fw-bold">${{ number_format((float) $costRow->final_cost, 2) }}</td>

@@ -42,6 +42,16 @@ class PropertyDeletionService
                 throw ValidationException::withMessages(['property' => self::PENDING_PAYMENT_MESSAGE]);
             }
 
+            $hasGroupedTickets = DB::table('maintenance_tickets as ticket')
+                ->where('ticket.property_id', $lockedProperty->id)
+                ->where(function ($query): void {
+                    $query->whereNotNull('ticket.master_ticket_id')
+                        ->orWhereExists(fn ($children) => $children->selectRaw('1')->from('maintenance_tickets as child')->whereColumn('child.master_ticket_id', 'ticket.id'));
+                })->exists();
+            if ($hasGroupedTickets) {
+                throw ValidationException::withMessages(['property' => 'No es posible eliminar una propiedad que tiene tickets agrupados.']);
+            }
+
             $propertyId = $lockedProperty->id;
             $chargeIds = DB::table('charges')->where('property_id', $propertyId)->pluck('id');
             $paymentIds = $chargeIds->isEmpty() ? collect() : DB::table('charge_payments')->whereIn('charge_id', $chargeIds)->pluck('id');

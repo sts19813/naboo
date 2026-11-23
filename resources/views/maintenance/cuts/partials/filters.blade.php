@@ -1,5 +1,5 @@
 @php
-    $filterProperties = $filterTickets->pluck('property')->filter()->unique('id')->sortBy('internal_name');
+    $filterProperties = $filterTickets->flatMap(fn ($ticket) => collect([$ticket->property])->merge($ticket->childTickets->pluck('property')))->filter()->unique('id')->sortBy('internal_name');
     $filterTechnicians = $filterTickets->map(fn ($ticket) => [
         'key' => $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned',
         'name' => $ticket->currentProvider?->name ?? 'Sin técnico asignado',

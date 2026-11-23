@@ -20,10 +20,13 @@ class MaintenanceCutController extends Controller
 
         $completedTickets = MaintenanceTicket::query()
             ->where('status', 'completado')
+            ->whereNull('master_ticket_id')
             ->whereDoesntHave('cutItem')
             ->with([
                 'property:id,uuid,internal_name,internal_reference',
                 'currentProvider:id,name',
+                'childTickets:id,uuid,master_ticket_id,property_id,reference,title',
+                'childTickets.property:id,internal_name,internal_reference',
             ])
             ->withSum('costs as labor_total', 'labor_cost')
             ->withSum('costs as material_total', 'material_cost')
@@ -42,6 +45,8 @@ class MaintenanceCutController extends Controller
                 'items' => fn ($query) => $query->orderBy('id'),
                 'items.ticket:id,uuid,property_id,reference,title,reported_at,completed_at,created_at',
                 'items.ticket.property:id,uuid,internal_name,internal_reference',
+                'items.ticket.childTickets:id,uuid,master_ticket_id,property_id,reference,title',
+                'items.ticket.childTickets.property:id,internal_name,internal_reference',
             ])
             ->latest('paid_at')
             ->latest('id')
@@ -74,6 +79,7 @@ class MaintenanceCutController extends Controller
             $tickets = MaintenanceTicket::query()
                 ->whereIn('id', $ticketIds)
                 ->where('status', 'completado')
+                ->whereNull('master_ticket_id')
                 ->whereDoesntHave('cutItem')
                 ->with('costs:id,ticket_id,expense_id,labor_cost,material_cost,final_cost')
                 ->lockForUpdate()

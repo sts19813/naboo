@@ -208,6 +208,7 @@ Route::middleware(['auth', 'system.access', 'provider.operational', 'property.vi
         Route::get('/mantenimiento/cortes', [MaintenanceCutController::class, 'index'])->name('maintenance-cuts.index');
         Route::post('/mantenimiento/cortes', [MaintenanceCutController::class, 'store'])->name('maintenance-cuts.store');
         Route::post('/mantenimiento', [MaintenanceController::class, 'store'])->name('maintenance.store');
+        Route::post('/mantenimiento/agrupar', [MaintenanceController::class, 'groupTickets'])->name('maintenance.group');
         Route::redirect('/mantenimiento/proveedores-tecnicos', '/mantenimiento/proveedores')->name('maintenance.providers.legacy');
         Route::get('/mantenimiento/proveedores', [MaintenanceController::class, 'providers'])->name('maintenance.providers.index');
         Route::get('/mantenimiento/tecnicos', [MaintenanceController::class, 'technicians'])->name('maintenance.technicians.index');
