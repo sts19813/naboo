@@ -24,6 +24,7 @@ use App\Models\Zone;
 use App\Services\DossierDocumentRequirementService;
 use App\Services\PropertyDeletionService;
 use App\Support\PropertyVisibility;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -454,7 +455,21 @@ class PropertyController extends Controller
             ->orderBy('due_date', 'asc')
             ->orderBy('id', 'asc')
             ->get();
-        $propertyExpenses = Expense::query()
+        $expensePeriod = request()->query('expense_period', 'month');
+        if (! in_array($expensePeriod, ['month', 'three_months', 'all'], true)) {
+            $expensePeriod = 'month';
+        }
+        $expensePeriodStart = match ($expensePeriod) {
+            'month' => now()->startOfMonth(),
+            'three_months' => now()->startOfMonth()->subMonths(2),
+            default => null,
+        };
+        $expensePeriodEnd = $expensePeriodStart ? now()->endOfMonth() : null;
+        $applyExpensePeriod = fn (Builder $query) => $query->when(
+            $expensePeriodStart,
+            fn (Builder $query) => $query->whereBetween('due_date', [$expensePeriodStart->toDateString(), $expensePeriodEnd->toDateString()]),
+        );
+        $propertyExpenses = $applyExpensePeriod(Expense::query())
             ->with('files')
             ->withCount('files')
             ->where('property_id', $property->id)
@@ -551,7 +566,7 @@ class PropertyController extends Controller
             ->count();
         $canRemoveTenant = (bool) $property->tenant_id && $propertyOpenChargesCount === 0 && (int) $chargesVencidos === 0;
         $canReassignTenant = ! $property->tenant_id || $canRemoveTenant;
-        $expenseBaseQuery = fn () => Expense::query()->includedInTotals()->where('property_id', $property->id);
+        $expenseBaseQuery = fn () => $applyExpensePeriod(Expense::query()->includedInTotals()->where('property_id', $property->id));
         $propertyExpenseSummary = [
             'pending_total' => (float) $expenseBaseQuery()->pending()->sum('amount'),
             'paid_total' => (float) $expenseBaseQuery()->paid()->sum('amount'),
@@ -591,6 +606,9 @@ class PropertyController extends Controller
             'canRemoveTenant' => $canRemoveTenant,
             'tenantChangeBlockedMessage' => self::TENANT_CHANGE_BLOCKED_MESSAGE,
             'propertyExpenseSummary' => $propertyExpenseSummary,
+            'expensePeriod' => $expensePeriod,
+            'expensePeriodStart' => $expensePeriodStart,
+            'expensePeriodEnd' => $expensePeriodEnd,
             'globalExpenseNotificationSetup' => $globalExpenseNotificationSetup,
             'resolvedPropertyExpenseNotificationSetup' => $resolvedPropertyExpenseNotificationSetup,
             'recurringExpenseFrequencyOptions' => RecurringExpenseItem::FREQUENCY_LABELS,

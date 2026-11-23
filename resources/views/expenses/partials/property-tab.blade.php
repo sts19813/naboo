@@ -23,6 +23,17 @@
         </div>
 
         <div class="card-body pt-0">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-5">
+                <div>
+                    <div class="fw-bold text-dark">Periodo de gastos</div>
+                    <div class="text-muted fs-7">Según la fecha de vencimiento{{ $expensePeriodStart ? ': '.$expensePeriodStart->format('d/m/Y').' al '.$expensePeriodEnd->format('d/m/Y') : ': todos los registros' }}.</div>
+                </div>
+                <div class="btn-group" role="group" aria-label="Filtrar gastos por periodo">
+                    @foreach (['month' => 'Este mes', 'three_months' => 'Últimos 3 meses', 'all' => 'Todos'] as $period => $label)
+                        <a href="{{ route('properties.show', ['property' => $property, 'expense_period' => $period]) }}#tab-expenses" class="btn btn-sm {{ $expensePeriod === $period ? 'btn-primary' : 'btn-light' }}" @if ($expensePeriod === $period) aria-current="true" @endif>{{ $label }}</a>
+                    @endforeach
+                </div>
+            </div>
             @include('expenses.partials.summary-cards', ['summary' => $propertyExpenseSummary])
 
             <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-4">

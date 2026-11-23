@@ -124,6 +124,43 @@ class ExpenseModuleTest extends TestCase
             ->assertDontSee("onsubmit=\"return confirm('¿Deseas eliminar este gasto?');\"", false);
     }
 
+    public function test_property_expense_period_filters_table_and_totals_by_due_date(): void
+    {
+        Carbon::setTestNow('2026-11-12 12:00:00');
+        try {
+            $user = User::factory()->create();
+            $property = $this->createPropertyFixture($user);
+            foreach ([
+                ['Mes actual', '2026-11-20', 100, null, false],
+                ['Mes anterior', '2026-09-10', 200, '2026-11-02', false],
+                ['Histórico', '2026-08-31', 300, null, false],
+                ['Futuro', '2026-12-01', 400, null, false],
+                ['Excluido', '2026-11-21', 500, null, true],
+            ] as [$concept, $dueDate, $amount, $paidAt, $excluded]) {
+                Expense::create([
+                    'property_id' => $property->id, 'concept' => $concept, 'due_date' => $dueDate,
+                    'amount' => $amount, 'paid_at' => $paidAt, 'excluded_from_totals' => $excluded,
+                    'created_by' => $user->id,
+                ]);
+            }
+
+            $month = $this->actingAs($user)->get(route('properties.show', $property));
+            $month->assertOk();
+            $this->assertEqualsCanonicalizing(['Mes actual', 'Excluido'], $month->viewData('propertyExpenses')->pluck('concept')->all());
+            $this->assertSame(100.0, $month->viewData('propertyExpenseSummary')['pending_total']);
+
+            $quarter = $this->actingAs($user)->get(route('properties.show', ['property' => $property, 'expense_period' => 'three_months']));
+            $this->assertEqualsCanonicalizing(['Mes actual', 'Mes anterior', 'Excluido'], $quarter->viewData('propertyExpenses')->pluck('concept')->all());
+            $this->assertSame(200.0, $quarter->viewData('propertyExpenseSummary')['paid_total']);
+
+            $all = $this->actingAs($user)->get(route('properties.show', ['property' => $property, 'expense_period' => 'all']));
+            $this->assertCount(5, $all->viewData('propertyExpenses'));
+            $this->assertSame(300.0, $all->viewData('propertyExpenseSummary')['overdue_total']);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_expense_can_be_marked_as_paid(): void
     {
         $user = User::factory()->create();
