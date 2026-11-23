@@ -42,9 +42,9 @@ class CashCutController extends Controller
                 ->map(fn ($items) => round((float) $items->sum('amount'), 2)),
             'pendingAdvisorCount' => $payments->pluck('registered_by')->unique()->count(),
             'receivedTotalsByCurrency' => DB::table('cash_cut_items')
-                ->selectRaw("LOWER(COALESCE(NULLIF(TRIM(currency), ''), 'mxn')) AS currency, SUM(amount) AS total")
-                ->groupByRaw("LOWER(COALESCE(NULLIF(TRIM(currency), ''), 'mxn'))")
-                ->get()->mapWithKeys(fn ($row) => [$row->currency => (float) $row->total]),
+                ->selectRaw("LOWER(COALESCE(NULLIF(TRIM(currency), ''), 'mxn')) AS normalized_currency, SUM(amount) AS total")
+                ->groupBy('normalized_currency')
+                ->get()->mapWithKeys(fn ($row) => [$row->normalized_currency => (float) $row->total]),
         ]);
     }
 
