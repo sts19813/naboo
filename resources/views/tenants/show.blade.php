@@ -14,6 +14,7 @@
     <style>
         .tenant-show-module {
             --ts-surface: #ffffff;
+            --ts-stat-surface: #fbfcfe;
             --ts-ink: #172033;
             --ts-text: #334155;
             --ts-muted: #7b879d;
@@ -22,6 +23,10 @@
             --ts-accent-soft: #fff0f4;
             --ts-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             color: var(--ts-text);
+        }
+
+        [data-bs-theme="dark"] .tenant-show-module {
+            --ts-stat-surface: #202a37;
         }
 
         .tenant-show-back {
@@ -71,6 +76,8 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: flex-end;
+            align-items: flex-start;
+            align-self: flex-start;
             gap: 10px;
         }
 
@@ -83,7 +90,7 @@
             border: 1px solid var(--ts-line);
             border-radius: 14px;
             padding: 16px;
-            background: #fbfcfe;
+            background: var(--ts-stat-surface);
         }
 
         .tenant-show-stat__label {
@@ -112,7 +119,7 @@
             justify-content: space-between;
             gap: 16px;
             padding: 13px 0;
-            border-bottom: 1px solid #f0f3f8;
+            border-bottom: 1px solid var(--ts-line);
         }
 
         .tenant-show-field:last-child {
@@ -315,7 +322,7 @@
                     <div class="col-6 col-lg-3">
                         <div class="tenant-show-stat h-100">
                             <div class="tenant-show-stat__label mb-2">Ingreso</div>
-                            <div class="fw-bold text-gray-800">
+                            <div class="fw-bold" style="color: var(--ts-ink)">
                                 {{ $tenant->monthly_income ? '$' . number_format((float) $tenant->monthly_income, 2) : '-' }}
                             </div>
                         </div>
