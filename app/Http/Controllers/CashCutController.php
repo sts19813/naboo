@@ -38,9 +38,13 @@ class CashCutController extends Controller
         return view('finance.cash-cuts.index', [
             'payments' => $payments,
             'cuts' => $cuts,
-            'pendingTotal' => round((float) $payments->sum('amount'), 2),
+            'pendingTotalsByCurrency' => $payments->groupBy(fn (ChargePayment $payment) => strtolower(trim((string) $payment->currency)) ?: 'mxn')
+                ->map(fn ($items) => round((float) $items->sum('amount'), 2)),
             'pendingAdvisorCount' => $payments->pluck('registered_by')->unique()->count(),
-            'receivedGrandTotal' => (float) CashCut::query()->sum('grand_total'),
+            'receivedTotalsByCurrency' => DB::table('cash_cut_items')
+                ->selectRaw("LOWER(COALESCE(NULLIF(TRIM(currency), ''), 'mxn')) AS currency, SUM(amount) AS total")
+                ->groupByRaw("LOWER(COALESCE(NULLIF(TRIM(currency), ''), 'mxn'))")
+                ->get()->mapWithKeys(fn ($row) => [$row->currency => (float) $row->total]),
         ]);
     }
 
@@ -76,6 +80,12 @@ class CashCutController extends Controller
                 ]);
             }
 
+            if ($payments->map(fn (ChargePayment $payment) => strtolower(trim((string) $payment->currency)) ?: 'mxn')->unique()->count() > 1) {
+                throw ValidationException::withMessages([
+                    'payment_ids' => 'Todos los pagos del corte deben tener la misma moneda.',
+                ]);
+            }
+
             /** @var ChargePayment $firstPayment */
             $firstPayment = $payments->first();
             $advisorName = $firstPayment->registeredBy?->name ?? 'Usuario no disponible';
@@ -89,7 +99,7 @@ class CashCutController extends Controller
                     'property_name' => $payment->charge?->property?->internal_name,
                     'tenant_name' => $payment->charge?->tenant?->full_name,
                     'amount' => round((float) $payment->amount, 2),
-                    'currency' => strtolower($payment->currency ?: 'mxn'),
+                    'currency' => strtolower(trim((string) $payment->currency)) ?: 'mxn',
                     'payment_date' => $payment->payment_date ?? $payment->paid_at?->toDateString(),
                 ];
             });

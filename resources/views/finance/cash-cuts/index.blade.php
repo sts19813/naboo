@@ -33,8 +33,8 @@
         <div class="cash-cut-metrics">
             <article><span class="is-blue"><i class="bi bi-cash-stack"></i></span><div><small>Pagos por recibir</small><strong>{{ $payments->count() }}</strong></div></article>
             <article><span class="is-purple"><i class="bi bi-person-badge"></i></span><div><small>Asesores con efectivo</small><strong>{{ $pendingAdvisorCount }}</strong></div></article>
-            <article><span class="is-amber"><i class="bi bi-hourglass-split"></i></span><div><small>Efectivo pendiente</small><strong>${{ number_format($pendingTotal, 2) }}</strong></div></article>
-            <article><span class="is-green"><i class="bi bi-patch-check"></i></span><div><small>Histórico recibido</small><strong>${{ number_format($receivedGrandTotal, 2) }}</strong></div></article>
+            <article><span class="is-amber"><i class="bi bi-hourglass-split"></i></span><div><small>Efectivo pendiente</small>@forelse ($pendingTotalsByCurrency as $currency => $total)<strong>${{ number_format($total, 2) }} {{ strtoupper($currency) }}</strong>@empty<strong>$0.00</strong>@endforelse</div></article>
+            <article><span class="is-green"><i class="bi bi-patch-check"></i></span><div><small>Histórico recibido</small>@forelse ($receivedTotalsByCurrency as $currency => $total)<strong>${{ number_format($total, 2) }} {{ strtoupper($currency) }}</strong>@empty<strong>$0.00</strong>@endforelse</div></article>
         </div>
 
         <div class="cash-cut-tabs" role="tablist" aria-label="Secciones del corte de efectivo">
@@ -52,7 +52,7 @@
                     <div class="cash-cut-panel-heading">
                         <div>
                             <h2>Efectivo en poder de asesores</h2>
-                            <p>Solo aparecen pagos de cobranza exitosos y registrados como efectivo. Cada corte corresponde a un solo asesor.</p>
+                            <p>Solo aparecen pagos exitosos registrados como efectivo. Cada corte corresponde a un solo asesor y una moneda.</p>
                         </div>
                         @if ($payments->isNotEmpty())
                             <button type="button" class="cash-cut-select-all" id="selectAllVisible"><i class="bi bi-check2-square"></i> Seleccionar todos</button>
@@ -92,7 +92,7 @@
                                                     <tr class="cash-cut-row">
                                                         <td class="cash-cut-check">
                                                             <input class="form-check-input cash-payment-checkbox" type="checkbox" name="payment_ids[]" value="{{ $payment->id }}"
-                                                                data-amount="{{ (float) $payment->amount }}" data-advisor-key="{{ $advisorKey }}" data-advisor-name="{{ $advisorName }}"
+                                                                data-amount="{{ (float) $payment->amount }}" data-advisor-key="{{ $advisorKey }}" data-advisor-name="{{ $advisorName }}" data-currency="{{ strtolower(trim((string) $payment->currency)) ?: 'mxn' }}"
                                                                 @checked(in_array($payment->id, old('payment_ids', []))) aria-label="Seleccionar pago {{ $payment->id }}">
                                                         </td>
                                                         <td>
@@ -105,7 +105,7 @@
                                                         <td>{{ $payment->charge?->tenant?->full_name ?? '-' }}</td>
                                                         <td><span class="cash-cut-advisor"><i class="bi bi-person"></i>{{ $advisorName }}</span></td>
                                                         <td class="text-nowrap">{{ ($payment->payment_date ?? $payment->paid_at)?->format('d/m/Y') ?: '-' }}</td>
-                                                        <td class="text-end text-nowrap fw-bold">${{ number_format((float) $payment->amount, 2) }}</td>
+                                                        <td class="text-end text-nowrap fw-bold">${{ number_format((float) $payment->amount, 2) }} {{ strtoupper(trim((string) $payment->currency) ?: 'mxn') }}</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -140,7 +140,7 @@
                                 <span><small>Entregó</small><strong>{{ $cut->advisor_name }}</strong></span>
                                 <span><small>Recibió</small><strong>{{ $cut->received_by_name }}</strong></span>
                                 <span><small>Fecha de recepción</small><strong>{{ $cut->received_at?->format('d/m/Y H:i') }}</strong></span>
-                                <span class="cash-cut-history-total"><small>Total recibido</small><strong>${{ number_format((float) $cut->grand_total, 2) }}</strong></span>
+                                <span class="cash-cut-history-total"><small>Total recibido</small>@forelse ($cut->items->groupBy(fn ($item) => strtolower(trim((string) $item->currency)) ?: 'mxn') as $currency => $items)<strong>${{ number_format((float) $items->sum('amount'), 2) }} {{ strtoupper($currency) }}</strong>@empty<strong>Sin desglose</strong>@endforelse</span>
                                 <i class="bi bi-chevron-down cash-cut-chevron"></i>
                             </summary>
                             <div class="table-responsive cash-cut-history-detail">
@@ -159,7 +159,7 @@
                                                 <td>{{ $item->property_name ?: '-' }}</td>
                                                 <td>{{ $item->tenant_name ?: '-' }}</td>
                                                 <td class="text-nowrap">{{ $item->payment_date?->format('d/m/Y') ?: '-' }}</td>
-                                                <td class="text-end text-nowrap fw-bold">${{ number_format((float) $item->amount, 2) }}</td>
+                                                <td class="text-end text-nowrap fw-bold">${{ number_format((float) $item->amount, 2) }} {{ strtoupper(trim((string) $item->currency) ?: 'mxn') }}</td>
                                                 <td><span class="cash-cut-received-badge"><i class="bi bi-check-circle-fill"></i> Recibido</span></td>
                                             </tr>
                                         @endforeach
@@ -198,22 +198,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const boxes = Array.from(form.querySelectorAll('.cash-payment-checkbox'));
     const selectAll = document.getElementById('selectAllVisible');
     const receiveButton = document.getElementById('receiveSelectedButton');
-    const currency = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+    const numberFormat = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     function updateSummary() {
         const selected = boxes.filter(box => box.checked);
         const advisorKey = selected[0]?.dataset.advisorKey || null;
-        const compatible = advisorKey ? boxes.filter(box => box.dataset.advisorKey === advisorKey) : boxes;
+        const currencyKey = selected[0]?.dataset.currency || null;
+        const compatible = advisorKey ? boxes.filter(box => box.dataset.advisorKey === advisorKey && box.dataset.currency === currencyKey) : boxes;
+        const invalid = selected.some(box => box.dataset.advisorKey !== advisorKey || box.dataset.currency !== currencyKey);
         boxes.forEach(box => {
-            const incompatible = Boolean(advisorKey && box.dataset.advisorKey !== advisorKey);
-            box.disabled = incompatible;
+            const incompatible = Boolean(advisorKey && (box.dataset.advisorKey !== advisorKey || box.dataset.currency !== currencyKey));
+            box.disabled = incompatible && !box.checked;
             box.closest('tr')?.classList.toggle('is-selected', box.checked);
             box.closest('tr')?.classList.toggle('is-incompatible', incompatible);
         });
         document.getElementById('selectedCount').textContent = selected.length;
         document.getElementById('selectedAdvisor').textContent = selected[0]?.dataset.advisorName || 'Sin seleccionar';
-        document.getElementById('selectedTotal').textContent = currency.format(selected.reduce((total, box) => total + Number(box.dataset.amount || 0), 0));
-        receiveButton.disabled = selected.length === 0;
+        document.getElementById('selectedTotal').textContent = invalid ? 'Selecciona una moneda y un asesor' : '$' + numberFormat.format(selected.reduce((total, box) => total + Number(box.dataset.amount || 0), 0)) + (currencyKey ? ' ' + currencyKey.toUpperCase() : '');
+        receiveButton.disabled = selected.length === 0 || invalid;
         if (selectAll) {
             selectAll.innerHTML = selected.length > 0 && selected.length === compatible.length
                 ? '<i class="bi bi-square"></i> Quitar selección'
@@ -232,7 +234,8 @@ document.addEventListener('DOMContentLoaded', function () {
     selectAll?.addEventListener('click', () => {
         const selected = boxes.filter(box => box.checked);
         const advisorKey = selected[0]?.dataset.advisorKey || boxes[0]?.dataset.advisorKey;
-        const compatible = boxes.filter(box => box.dataset.advisorKey === advisorKey);
+        const currencyKey = selected[0]?.dataset.currency || boxes[0]?.dataset.currency;
+        const compatible = boxes.filter(box => box.dataset.advisorKey === advisorKey && box.dataset.currency === currencyKey);
         const shouldSelect = compatible.some(box => !box.checked);
         compatible.forEach(box => box.checked = shouldSelect);
         updateSummary();

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Charge;
+use App\Models\CashCut;
 use App\Models\ChargePayment;
 use App\Models\Property;
 use App\Models\PropertyType;
@@ -124,6 +125,46 @@ class CashCutModuleTest extends TestCase
             ->assertSessionHasErrors('payment_ids');
 
         $this->assertDatabaseCount('cash_cuts', 0);
+    }
+
+    public function test_payments_in_different_currencies_have_separate_cuts_and_totals(): void
+    {
+        $admin = $this->userWithRole('Administradora', 'administrador');
+        $advisor = $this->userWithRole('Asesor', 'asesores');
+        $charge = $this->createCharge($advisor, 'Renta por moneda');
+        $mxn = $this->createPayment($charge, $advisor, ChargePayment::METHOD_CASH, 1000);
+        $usd = $this->createPayment($charge, $advisor, ChargePayment::METHOD_CASH, 2000);
+        $usd->update(['currency' => 'USD']);
+
+        $this->actingAs($admin)->get(route('cash-cuts.index'))->assertOk()
+            ->assertViewHas('pendingTotalsByCurrency', fn ($totals) => $totals->get('mxn') === 1000.0 && $totals->get('usd') === 2000.0)
+            ->assertSee('$1,000.00 MXN')->assertSee('$2,000.00 USD');
+        $this->actingAs($admin)->post(route('cash-cuts.store'), ['payment_ids' => [$mxn->id, $usd->id]])
+            ->assertSessionHasErrors('payment_ids');
+        $this->assertDatabaseCount('cash_cuts', 0);
+
+        $this->actingAs($admin)->post(route('cash-cuts.store'), ['payment_ids' => [$mxn->id]])->assertSessionHasNoErrors();
+        $this->actingAs($admin)->post(route('cash-cuts.store'), ['payment_ids' => [$usd->id]])->assertSessionHasNoErrors();
+        $this->actingAs($admin)->get(route('cash-cuts.index', ['tab' => 'historial']))->assertOk()
+            ->assertViewHas('receivedTotalsByCurrency', fn ($totals) => $totals->get('mxn') === 1000.0 && $totals->get('usd') === 2000.0)
+            ->assertSee('$1,000.00 MXN')->assertSee('$2,000.00 USD');
+    }
+
+    public function test_existing_mixed_currency_cut_is_displayed_by_currency(): void
+    {
+        $admin = $this->userWithRole('Administradora', 'administrador');
+        $cut = CashCut::create([
+            'advisor_name' => 'Asesor', 'received_by_name' => 'Administrador',
+            'payment_count' => 2, 'grand_total' => 3000, 'received_at' => now(),
+        ]);
+        $cut->items()->createMany([
+            ['charge_concept' => 'Pago pesos', 'amount' => 1000, 'currency' => 'mxn'],
+            ['charge_concept' => 'Pago dólares', 'amount' => 2000, 'currency' => 'usd'],
+        ]);
+
+        $this->actingAs($admin)->get(route('cash-cuts.index', ['tab' => 'historial']))->assertOk()
+            ->assertSee('$1,000.00 MXN')->assertSee('$2,000.00 USD')
+            ->assertDontSee('$3,000.00');
     }
 
     public function test_cash_cut_is_only_visible_and_actionable_by_administrators(): void
