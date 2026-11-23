@@ -82,7 +82,6 @@ class PropertyController extends Controller
             ->when(! $showArchived, fn ($query) => $query->whereNull('archived_at'))
             ->with(['type', 'zone', 'tenant', 'advisor', 'advisors:id,name,email'])
             ->withCount([
-                'documents as incidents_count' => fn ($query) => $query->where('status', PropertyDocument::STATUS_PENDING),
                 'charges as pending_payments_count' => fn ($query) => $query->where(function ($query): void {
                     $query->whereIn('status', [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL, Charge::STATUS_IN_VALIDATION])
                         ->orWhereHas('payments', fn ($query) => $query->whereIn('status', [ChargePayment::STATUS_PENDING, ChargePayment::STATUS_PENDING_VALIDATION]));

@@ -132,15 +132,30 @@
         .property-list-actions {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 6px;
+            flex-wrap: nowrap;
             justify-content: flex-end;
         }
 
         .property-list-actions .btn {
             border-radius: 12px;
             font-weight: 700;
-            min-width: 76px;
+            min-width: 58px;
+        }
+
+        .property-list-actions .property-list-icon-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            min-width: 38px;
+            height: 38px;
+            padding: 0;
+        }
+
+        .property-list-actions .property-list-icon-action i {
+            padding: 0;
+            font-size: 1rem;
         }
 
         .property-list-table-card .dataTables_info,
@@ -275,13 +290,13 @@
 
             .property-list-row td:nth-child(1),
             .property-list-row td:nth-child(2),
-            .property-list-row td:nth-child(10) {
+            .property-list-row td:nth-child(9) {
                 border-top: 0 !important;
             }
 
             .property-list-row td:nth-child(1)::before,
             .property-list-row td:nth-child(2)::before,
-            .property-list-row td:nth-child(10)::before {
+            .property-list-row td:nth-child(9)::before {
                 content: none;
             }
 
@@ -304,8 +319,8 @@
                 margin-top: 16px;
             }
 
-            .property-list-row td:nth-child(n+3):nth-child(-n+9),
-            .property-list-row td:nth-child(10) {
+            .property-list-row td:nth-child(n+3):nth-child(-n+8),
+            .property-list-row td:nth-child(9) {
                 grid-column: 1 / -1;
             }
 
@@ -315,7 +330,6 @@
             .property-list-row td:nth-child(6)::before { content: 'Inquilino'; }
             .property-list-row td:nth-child(7)::before { content: 'Asesor'; }
             .property-list-row td:nth-child(8)::before { content: 'Contrato'; }
-            .property-list-row td:nth-child(9)::before { content: 'Incidencias'; }
 
             .property-list-row .property-thumb {
                 width: 82px;
@@ -361,7 +375,7 @@
                 text-align: right;
             }
 
-            .property-list-row td:nth-child(10) {
+            .property-list-row td:nth-child(9) {
                 margin-top: 8px;
                 padding-top: 16px !important;
                 border-top: 1px solid #e8eef7 !important;
@@ -369,12 +383,11 @@
 
             .property-list-actions {
                 width: 100%;
-                justify-content: stretch;
+                justify-content: flex-end;
             }
 
             .property-list-actions .btn {
-                flex: 1 1 auto;
-                min-width: 0;
+                flex: none;
                 border-radius: 8px;
             }
 
@@ -464,7 +477,6 @@
                             <th class="min-w-150px">Inquilino</th>
                             <th class="min-w-180px">Asesores responsables</th>
                             <th class="min-w-130px">Contrato vence</th>
-                            <th class="min-w-110px">Incidencias</th>
                             <th class="text-end pe-7">Opciones</th>
                         </tr>
                     </thead>
@@ -604,16 +616,6 @@
                                     <td>
                                         <div class="property-list-value">{{ $property->contract_expires_at ? $property->contract_expires_at->format('d/m/Y') : '-' }}</div>
                                     </td>
-                                    <td>
-                                        @if ($property->incidents_count > 0)
-                                            <span class="text-danger fw-bold">
-                                                <i class="ki-outline ki-information-5 text-danger fs-6"></i>
-                                                {{ $property->incidents_count }}
-                                            </span>
-                                        @else
-                                            <span class="text-muted">0</span>
-                                        @endif
-                                    </td>
                                     <td class="text-end pe-7">
                                         <div class="property-list-actions">
                                             <a href="{{ route('properties.show', $property) }}"
@@ -625,7 +627,7 @@
                                                 <form method="POST" action="{{ $showArchived ? route('properties.restore', $property) : route('properties.archive', $property) }}" class="d-inline js-property-archive-form" data-action="{{ $showArchived ? 'restaurar' : 'archivar' }}" data-property-name="{{ $property->internal_name }}">
                                                     @csrf
                                                     @method('PATCH')
-                                                    <button type="submit" class="btn btn-sm btn-light-warning">{{ $showArchived ? 'Restaurar' : 'Archivar' }}</button>
+                                                    <button type="submit" class="btn btn-sm btn-light-warning property-list-icon-action" aria-label="{{ $showArchived ? 'Restaurar' : 'Archivar' }} {{ $property->internal_name }}" title="{{ $showArchived ? 'Restaurar' : 'Archivar' }}"><i class="bi {{ $showArchived ? 'bi-arrow-counterclockwise' : 'bi-archive' }}" aria-hidden="true"></i><span class="visually-hidden">{{ $showArchived ? 'Restaurar' : 'Archivar' }}</span></button>
                                                 </form>
                                             @endif
 
@@ -633,7 +635,7 @@
                                                 <form method="POST" action="{{ route('properties.destroy', $property) }}" class="d-inline js-property-delete-form" data-property-name="{{ $property->internal_name }}">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-light-danger" @disabled($property->pending_payments_count > 0) title="{{ $property->pending_payments_count > 0 ? 'No se puede eliminar porque tiene pagos pendientes.' : 'Eliminar permanentemente' }}">Eliminar</button>
+                                                    <button type="submit" class="btn btn-sm btn-light-danger property-list-icon-action" @disabled($property->pending_payments_count > 0) aria-label="Eliminar {{ $property->internal_name }}" title="{{ $property->pending_payments_count > 0 ? 'No se puede eliminar porque tiene pagos pendientes.' : 'Eliminar permanentemente' }}"><i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Eliminar</span></button>
                                                 </form>
                                             @endif
 
@@ -663,7 +665,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="text-center py-16 text-muted" data-empty-row="true">
+                                    <td colspan="9" class="text-center py-16 text-muted" data-empty-row="true">
                                         Aún no hay propiedades registradas.
                                     </td>
                                 </tr>
@@ -744,7 +746,7 @@
                 },
                 columnDefs: [
                     {
-                        targets: [0, 9],
+                        targets: [0, 8],
                         orderable: false,
                         searchable: false,
                     },

@@ -19,6 +19,31 @@ class PropertyLifecycleTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_property_list_keeps_actions_accessible_without_an_incidents_column(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(Permission::findOrCreate('propiedades.archivar', 'web'));
+        $user->givePermissionTo(Permission::findOrCreate('propiedades.eliminar', 'web'));
+        $property = $this->createProperty($user);
+        $response = $this->actingAs($user)->get(route('properties.index'));
+        $response->assertOk()->assertDontSee('>Incidencias<', false)
+            ->assertSee('aria-label="Archivar '.$property->internal_name.'"', false)
+            ->assertSee('aria-label="Eliminar '.$property->internal_name.'"', false)
+            ->assertSee(route('properties.show', $property), false);
+        $document = new \DOMDocument();
+        @$document->loadHTML($response->getContent());
+        $xpath = new \DOMXPath($document);
+        $this->assertCount(9, $xpath->query('//table[@id="properties_table"]/thead/tr/th'));
+        $this->assertCount(9, $xpath->query('//table[@id="properties_table"]/tbody/tr[contains(@class,"property-list-row")][1]/td'));
+        $tenant = Tenant::create(['full_name' => 'Inquilino', 'phone_primary' => '9991112233']);
+        Charge::create(['property_id' => $property->id, 'tenant_id' => $tenant->id, 'type' => Charge::TYPE_RENT, 'due_date' => now(), 'amount' => 500, 'period_month' => now()->month, 'period_year' => now()->year, 'concept' => 'Renta pendiente', 'status' => Charge::STATUS_PENDING]);
+        $response = $this->actingAs($user)->get(route('properties.index'));
+        $document = new \DOMDocument();
+        @$document->loadHTML($response->getContent());
+        $xpath = new \DOMXPath($document);
+        $this->assertCount(1, $xpath->query('//form[contains(@class,"js-property-delete-form")]/button[@disabled]'));
+    }
+
     public function test_only_users_with_archive_permission_can_archive_view_and_restore_properties(): void
     {
         $user = User::factory()->create();
