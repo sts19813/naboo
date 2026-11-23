@@ -96,6 +96,7 @@
                     @csrf
                     <div class="cut-workspace">
                     <div class="cut-table-column">
+                    @include('maintenance.cuts.partials.filters', ['filterTickets' => $tickets])
                     <div class="table-responsive cut-table-wrap">
                         <table class="table cut-table align-middle mb-0">
                             <thead>
@@ -118,7 +119,7 @@
                                         $materials = (float) ($ticket->material_total ?? 0);
                                         $grand = (float) ($ticket->grand_total ?? 0);
                                     @endphp
-                                    <tr class="cut-ticket-row">
+                                    <tr class="cut-ticket-row" data-cut-row data-property-id="{{ $ticket->property_id }}" data-technician-key="{{ $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned' }}">
                                         <td class="cut-check-column">
                                             <input class="form-check-input cut-ticket-checkbox" type="checkbox"
                                                 name="ticket_ids[]" value="{{ $ticket->id }}"
@@ -145,6 +146,7 @@
                                         <td class="text-end text-nowrap fw-bold">${{ number_format($grand, 2) }}</td>
                                     </tr>
                                 @endforeach
+                                <tr class="d-none" data-cut-filter-empty><td colspan="9" class="text-center py-8 text-muted">No hay tickets que coincidan con el filtro.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -187,12 +189,13 @@
                 @else
                     <form method="POST" action="{{ route('maintenance-cuts.store') }}" id="zeroCostCutForm">
                         @csrf
+                        @include('maintenance.cuts.partials.filters', ['filterTickets' => $zeroCostTickets])
                         <div class="table-responsive cut-table-wrap">
                             <table class="table cut-table align-middle mb-0">
                                 <thead><tr><th>Seleccionar</th><th>Ticket</th><th>Propiedad</th><th>Técnico</th><th>Completado</th></tr></thead>
                                 <tbody>
                                     @foreach ($zeroCostTickets as $ticket)
-                                        <tr>
+                                        <tr data-cut-row data-property-id="{{ $ticket->property_id }}" data-technician-key="{{ $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned' }}">
                                             <td><input class="form-check-input zero-cost-checkbox" type="checkbox" name="ticket_ids[]" value="{{ $ticket->id }}" data-technician-key="{{ $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned' }}" aria-label="Seleccionar ticket {{ $ticket->display_reference }}"></td>
                                             <td><a class="cut-ticket-link" href="{{ route('maintenance.show', $ticket) }}">#{{ $ticket->display_reference }} · {{ $ticket->title }}</a></td>
                                             <td>{{ $ticket->property?->internal_name ?? '-' }}</td>
@@ -200,6 +203,7 @@
                                             <td>{{ $ticket->completed_at?->format('d/m/Y H:i') ?: '-' }}</td>
                                         </tr>
                                     @endforeach
+                                    <tr class="d-none" data-cut-filter-empty><td colspan="5" class="text-center py-8 text-muted">No hay tickets que coincidan con el filtro.</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -296,6 +300,33 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('#maintenanceCutForm, #zeroCostCutForm').forEach(form => {
+        const property = form.querySelector('[data-cut-property-filter]');
+        const technician = form.querySelector('[data-cut-technician-filter]');
+        const search = form.querySelector('[data-cut-search]');
+        const rows = Array.from(form.querySelectorAll('[data-cut-row]'));
+        const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        function applyFilters() {
+            let count = 0;
+            rows.forEach(row => {
+                const visible = (property.value === 'all' || row.dataset.propertyId === property.value)
+                    && (technician.value === 'all' || row.dataset.technicianKey === technician.value)
+                    && normalize(row.textContent).includes(normalize(search.value));
+                row.classList.toggle('d-none', !visible);
+                if (!visible) row.querySelector('input[type="checkbox"]').checked = false;
+                else count++;
+            });
+            form.querySelector('[data-cut-filter-empty]')?.classList.toggle('d-none', count > 0);
+            form.querySelector('[data-cut-filter-count]').textContent = `${count} ${count === 1 ? 'ticket' : 'tickets'}`;
+            form.dispatchEvent(new Event('cut-filter-changed'));
+        }
+        property.addEventListener('change', applyFilters);
+        technician.addEventListener('change', applyFilters);
+        search.addEventListener('input', applyFilters);
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
     [['pending-tab', null], ['zero-cost-tab', 'sin-costo'], ['history-tab', 'historial']].forEach(([id, tab]) => {
         document.getElementById(id)?.addEventListener('shown.bs.tab', () => {
             const url = new URL(window.location.href);
@@ -314,6 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
         button.disabled = selected.length === 0 || selected.some(box => box.dataset.technicianKey !== key);
     }
     boxes.forEach(box => box.addEventListener('change', updateSelection));
+    form.addEventListener('cut-filter-changed', updateSelection);
     form.addEventListener('submit', async function (event) {
         event.preventDefault();
         if (button.disabled) return;
@@ -359,9 +391,10 @@ document.addEventListener('DOMContentLoaded', function () {
             row?.setAttribute('title', incompatible ? 'Solo puedes incluir tickets del mismo técnico en este corte.' : '');
         });
         if (selectAll) {
+            const visible = boxes.filter(box => !box.closest('tr').classList.contains('d-none'));
             const compatible = technicianKey
-                ? boxes.filter(box => box.dataset.technicianKey === technicianKey)
-                : boxes;
+                ? visible.filter(box => box.dataset.technicianKey === technicianKey)
+                : visible;
             selectAll.innerHTML = selected.length > 0 && selected.length === compatible.length
                 ? '<i class="bi bi-square"></i> Quitar selección'
                 : '<i class="bi bi-check2-square"></i> Seleccionar todos';
@@ -376,10 +409,12 @@ document.addEventListener('DOMContentLoaded', function () {
             updateSummary();
         });
     });
+    form.addEventListener('cut-filter-changed', updateSummary);
     selectAll?.addEventListener('click', () => {
-        const selected = boxes.filter(box => box.checked);
-        const technicianKey = selected[0]?.dataset.technicianKey || boxes[0]?.dataset.technicianKey;
-        const compatible = boxes.filter(box => box.dataset.technicianKey === technicianKey);
+        const visible = boxes.filter(box => !box.closest('tr').classList.contains('d-none'));
+        const selected = visible.filter(box => box.checked);
+        const technicianKey = selected[0]?.dataset.technicianKey || visible[0]?.dataset.technicianKey;
+        const compatible = visible.filter(box => box.dataset.technicianKey === technicianKey);
         const shouldSelect = compatible.some(box => !box.checked);
         compatible.forEach(box => box.checked = shouldSelect);
         updateSummary();

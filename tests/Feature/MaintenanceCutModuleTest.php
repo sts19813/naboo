@@ -199,6 +199,28 @@ class MaintenanceCutModuleTest extends TestCase
         ]);
     }
 
+    public function test_cut_filters_include_property_technician_and_search_metadata(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::findOrCreate('administrador', 'web'));
+        $property = $this->createProperty($admin);
+        $provider = MaintenanceProvider::create([
+            'type' => 'tecnico_interno', 'name' => 'Técnico filtros',
+            'email' => 'filtros@example.test', 'is_active' => true,
+        ]);
+        $ticket = $this->createTicket($property, 'Reparación filtro', 'completado');
+        $ticket->update(['current_provider_id' => $provider->id]);
+        $ticket->costs()->create(['labor_cost' => 100, 'material_cost' => 0, 'final_cost' => 100, 'currency' => 'MXN']);
+
+        $this->actingAs($admin)->get(route('maintenance-cuts.index'))->assertOk()
+            ->assertSee('Filtrar tickets por propiedad')
+            ->assertSee('Filtrar tickets por proveedor o técnico')
+            ->assertSee('Buscar folio, ticket, propiedad, técnico...')
+            ->assertSee('data-property-id="'.$property->id.'"', false)
+            ->assertSee('data-technician-key="technician-'.$provider->id.'"', false)
+            ->assertSee('Reparación filtro');
+    }
+
     public function test_completed_tickets_from_different_technicians_cannot_share_a_cut(): void
     {
         $admin = User::factory()->create();
