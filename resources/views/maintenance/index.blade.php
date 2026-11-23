@@ -109,6 +109,9 @@
                     </div>
                 </div>
                 <div class="maintenance-actions">
+                    @if ($role === 'proveedor')
+                        <a class="maintenance-soft-btn" href="{{ route('properties.index') }}"><i class="bi bi-house"></i> Mis propiedades</a>
+                    @endif
                     @if (!$isTenant)
                         <button class="maintenance-plain-btn" type="button" data-bs-toggle="collapse"
                             data-bs-target="#maintenanceFiltersCollapse" aria-expanded="false"

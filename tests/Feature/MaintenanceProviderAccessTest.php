@@ -120,7 +120,7 @@ class MaintenanceProviderAccessTest extends TestCase
         $this->actingAs($supplier)->get(route('maintenance.index'))->assertOk()->assertSee('Ticket propio')->assertDontSee('Ticket ajeno')->assertDontSee('Nuevo ticket');
         $this->actingAs($supplier)->get(route('maintenance.show', $otherTicket))->assertForbidden();
         $this->actingAs($supplier)->get(route('dashboard'))->assertForbidden();
-        $this->actingAs($supplier)->get(route('properties.index'))->assertForbidden();
+        $this->actingAs($supplier)->get(route('properties.index'))->assertOk()->assertSee('No tienes propiedades asignadas');
         $this->actingAs($supplier)->get(route('storage_items.index'))->assertForbidden();
         $this->actingAs($supplier)->put(route('maintenance.costs', $ticket), ['labor_cost' => 10, 'material_cost' => 5, 'payer' => 'administracion'])->assertRedirect();
         $this->actingAs($supplier)->patch(route('maintenance.status', $ticket), ['status' => 'cancelado'])->assertForbidden();
@@ -154,6 +154,37 @@ class MaintenanceProviderAccessTest extends TestCase
         $supplier->assignRole(Role::findOrCreate('proveedor', 'web'));
         $this->withSession(['url.intended' => route('dashboard')])->post('/login', ['email' => $supplier->email, 'password' => 'password'])
             ->assertRedirect(route('maintenance.index'));
+    }
+
+    public function test_supplier_sees_only_assigned_properties_and_schedules_only_for_self(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole(Role::findOrCreate('proveedor', 'web'));
+        $provider = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Proveedor propio', 'user_id' => $user->id, 'email' => $user->email, 'is_active' => true]);
+        $other = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Proveedor ajeno', 'is_active' => true]);
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $own = Property::create(['internal_name' => 'Casa propia', 'property_type_id' => $type->id, 'full_address' => 'Calle 1', 'status' => Property::STATUS_AVAILABLE]);
+        $otherProperty = Property::create(['internal_name' => 'Casa ajena', 'property_type_id' => $type->id, 'full_address' => 'Calle 2', 'status' => Property::STATUS_AVAILABLE]);
+        $own->supplierProviders()->attach([$provider->id, $other->id]);
+        $otherProperty->supplierProviders()->attach($other->id);
+        $this->ticket($own, $provider, 'Trabajo propio');
+        $this->ticket($own, $other, 'Trabajo ajeno');
+        $otherUser = User::factory()->create();
+        $collision = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Cuenta distinta', 'user_id' => $otherUser->id, 'email' => $user->email, 'is_active' => true]);
+        $collisionTicket = $this->ticket($own, $collision, 'Ticket de cuenta distinta');
+        $this->actingAs($user)->get(route('properties.index'))->assertOk()->assertSee('Casa propia')->assertDontSee('Casa ajena');
+        $this->actingAs($user)->get(route('properties.show', $own))->assertOk()->assertSee('Trabajo propio')->assertDontSee('Trabajo ajeno')->assertDontSee('Expediente');
+        $this->actingAs($user)->get(route('properties.show', $otherProperty))->assertForbidden();
+        $this->actingAs($user)->get(route('maintenance.show', $collisionTicket))->assertForbidden();
+        $payload = ['provider_id' => $provider->id, 'frequency' => 'biweekly', 'start_date' => '2027-01-01', 'end_date' => '2027-01-29', 'visit_time' => '09:00', 'category' => 'plomeria', 'priority' => 'media', 'title' => 'Visita del proveedor', 'exact_location' => 'Jardín', 'description' => 'Trabajo'];
+        $this->actingAs($user)->post(route('properties.maintenance.schedule', $own), $payload)->assertSessionHasNoErrors();
+        $this->assertSame(3, MaintenanceTicket::where('title', 'Visita del proveedor')->where('current_provider_id', $provider->id)->where('reported_by_role', 'proveedor')->count());
+        $payload['provider_id'] = $other->id;
+        $this->actingAs($user)->post(route('properties.maintenance.schedule', $own), $payload)->assertForbidden();
+        $this->actingAs($user)->post(route('properties.maintenance.schedule', $otherProperty), $payload)->assertForbidden();
+        $this->assertSame(3, MaintenanceTicket::where('title', 'Visita del proveedor')->count());
+        $own->supplierProviders()->detach($provider->id);
+        $this->actingAs($user)->get(route('properties.show', $own))->assertForbidden();
     }
 
     private function ticket(Property $property, MaintenanceProvider $provider, string $title): MaintenanceTicket

@@ -66,6 +66,10 @@ class PropertyController extends Controller
 
     public function index(Request $request): View
     {
+        if ($this->isSupplierOnly($request->user())) {
+            $properties = app(\App\Support\ProviderPropertyAccess::class)->scopeAssigned(Property::query(), $request->user())->orderBy('internal_name')->get(['id', 'uuid', 'internal_name', 'internal_reference', 'full_address']);
+            return view('properties.provider-index', compact('properties'));
+        }
         $availableAdvisors = $this->availableAdvisors();
         $canArchiveProperties = (bool) $request->user()?->can('propiedades.archivar');
         $canDeleteProperties = (bool) $request->user()?->can('propiedades.eliminar');
@@ -399,7 +403,10 @@ class PropertyController extends Controller
 
     public function storeScheduledMaintenance(Request $request, Property $property): RedirectResponse
     {
-        $this->ensureCanManagePropertyTechnician($request);
+        $isSupplier = $this->isSupplierOnly($request->user());
+        if (! $isSupplier) {
+            $this->ensureCanManagePropertyTechnician($request);
+        }
         $validated = $request->validateWithBag('scheduledMaintenance', [
             'provider_id' => ['required', 'integer', Rule::exists('maintenance_providers', 'id')->where(fn ($q) => $q->where('type', 'proveedor')->where('is_active', true))],
             'frequency' => ['required', Rule::in(['weekly', 'biweekly', 'every_three_weeks', 'monthly'])],
@@ -415,6 +422,9 @@ class PropertyController extends Controller
         ]);
 
         $provider = $property->supplierProviders()->where('maintenance_providers.id', $validated['provider_id'])->where('maintenance_providers.is_active', true)->first();
+        if ($isSupplier && $provider && ! app(\App\Support\ProviderPropertyAccess::class)->scopeIdentity($property->supplierProviders()->getQuery(), $request->user())->where('maintenance_providers.id', $provider->id)->exists()) {
+            abort(403);
+        }
         if (! $provider) {
             return back()->withErrors(['provider_id' => 'Selecciona un proveedor activo asignado a esta propiedad.'], 'scheduledMaintenance')->withInput();
         }
@@ -432,11 +442,15 @@ class PropertyController extends Controller
         if ($dates->count() > 80) {
             return back()->withErrors(['end_date' => 'El periodo no puede generar más de 80 tickets.'], 'scheduledMaintenance')->withInput();
         }
-        DB::transaction(function () use ($dates, $validated, $property, $provider, $request): void {
+        DB::transaction(function () use ($dates, $validated, $property, $provider, $request, $isSupplier): void {
+            $lockedProperty = Property::query()->whereKey($property->id)->lockForUpdate()->firstOrFail();
+            $assigned = $lockedProperty->supplierProviders()->where('maintenance_providers.id', $provider->id)->where('maintenance_providers.is_active', true);
+            if ($isSupplier) app(\App\Support\ProviderPropertyAccess::class)->scopeIdentity($assigned->getQuery(), $request->user());
+            abort_unless($assigned->exists(), 403);
             foreach ($dates as $date) {
                 $ticket = MaintenanceTicket::create([
                     'property_id' => $property->id, 'reported_by_user_id' => $request->user()->id,
-                    'current_provider_id' => $provider->id, 'reported_by_role' => $this->isAdvisorUser($request->user()) ? 'asesor' : 'administrador', 'reported_by_name' => $request->user()->name,
+                    'current_provider_id' => $provider->id, 'reported_by_role' => $isSupplier ? 'proveedor' : ($this->isAdvisorUser($request->user()) ? 'asesor' : 'administrador'), 'reported_by_name' => $request->user()->name,
                     'category' => $validated['category'], 'priority' => $validated['priority'], 'status' => 'programado',
                     'title' => trim($validated['title']), 'exact_location' => trim($validated['exact_location']),
                     'description' => trim($validated['description']), 'additional_notes' => $validated['additional_notes'] ?? null,
@@ -453,6 +467,12 @@ class PropertyController extends Controller
 
     public function show(Property $property): View
     {
+        if ($this->isSupplierOnly(request()->user())) {
+            $user = request()->user();
+            $provider = app(\App\Support\ProviderPropertyAccess::class)->scopeIdentity($property->supplierProviders()->getQuery(), $user)->select('maintenance_providers.*')->firstOrFail();
+            $tickets = MaintenanceTicket::query()->where('property_id', $property->id)->where('current_provider_id', $provider->id)->latest('reported_at')->get();
+            return view('properties.provider-show', compact('property', 'provider', 'tickets'));
+        }
         $this->ensureCanViewArchivedProperty(request(), $property);
 
         $property->load([
@@ -964,6 +984,11 @@ class PropertyController extends Controller
             || $this->hasAdvisorRole($user)
             || (bool) $user?->can('propiedades.asignar_asesores')
             || (bool) $user?->can('administracion de tecnicos');
+    }
+
+    private function isSupplierOnly(?User $user): bool
+    {
+        return (bool) $user && $user->hasAnyRole(['proveedor', 'provider']) && ! $user->hasAnyRole(['administrador', 'admin']);
     }
 
     private function ensureAdvisorIsReadOnly(Request $request): void

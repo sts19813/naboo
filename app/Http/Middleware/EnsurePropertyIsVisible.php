@@ -23,6 +23,10 @@ class EnsurePropertyIsVisible
         $property = $request->route('property');
 
         if ($property instanceof Property) {
+            if ($request->user()?->hasAnyRole(['proveedor', 'provider']) && ! $request->user()?->hasAnyRole(['administrador', 'admin']) && $request->routeIs('properties.show', 'properties.maintenance.schedule')) {
+                abort_unless(app(\App\Support\ProviderPropertyAccess::class)->canView($request->user(), $property), 403);
+                return $next($request);
+            }
             abort_unless($this->propertyVisibility->canView($request->user(), $property), 403);
         }
 

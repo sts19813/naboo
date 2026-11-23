@@ -1510,11 +1510,14 @@ class MaintenanceController extends Controller
     private function constrainProviderToUser(Builder $query, User $user, string $type = 'tecnico_interno'): void
     {
         $query->where('maintenance_providers.type', $type)
-            ->where(function (Builder $identityQuery) use ($user): void {
+            ->where(function (Builder $identityQuery) use ($user, $type): void {
                 $identityQuery->where('maintenance_providers.user_id', $user->id);
 
                 if (filled($user->email)) {
-                    $identityQuery->orWhere('maintenance_providers.email', $user->email);
+                    $identityQuery->orWhere(function (Builder $emailQuery) use ($user, $type): void {
+                        if ($type === 'proveedor') $emailQuery->whereNull('maintenance_providers.user_id');
+                        $emailQuery->where('maintenance_providers.email', $user->email);
+                    });
                 }
             });
     }

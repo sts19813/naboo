@@ -12,7 +12,7 @@ class RestrictProviderToOperations
     {
         $user = $request->user();
         if ($user && ! $user->hasAnyRole(['administrador', 'admin']) && $user->hasAnyRole(['proveedor', 'provider'])) {
-            abort_unless($request->routeIs('maintenance.index', 'maintenance.show', 'maintenance.status', 'maintenance.costs', 'maintenance.files', 'maintenance.files.destroy', 'maintenance.messages', 'profile.*'), 403);
+            abort_unless($request->routeIs('maintenance.index', 'maintenance.show', 'maintenance.status', 'maintenance.costs', 'maintenance.files', 'maintenance.files.destroy', 'maintenance.messages', 'properties.index', 'properties.show', 'properties.maintenance.schedule', 'profile.*'), 403);
         }
 
         return $next($request);
