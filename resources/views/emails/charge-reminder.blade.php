@@ -16,7 +16,7 @@
 
     <ul>
         <li><strong>Concepto:</strong> {{ $charge->concept }}</li>
-        <li><strong>Saldo pendiente:</strong> ${{ number_format((float) $charge->outstanding_amount, 2) }} MXN</li>
+        <li><strong>Saldo pendiente:</strong> ${{ number_format((float) $charge->outstanding_amount, 2) }} {{ strtoupper($charge->property?->billing_currency ?? 'mxn') }}</li>
         <li><strong>Vencimiento:</strong> {{ $charge->due_date?->format('d/m/Y') }}</li>
     </ul>
 

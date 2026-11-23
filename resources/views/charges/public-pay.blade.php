@@ -61,15 +61,17 @@
 
                     <div class="d-flex justify-content-between align-items-center mb-7">
                         <span class="fw-semibold fs-5">Total pendiente</span>
-                        <span class="fw-bold fs-2 text-primary">${{ number_format($charge->outstanding_amount, 2) }}</span>
+                        <span class="fw-bold fs-2 text-primary">{{ strtoupper($charge->property?->billing_currency ?? 'mxn') }} ${{ number_format($charge->outstanding_amount, 2) }}</span>
                     </div>
 
+                    @if ($stripeLivePaymentsEnabled)
                     <form method="POST" action="{{ route('charges.public.checkout', ['token' => $charge->payment_token]) }}">
                         @csrf
                         <button type="submit" class="btn btn-primary w-100 fw-bold">
                             Pagar con Stripe
                         </button>
                     </form>
+                    @endif
                 </div>
             </div>
         </div>

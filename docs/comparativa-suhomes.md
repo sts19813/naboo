@@ -69,7 +69,7 @@ Revisión del código local: SuHomes `a3c84ac` y Naboo `0a292a2`. Este documento
 
 Se integraron y probaron la bitácora de propiedades con imágenes, el registro de varios comprobantes por pago y su descarga, las marcas manuales del control de propiedades, el permiso de acceso al almacén y las fotos de perfil en tablas de usuarios. Se aplicaron únicamente las migraciones de bitácora, comprobantes, control y permiso de almacén. La migración específica de Casa 320 B no fue trasladada ni ejecutada.
 
-Los cortes de efectivo ahora agrupan pendientes e histórico por moneda, no permiten combinar monedas en un corte nuevo y muestran por separado los importes de cortes históricos mixtos. La moneda por propiedad todavía requiere adaptar los demás resúmenes y operaciones financieras antes de habilitarse.
+Los cortes de efectivo agrupan pendientes e histórico por moneda, no permiten combinar monedas en un corte nuevo y muestran por separado los importes de cortes históricos mixtos. La propiedad permite seleccionar MXN o USD; una vez que tiene cargos, no se puede cambiar su moneda. La cobranza y el panel filtran por moneda, Stripe y Airbnb rechazan pagos incompatibles, y Copilot no suma monedas distintas. Los gastos se registran en MXN y se omite el cálculo de rentabilidad en USD sin conversión.
 
 Los cortes de mantenimiento permiten filtrar las listas por propiedad, técnico y texto. Los tickets sin costo tienen una pestaña y cierre propios; el servidor impide mezclarlos con tickets con importe en el mismo corte. Los nuevos cortes de mantenimiento marcan como pagados los gastos vinculados que aún estaban pendientes, sin modificar fechas de pago previas; se omitió la migración de corrección histórica de SuHomes. Los proveedores se limitan a sus tickets asignados y pueden terminarlos, mientras que los técnicos no pueden completarlos ni crear tickets.
 
@@ -95,4 +95,6 @@ La base local se respaldó antes de los cambios. Los conteos de las tablas origi
 
 Se corrigió el conflicto entre las rutas de perfil de Naboo y las rutas heredadas del scaffolding; la ruta anterior redirige al perfil de Naboo y ya no oculta el formulario real. Cambiar el correo invalida su verificación. La suite general pasa en local.
 
-**Pendiente:** la moneda por propiedad requiere conservar la moneda de cada cargo histórico, impedir pagos en moneda distinta y separar los indicadores financieros. La copia local revisada contiene 478 cargos y 158 pagos, todos los pagos en MXN y sin pagos de distintas monedas en un mismo cargo. Los demás puntos del inventario requieren verificación individual antes de actualizar producción.
+La cobranza incorpora el filtro de propiedades, el orden por vencimiento, una pestaña de comprobantes pendientes y el botón Stripe solo cuando existe una clave de producción. Los documentos muestran el estado calculado según archivo y vencimiento; los rechazos existentes se conservan y un documento vencido no satisface los requisitos de asignación de inquilino.
+
+La copia local revisada contiene 478 cargos y 158 pagos, todos los pagos en MXN y sin pagos de distintas monedas en un mismo cargo. La migración de moneda se detiene si detecta pagos históricos en otra moneda. La equivalencia completa de todos los puntos del inventario todavía requiere verificación individual.

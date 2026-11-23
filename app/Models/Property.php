@@ -13,6 +13,9 @@ use Illuminate\Support\Str;
 
 class Property extends Model
 {
+    public const BILLING_CURRENCY_MXN = 'mxn';
+    public const BILLING_CURRENCY_USD = 'usd';
+    public const BILLING_CURRENCY_LABELS = ['mxn' => 'Pesos mexicanos (MXN)', 'usd' => 'Dólares estadounidenses (USD)'];
     use HasFactory;
 
     private const CHANGE_LOG_IGNORED_ATTRIBUTES = [
@@ -67,6 +70,7 @@ class Property extends Model
         'official_number',
         'unit_number',
         'monthly_rent_price',
+        'billing_currency',
         'charge_day',
         'charge_tolerance_days',
         'use_global_expense_notifications',

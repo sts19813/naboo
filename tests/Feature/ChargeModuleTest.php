@@ -124,6 +124,7 @@ class ChargeModuleTest extends TestCase
 
     public function test_public_charge_link_is_accessible(): void
     {
+        config(['services.stripe.secret' => 'sk_live_example']);
         $charge = $this->createChargeFixture();
 
         $response = $this->get(route('charges.public.show', ['token' => $charge->payment_token]));

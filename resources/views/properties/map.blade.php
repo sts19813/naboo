@@ -978,7 +978,6 @@
             const emptyState = document.querySelector('[data-map-empty]');
             const syncState = document.querySelector('[data-map-sync]');
             const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-            const moneyFormatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
             let popupCloseTimer = null;
             let activeStatus = 'all';
 
@@ -1145,8 +1144,8 @@
                 }
             }
 
-            function money(value) {
-                return moneyFormatter.format(Number(value || 0));
+            function money(value, currency = 'MXN') {
+                return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(Number(value || 0));
             }
 
             function activateDetailStep(step) {
@@ -1162,9 +1161,9 @@
                 const summary = property.charge_summary || {};
                 const chargeList = drawer?.querySelector('[data-drawer-charge-list]');
 
-                setText('[data-drawer-charge-pending]', money(summary.pending_amount), money(0));
-                setText('[data-drawer-charge-overdue]', money(summary.overdue_amount), money(0));
-                setText('[data-drawer-charge-collected]', money(summary.collected_month), money(0));
+                setText('[data-drawer-charge-pending]', money(summary.pending_amount, property.billing_currency), money(0, property.billing_currency));
+                setText('[data-drawer-charge-overdue]', money(summary.overdue_amount, property.billing_currency), money(0, property.billing_currency));
+                setText('[data-drawer-charge-collected]', money(summary.collected_month, property.billing_currency), money(0, property.billing_currency));
                 setText('[data-drawer-charge-validation]', Number(summary.pending_validation_count || 0), '0');
                 setLink('[data-drawer-charges-url]', property.charges_url);
 
@@ -1184,7 +1183,7 @@
                     item.className = 'property-map-charge-item text-decoration-none';
                     item.innerHTML = `
                         <div class="property-map-charge-item__concept">${escapeHtml(charge.concept || 'Cargo')}</div>
-                        <div class="property-map-charge-item__amount">${escapeHtml(money(charge.outstanding_amount))}</div>
+                        <div class="property-map-charge-item__amount">${escapeHtml(money(charge.outstanding_amount, property.billing_currency))}</div>
                         <div class="property-map-charge-item__meta">Vence ${escapeHtml(charge.due_date || '-')}</div>
                         <span class="badge ${escapeHtml(charge.status_badge_class || 'badge-light-secondary')}">${escapeHtml(charge.status_label || '-')}</span>
                     `;
@@ -1215,7 +1214,7 @@
                 setText('[data-drawer-address]', property.address);
                 setText('[data-drawer-type]', property.type);
                 setText('[data-drawer-zone]', property.zone);
-                setText('[data-drawer-rent]', property.rent ? `$${property.rent}` : null);
+                setText('[data-drawer-rent]', property.rent ? `${property.billing_currency || 'MXN'} $${property.rent}` : null);
                 setText('[data-drawer-reference]', property.reference);
                 setText('[data-drawer-tenant]', property.tenant);
                 setText('[data-drawer-advisor]', property.advisor);

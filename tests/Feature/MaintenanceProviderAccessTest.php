@@ -43,6 +43,19 @@ class MaintenanceProviderAccessTest extends TestCase
         $this->assertDatabaseHas('maintenance_provider_property', ['property_id' => $property->id, 'maintenance_provider_id' => $inactive->id]);
     }
 
+    public function test_admin_can_create_a_supplier_account_and_edit_without_unlinking_it(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::findOrCreate('administrador', 'web'));
+        $this->actingAs($admin)->post(route('maintenance.providers.store'), ['type' => 'proveedor', 'name' => 'Proveedor nuevo', 'is_active' => 1, 'create_user_account' => 1, 'account_email' => 'proveedor@example.test', 'account_password' => 'password123'])->assertSessionHasNoErrors();
+        $provider = MaintenanceProvider::where('name', 'Proveedor nuevo')->firstOrFail();
+        $this->assertTrue($provider->user->hasRole('proveedor'));
+        $userId = $provider->user_id;
+        $this->actingAs($admin)->put(route('maintenance.providers.update', $provider), ['type' => 'proveedor', 'name' => 'Proveedor actualizado', 'is_active' => 1])->assertSessionHasNoErrors();
+        $this->assertSame($userId, $provider->fresh()->user_id);
+        $this->actingAs($admin)->get(route('maintenance.providers.index'))->assertOk()->assertSee('proveedor@example.test')->assertSee('Crear usuario nuevo');
+    }
+
     public function test_advisor_cannot_assign_suppliers_to_another_advisors_property(): void
     {
         $advisor = User::factory()->create();

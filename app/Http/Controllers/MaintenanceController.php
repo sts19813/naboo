@@ -111,11 +111,27 @@ class MaintenanceController extends Controller
                 });
             });
 
-        $tickets = $ticketsQuery
-            ->latest('reported_at')
-            ->latest('id')
-            ->paginate(15)
-            ->withQueryString();
+        $closedStatuses = ['completado', 'cancelado'];
+        $activeTickets = fn () => (clone $ticketsQuery)->whereNotIn('status', $closedStatuses);
+        $ordinaryTickets = fn () => $activeTickets()->where('priority', '!=', 'urgente')->whereNotNull('current_provider_id')->whereNotIn('status', ['pendiente', 'reabierto']);
+        $ticketBuckets = [
+            'attention' => $activeTickets()->where(fn (Builder $query) => $query->where('priority', 'urgente')->orWhereNull('current_provider_id')->orWhereIn('status', ['pendiente', 'reabierto'])),
+            'work' => $ordinaryTickets()->whereIn('status', ['en_proceso', 'esperando_material']),
+            'scheduled' => $ordinaryTickets()->whereIn('status', ['asignado', 'programado', 'revisado']),
+            'done' => (clone $ticketsQuery)->whereIn('status', $closedStatuses),
+            'other' => $ordinaryTickets()->whereNotIn('status', ['en_proceso', 'esperando_material', 'asignado', 'programado', 'revisado']),
+        ];
+        foreach ($ticketBuckets as $key => $query) {
+            $query->latest('reported_at')->latest('id');
+            if (in_array($role, ['tecnico', 'proveedor'], true)) {
+                $items = $query->get();
+                $ticketBuckets[$key] = new \Illuminate\Pagination\LengthAwarePaginator($items, $items->count(), max(1, $items->count()), 1, ['path' => $request->url(), 'pageName' => $key.'_page']);
+            } else {
+                $ticketBuckets[$key] = $query->paginate(15, ['*'], $key.'_page')->withQueryString();
+            }
+        }
+        $visibleTicketsCount = collect($ticketBuckets)->sum(fn ($page) => $page->count());
+        $visibleTicketsTotal = collect($ticketBuckets)->sum(fn ($page) => $page->total());
 
         $metricsBase = (clone $baseQuery)
             ->when($selectedPropertyId, fn (Builder $query) => $query->where('property_id', $selectedPropertyId));
@@ -202,7 +218,9 @@ class MaintenanceController extends Controller
             ->orderBy('name')
             ->get();
         return view('maintenance.index', [
-            'tickets' => $tickets,
+            'ticketBuckets' => $ticketBuckets,
+            'visibleTicketsCount' => $visibleTicketsCount,
+            'visibleTicketsTotal' => $visibleTicketsTotal,
             'providers' => $providers,
             'properties' => $properties,
             'selectedProperty' => $selectedProperty,
@@ -261,9 +279,7 @@ class MaintenanceController extends Controller
             ->where('type', $providerType)
             ->orderBy('name')
             ->get();
-        $users = $providerType === 'tecnico_interno'
-            ? User::query()->orderBy('name')->get(['id', 'name', 'email'])
-            : collect();
+        $users = User::query()->orderBy('name')->get(['id', 'name', 'email']);
 
         return view('maintenance.technicians', [
             'providers' => $providers,
@@ -467,7 +483,12 @@ class MaintenanceController extends Controller
         $property = $this->accessiblePropertiesQuery($user, $role)
             ->where('id', (int) $validated['property_id'])
             ->firstOrFail();
-        $maintenance->update([
+        DB::transaction(function () use (&$maintenance, $property, $validated, $user, $role): void {
+            $maintenance = MaintenanceTicket::query()->whereKey($maintenance->id)->lockForUpdate()->firstOrFail();
+            $this->ensureTicketVisible($maintenance, $user, $role);
+            abort_if($maintenance->master_ticket_id, 409, 'Este ticket se gestiona desde el ticket agrupado.');
+            $this->moveTicketExpenses($maintenance, $property->id);
+            $maintenance->update([
             'property_id' => $property->id,
             'category' => (string) $validated['category'],
             'priority' => (string) $validated['priority'],
@@ -481,7 +502,8 @@ class MaintenanceController extends Controller
             'payer' => $validated['payer'] ?? null,
             'payment_rule' => $validated['payment_rule'] ?? null,
             'payment_rule_notes' => filled($validated['payment_rule_notes'] ?? null) ? trim((string) $validated['payment_rule_notes']) : null,
-        ]);
+            ]);
+        });
         $this->storeTicketFiles($maintenance, (array) $request->file('files', []), 'reporte', $user?->id);
 
         return redirect()->back()->with('success', 'Ticket actualizado correctamente.');
@@ -797,7 +819,11 @@ class MaintenanceController extends Controller
             return redirect()->back();
         }
 
-        DB::transaction(function () use ($maintenance, $updates, $providerChanged, $nextProviderId, $validated, $user): void {
+        DB::transaction(function () use (&$maintenance, $updates, $providerChanged, $nextProviderId, $validated, $user): void {
+            $maintenance = MaintenanceTicket::query()->whereKey($maintenance->id)->lockForUpdate()->firstOrFail();
+            abort_if($maintenance->master_ticket_id, 409, 'Este ticket se gestiona desde el ticket agrupado.');
+            if (isset($updates['property_id'])) $this->moveTicketExpenses($maintenance, (int) $updates['property_id']);
+            abort_if($providerChanged && $maintenance->childTickets()->exists(), 409, 'No se puede reasignar un ticket agrupado.');
             if ($updates !== []) {
                 $maintenance->update($updates);
             }
@@ -1202,22 +1228,26 @@ class MaintenanceController extends Controller
             'send_credentials_email' => ['nullable', 'boolean'],
         ]);
         $isTechnician = $validated['type'] === 'tecnico_interno';
-        $wantsCreateAccount = $isTechnician && (bool) ($validated['create_user_account'] ?? false);
-        $selectedUserId = $isTechnician ? ($validated['user_id'] ?? null) : null;
-        if ($isTechnician && $wantsCreateAccount && $selectedUserId) {
+        $wantsCreateAccount = (bool) ($validated['create_user_account'] ?? false);
+        $selectedUserId = $validated['user_id'] ?? null;
+        if (! $isTechnician && $wantsCreateAccount && blank($validated['account_password'] ?? null)) {
+            throw ValidationException::withMessages(['account_password' => 'Indica una contraseña para la nueva cuenta del proveedor.']);
+        }
+        if ($wantsCreateAccount && $selectedUserId) {
             return redirect()->back()->with('error', 'Selecciona un usuario existente o crea una cuenta nueva, no ambos.');
         }
         if ($isTechnician && ! $wantsCreateAccount && ! $selectedUserId) {
             return redirect()->back()->with('error', 'Debes vincular un usuario o crear una cuenta para el técnico.');
         }
 
-        [$linkedUser, $generatedPassword] = $isTechnician
-            ? $this->resolveOrCreateTechnicianUser(
+        [$linkedUser, $generatedPassword] = ($isTechnician || $selectedUserId || $wantsCreateAccount)
+            ? $this->resolveOrCreateOperationalUser(
                 $selectedUserId ? (int) $selectedUserId : null,
                 $wantsCreateAccount,
                 $validated['account_name'] ?? null,
                 $validated['account_email'] ?? null,
                 $validated['account_password'] ?? null,
+                $isTechnician ? 'tecnico' : 'proveedor',
             )
             : [null, null];
 
@@ -1242,11 +1272,11 @@ class MaintenanceController extends Controller
             && $linkedUser
             && filled($generatedPassword)
             && filled($linkedUser->email)
-            && NotificationSettings::allows(NotificationSettings::ROLE_TECHNICIAN, NotificationSettings::EVENT_ACCOUNT_CREATED)
+            && (! $isTechnician || NotificationSettings::allows(NotificationSettings::ROLE_TECHNICIAN, NotificationSettings::EVENT_ACCOUNT_CREATED))
         ) {
             try {
                 Mail::raw(
-                    "Tu cuenta de técnico fue creada.\n\nAcceso:\nCorreo: {$linkedUser->email}\nContraseña: {$generatedPassword}\n\nPortal: ".url('/login'),
+                    "Tu cuenta de ".($isTechnician ? 'técnico' : 'proveedor')." fue creada.\n\nAcceso:\nCorreo: {$linkedUser->email}\nContraseña: {$generatedPassword}\n\nPortal: ".url('/login'),
                     fn ($mail) => $mail->to($linkedUser->email)->subject('Acceso al sistema de mantenimiento')
                 );
             } catch (\Throwable) {
@@ -1285,22 +1315,26 @@ class MaintenanceController extends Controller
         if ((! (bool) ($validated['is_active'] ?? false) || $isTechnician) && $provider->properties()->exists()) {
             return back()->withErrors(['is_active' => 'Quita las asignaciones a propiedades antes de desactivar o cambiar el tipo de este proveedor.'])->withInput();
         }
-        $wantsCreateAccount = $isTechnician && (bool) ($validated['create_user_account'] ?? false);
-        $selectedUserId = $isTechnician ? ($validated['user_id'] ?? null) : null;
-        if ($isTechnician && $wantsCreateAccount && $selectedUserId) {
+        $wantsCreateAccount = (bool) ($validated['create_user_account'] ?? false);
+        $selectedUserId = $validated['user_id'] ?? null;
+        if (! $isTechnician && $wantsCreateAccount && blank($validated['account_password'] ?? null)) {
+            throw ValidationException::withMessages(['account_password' => 'Indica una contraseña para la nueva cuenta del proveedor.']);
+        }
+        if ($wantsCreateAccount && $selectedUserId) {
             return redirect()->back()->with('error', 'Selecciona un usuario existente o crea una cuenta nueva, no ambos.');
         }
         if ($isTechnician && ! $wantsCreateAccount && ! $selectedUserId && ! $provider->user_id) {
             return redirect()->back()->with('error', 'Debes vincular un usuario o crear una cuenta para el técnico.');
         }
 
-        [$linkedUser, $generatedPassword] = $isTechnician
-            ? $this->resolveOrCreateTechnicianUser(
-                $selectedUserId ? (int) $selectedUserId : ($provider->user_id ? (int) $provider->user_id : null),
+        [$linkedUser, $generatedPassword] = ($isTechnician || $selectedUserId || $wantsCreateAccount || $provider->user_id)
+            ? $this->resolveOrCreateOperationalUser(
+                $wantsCreateAccount ? null : ($selectedUserId ? (int) $selectedUserId : ($provider->user_id ? (int) $provider->user_id : null)),
                 $wantsCreateAccount,
                 $validated['account_name'] ?? null,
                 $validated['account_email'] ?? null,
                 $validated['account_password'] ?? null,
+                $isTechnician ? 'tecnico' : 'proveedor',
             )
             : [null, null];
 
@@ -1324,11 +1358,11 @@ class MaintenanceController extends Controller
             && $linkedUser
             && filled($generatedPassword)
             && filled($linkedUser->email)
-            && NotificationSettings::allows(NotificationSettings::ROLE_TECHNICIAN, NotificationSettings::EVENT_ACCOUNT_CREATED)
+            && (! $isTechnician || NotificationSettings::allows(NotificationSettings::ROLE_TECHNICIAN, NotificationSettings::EVENT_ACCOUNT_CREATED))
         ) {
             try {
                 Mail::raw(
-                    "Tu cuenta de técnico fue creada.\n\nAcceso:\nCorreo: {$linkedUser->email}\nContraseña: {$generatedPassword}\n\nPortal: ".url('/login'),
+                    "Tu cuenta de ".($isTechnician ? 'técnico' : 'proveedor')." fue creada.\n\nAcceso:\nCorreo: {$linkedUser->email}\nContraseña: {$generatedPassword}\n\nPortal: ".url('/login'),
                     fn ($mail) => $mail->to($linkedUser->email)->subject('Acceso al sistema de mantenimiento')
                 );
             } catch (\Throwable) {
@@ -1338,12 +1372,13 @@ class MaintenanceController extends Controller
         return redirect()->back()->with('success', $isTechnician ? 'Técnico actualizado correctamente.' : 'Proveedor actualizado correctamente.');
     }
 
-    private function resolveOrCreateTechnicianUser(
+    private function resolveOrCreateOperationalUser(
         ?int $userId,
         bool $createAccount,
         ?string $accountName,
         ?string $accountEmail,
         ?string $accountPassword,
+        string $roleName,
     ): array {
         if ($userId) {
             $user = User::query()->find($userId);
@@ -1352,7 +1387,7 @@ class MaintenanceController extends Controller
                     'user_id' => 'El usuario seleccionado no existe.',
                 ]);
             }
-            $this->ensureTechnicianRole($user);
+            $this->ensureOperationalRole($user, $roleName);
 
             return [$user, null];
         }
@@ -1364,7 +1399,7 @@ class MaintenanceController extends Controller
         $email = trim((string) $accountEmail);
         if ($email === '') {
             throw ValidationException::withMessages([
-                'account_email' => 'Debes proporcionar el correo para crear la cuenta del técnico.',
+                'account_email' => 'Debes proporcionar el correo para crear la cuenta.',
             ]);
         }
         $password = filled($accountPassword) ? (string) $accountPassword : Str::random(12);
@@ -1378,15 +1413,15 @@ class MaintenanceController extends Controller
             'email' => $email,
             'password' => Hash::make($password),
         ]);
-        $this->ensureTechnicianRole($user);
+        $this->ensureOperationalRole($user, $roleName);
 
         return [$user, $password];
     }
 
-    private function ensureTechnicianRole(User $user): void
+    private function ensureOperationalRole(User $user, string $roleName): void
     {
         $role = Role::query()->firstOrCreate([
-            'name' => 'tecnico',
+            'name' => $roleName,
             'guard_name' => 'web',
         ]);
         if (! $user->hasRole($role->name)) {
@@ -1546,6 +1581,18 @@ class MaintenanceController extends Controller
         if (! $exists) {
             abort(403);
         }
+    }
+
+    private function moveTicketExpenses(MaintenanceTicket $ticket, int $newPropertyId): void
+    {
+        if ((int) $ticket->property_id === $newPropertyId) return;
+        abort_if($ticket->master_ticket_id || $ticket->childTickets()->exists() || $ticket->cutItem()->exists(), 409, 'No se puede mover un ticket agrupado o pagado.');
+        $expenseIds = $ticket->costs()->whereNotNull('expense_id')->pluck('expense_id')->unique();
+        if ($expenseIds->isEmpty()) return;
+        abort_if(MaintenanceTicketCost::query()->whereIn('expense_id', $expenseIds)->where('ticket_id', '!=', $ticket->id)->exists(), 409, 'No se puede mover un gasto compartido con otros tickets.');
+        $expenses = Expense::query()->whereIn('id', $expenseIds)->lockForUpdate()->get();
+        abort_if($expenses->contains(fn (Expense $expense) => $expense->paid_at !== null), 409, 'No se puede mover un gasto que ya fue pagado.');
+        Expense::query()->whereIn('id', $expenseIds)->update(['property_id' => $newPropertyId]);
     }
 
     private function findTechnicianScheduleConflicts(int $providerId, Carbon $scheduledVisitAt, ?int $excludeTicketId = null): array

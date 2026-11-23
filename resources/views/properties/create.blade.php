@@ -267,6 +267,12 @@
                             @enderror
                         </div>
 
+                        <div class="col-lg-6"><label class="form-label">Moneda de cobranza</label>
+                            <select name="billing_currency" class="form-select @error('billing_currency') is-invalid @enderror">
+                                @foreach (\App\Models\Property::BILLING_CURRENCY_LABELS as $currency => $label)<option value="{{ $currency }}" @selected($fieldValue('billing_currency', 'mxn') === $currency)>{{ $label }}</option>@endforeach
+                            </select><div class="form-text">No se puede cambiar cuando la propiedad ya tiene cargos.</div>@error('billing_currency')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+
                         <div class="col-lg-6">
                             <label class="form-label required">Asesor responsable</label>
                             <select name="advisor_user_id" class="form-select @error('advisor_user_id') is-invalid @enderror">

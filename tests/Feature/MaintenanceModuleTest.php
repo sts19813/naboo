@@ -1116,7 +1116,6 @@ class MaintenanceModuleTest extends TestCase
     {
         $admin = User::factory()->create();
         $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
-        $existingUser = User::factory()->create();
         $usersBefore = User::query()->count();
 
         $this->actingAs($admin)
@@ -1136,10 +1135,6 @@ class MaintenanceModuleTest extends TestCase
                 'category' => 'Aire acondicionado',
                 'availability' => 'Lunes a sábado',
                 'is_active' => '1',
-                'user_id' => $existingUser->id,
-                'create_user_account' => '1',
-                'account_email' => 'cuenta-proveedor@example.test',
-                'account_password' => 'password-proveedor',
             ])
             ->assertRedirect();
 

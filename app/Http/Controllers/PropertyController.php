@@ -851,6 +851,13 @@ class PropertyController extends Controller
 
         return DB::transaction(function () use ($request, $validated, $property) {
             $property = $property ?? new Property;
+            if ($property->exists) {
+                $property = Property::query()->lockForUpdate()->findOrFail($property->id);
+                $newCurrency = $validated['billing_currency'] ?? $property->billing_currency;
+                if ($newCurrency !== $property->billing_currency && $property->charges()->exists()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['billing_currency' => 'No se puede cambiar la moneda de una propiedad que ya tiene cargos.']);
+                }
+            }
             $data = [
                 'internal_name' => $validated['internal_name'],
                 'internal_reference' => $validated['internal_reference'] ?? null,
@@ -869,6 +876,7 @@ class PropertyController extends Controller
                 'status' => $validated['status'],
                 'onboarding_step' => 5,
                 'monthly_rent_price' => $validated['monthly_rent_price'] ?? null,
+                'billing_currency' => $validated['billing_currency'] ?? $property->billing_currency ?? Property::BILLING_CURRENCY_MXN,
                 'advisor_user_id' => $validated['advisor_user_id'] ?? $request->user()?->id,
             ];
 
@@ -1030,6 +1038,8 @@ class PropertyController extends Controller
                 [TenantDocument::STATUS_REJECTED, TenantDocument::STATUS_EXPIRED],
                 true,
             );
+
+            $isRejectedOrExpired = $isRejectedOrExpired || ($document?->expires_at && $document->expires_at->lt(today()));
 
             if (! $hasUploadedFile || $isRejectedOrExpired) {
                 $missing[] = 'Documento: '.$label;

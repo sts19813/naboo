@@ -13,7 +13,7 @@
 
     <ul>
         <li><strong>Concepto:</strong> {{ $charge->concept }}</li>
-        <li><strong>Monto:</strong> ${{ number_format((float) $charge->amount, 2) }} MXN</li>
+        <li><strong>Monto:</strong> ${{ number_format((float) $charge->amount, 2) }} {{ strtoupper($charge->property?->billing_currency ?? 'mxn') }}</li>
         <li><strong>Periodo:</strong> {{ str_pad((string) $charge->period_month, 2, '0', STR_PAD_LEFT) }}/{{ $charge->period_year }}</li>
         <li><strong>Fecha de pago:</strong> {{ $charge->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i') }}</li>
     </ul>

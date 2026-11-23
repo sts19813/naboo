@@ -157,7 +157,7 @@ class AdvisorTaskController extends Controller
         $activeStatuses = array_diff(array_keys(MaintenanceTicket::STATUS_LABELS), ['completado', 'cancelado']);
 
         return MaintenanceTicket::query()
-            ->with('property:id,uuid,internal_name,internal_reference,facade_photo_path')
+            ->with('property:id,uuid,internal_name,internal_reference,facade_photo_path,billing_currency')
             ->where(function ($query) use ($providerIds): void {
                 $query->whereIn('current_provider_id', $providerIds->all())
                     ->orWhereHas('property', fn ($propertyQuery) => $propertyQuery->whereIn('technician_provider_id', $providerIds->all()));
@@ -240,7 +240,7 @@ class AdvisorTaskController extends Controller
                     'tone' => $isOverdue ? 'danger' : ($charge->status === Charge::STATUS_IN_VALIDATION ? 'primary' : 'warning'),
                     'property_name' => $charge->property?->internal_name ?: 'Propiedad',
                     'property_photo_path' => $charge->property?->facade_photo_path,
-                    'subject' => ($isOverdue ? 'Cobro vencido' : 'Cobro por atender').' por '.$this->money($charge->outstanding_amount),
+                    'subject' => ($isOverdue ? 'Cobro vencido' : 'Cobro por atender').' por '.$this->money($charge->outstanding_amount).' '.strtoupper($charge->property?->billing_currency ?? 'mxn'),
                     'time_label' => $this->relativeTimeLabel($dueDate),
                     'date_label' => $this->formattedDateLabel($dueDate),
                     'route' => route('charges.show', $charge),

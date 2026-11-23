@@ -29,6 +29,7 @@ class DashboardController extends Controller
             'advisor_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'property_scope' => ['nullable', 'in:mine,all'],
             'property_id' => ['nullable', 'integer', 'exists:properties,id'],
+            'billing_currency' => ['nullable', \Illuminate\Validation\Rule::in(array_keys(Property::BILLING_CURRENCY_LABELS))],
         ]);
 
         $isAdvisorUser = $this->isAdvisorUser($request);
@@ -45,6 +46,12 @@ class DashboardController extends Controller
             $visiblePropertyIds,
             $selectedAdvisorId ? $this->advisorFilterPropertyIds($selectedAdvisorId) : null,
         );
+        $requestedProperty = isset($validated['property_id'])
+            ? Property::query()->when($filteredPropertyIds !== null, fn ($query) => $query->whereIn('id', $filteredPropertyIds->all()))->find((int) $validated['property_id'])
+            : null;
+        if (isset($validated['property_id']) && ! $requestedProperty) abort(403);
+        $selectedBillingCurrency = $validated['billing_currency'] ?? $requestedProperty?->billing_currency ?? 'mxn';
+        $filteredPropertyIds = $this->intersectPropertyIds($filteredPropertyIds, Property::query()->where('billing_currency', $selectedBillingCurrency)->pluck('id'));
         $availableProperties = Property::query()
             ->when($filteredPropertyIds !== null, fn ($query) => $query->whereIn('id', $filteredPropertyIds->all()))
             ->orderBy('internal_name')->get(['id', 'internal_name', 'internal_reference']);
@@ -64,7 +71,9 @@ class DashboardController extends Controller
         $collectionSummary = $this->buildCollectionSummary($periodStart, $periodEnd, $referenceDate, $filteredPropertyIds);
         $alerts = $this->buildImportantAlerts($periodStart, $periodEnd, $referenceDate, $filteredPropertyIds);
         $propertySummaries = $this->buildPropertySummaries($periodStart, $periodEnd, $referenceDate, $filteredPropertyIds);
-        $profitability = $this->buildProfitabilitySummary($periodStart, $periodEnd, $filteredPropertyIds);
+        $profitability = $selectedBillingCurrency === 'mxn'
+            ? $this->buildProfitabilitySummary($periodStart, $periodEnd, $filteredPropertyIds)
+            : ['labels' => [], 'income_series' => [], 'expense_series' => [], 'profit_series' => [], 'income_total' => 0, 'expense_total' => 0, 'profit_total' => 0];
         $advisorCommissions = $this->buildCurrentMonthAdvisorCommissions($filteredPropertyIds);
 
         return view('dashboard', [
@@ -80,6 +89,7 @@ class DashboardController extends Controller
             'availableAdvisors' => $availableAdvisors,
             'availableProperties' => $availableProperties,
             'selectedPropertyId' => $selectedPropertyId,
+            'selectedBillingCurrency' => $selectedBillingCurrency,
             'dashboardKpis' => $kpis,
             'collectionSummary' => $collectionSummary,
             'importantAlerts' => $alerts,

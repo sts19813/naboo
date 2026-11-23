@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PropertyDocument extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Models\Concerns\HasDossierDocumentStatus;
 
     public const STATUS_PENDING = 'pending';
     public const STATUS_UPLOADED = 'uploaded';
@@ -67,13 +67,4 @@ class PropertyDocument extends Model
         return $this->hasOne(PropertyDocumentVersion::class)->latestOfMany('version_number');
     }
 
-    public function getStatusLabelAttribute(): string
-    {
-        return self::STATUS_LABELS[$this->status] ?? ucfirst($this->status);
-    }
-
-    public function getStatusBadgeClassAttribute(): string
-    {
-        return self::STATUS_BADGE_CLASSES[$this->status] ?? 'badge-light-secondary text-secondary';
-    }
 }

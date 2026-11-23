@@ -86,7 +86,7 @@
                     </div>
                     <div class="col-lg-4">
                         <div class="text-muted fs-7 mb-1">Propiedad</div>
-                        <div class="fw-semibold">{{ $charge->property?->internal_name ?? '-' }}</div>
+                        <div class="fw-semibold">{{ $charge->property?->internal_name ?? '-' }} · {{ strtoupper($charge->property?->billing_currency ?? 'mxn') }}</div>
                     </div>
                     <div class="col-lg-4">
                         <div class="text-muted fs-7 mb-1">Vencimiento</div>

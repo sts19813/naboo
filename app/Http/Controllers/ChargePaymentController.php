@@ -37,6 +37,7 @@ class ChargePaymentController extends Controller
             ->view('charges.public-pay', [
                 'charge' => $charge,
                 'bankOwner' => $charge->property?->owners->first(),
+                'stripeLivePaymentsEnabled' => str_starts_with(trim((string) config('services.stripe.secret')), 'sk_live_') || str_starts_with(trim((string) config('services.stripe.secret')), 'rk_live_'),
             ]);
     }
 
@@ -60,7 +61,7 @@ class ChargePaymentController extends Controller
         Stripe::setApiKey($stripeSecret);
 
         $amountCents = (int) round($charge->outstanding_amount * 100);
-        $currency = strtolower((string) config('services.stripe.currency', 'mxn'));
+        $currency = $charge->property()->value('billing_currency') ?: 'mxn';
         $description = sprintf(
             '%s | %s/%s',
             $charge->type_label,
@@ -138,7 +139,7 @@ class ChargePaymentController extends Controller
 
             $charge->payments()->create([
                 'amount' => $amount,
-                'currency' => strtolower((string) config('services.stripe.currency', 'mxn')),
+                'currency' => $charge->property()->value('billing_currency') ?: 'mxn',
                 'status' => ChargePayment::STATUS_PENDING_VALIDATION,
                 'source' => ChargePayment::SOURCE_PUBLIC_TRANSFER,
                 'payment_method' => ChargePayment::METHOD_TRANSFER,
@@ -253,6 +254,11 @@ class ChargePaymentController extends Controller
 
             if ($sessionId === '') {
                 return;
+            }
+
+            if ($currency !== ($charge->property()->value('billing_currency') ?: 'mxn')) {
+                \Illuminate\Support\Facades\Log::warning('Stripe payment currency does not match charge currency', ['charge_id' => $charge->id, 'session_id' => $sessionId, 'currency' => $currency]);
+                throw new \RuntimeException('La moneda del pago no coincide con la moneda del cargo.');
             }
 
             ChargePayment::updateOrCreate(

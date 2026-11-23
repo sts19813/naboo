@@ -46,27 +46,6 @@
                 default => 'Operación diaria de tickets, técnicos, propiedades y visitas programadas.',
             };
 
-            $ticketCollection = $tickets->getCollection();
-            $ticketBuckets = [
-                'attention' => collect(),
-                'work' => collect(),
-                'scheduled' => collect(),
-                'done' => collect(),
-                'other' => collect(),
-            ];
-            foreach ($ticketCollection as $ticketRow) {
-                $bucket = 'other';
-                if (in_array($ticketRow->status, ['completado', 'cancelado'], true)) {
-                    $bucket = 'done';
-                } elseif ($ticketRow->priority === 'urgente' || !$ticketRow->currentProvider || in_array($ticketRow->status, ['pendiente', 'reabierto'], true)) {
-                    $bucket = 'attention';
-                } elseif (in_array($ticketRow->status, ['en_proceso', 'esperando_material'], true)) {
-                    $bucket = 'work';
-                } elseif (in_array($ticketRow->status, ['asignado', 'programado', 'revisado'], true)) {
-                    $bucket = 'scheduled';
-                }
-                $ticketBuckets[$bucket]->push($ticketRow);
-            }
             $bucketMeta = [
                 'attention' => ['title' => 'Requiere atención', 'hint' => 'Urgentes, pendientes o sin técnico', 'icon' => 'bi-exclamation-triangle', 'tone' => 'red'],
                 'work' => ['title' => 'En trabajo activo', 'hint' => 'Atención en proceso o esperando material', 'icon' => 'bi-tools', 'tone' => 'purple'],
@@ -265,7 +244,7 @@
                             <div>
                                 <div class="maintenance-list-title">{{ $isTenant ? 'Tus tickets' : 'Lista operativa' }}</div>
                                 <div class="maintenance-list-count">
-                                    Mostrando {{ $tickets->count() }} de {{ $tickets->total() }} tickets
+                                    Mostrando {{ $visibleTicketsCount }} de {{ $visibleTicketsTotal }} tickets
                                 </div>
                             </div>
                             @if (!$isTenant && ($search || $status || $priority || $category || $dateFrom || $dateTo || $selectedProperty))
@@ -451,6 +430,7 @@
                                     </span>
                                 </div>
                             @endforeach
+                            @if ($bucketTickets->hasPages())<div class="maintenance-pagination">{{ $bucketTickets->links() }}</div>@endif
                         </div>
                     @empty
                         <div class="maintenance-panel maintenance-empty">
@@ -458,15 +438,12 @@
                         </div>
                     @endforelse
 
-                    @if ($ticketCollection->isEmpty())
+                    @if ($visibleTicketsTotal === 0)
                         <div class="maintenance-panel maintenance-empty">
                             {{ $isTenant ? 'Aún no tienes tickets registrados.' : 'No hay tickets de mantenimiento para los filtros seleccionados.' }}
                         </div>
                     @endif
 
-                    <div class="maintenance-pagination">
-                        {{ $tickets->links() }}
-                    </div>
                 </div>
 
                 @if (!$isTenant)

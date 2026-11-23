@@ -73,6 +73,42 @@ class MaintenanceGroupingTest extends TestCase
         $this->assertDatabaseHas('maintenance_ticket_costs', ['id' => $cost->id, 'ticket_id' => $first->id, 'origin_ticket_id' => null]);
     }
 
+    public function test_moving_a_ticket_moves_its_unpaid_expense_and_preserves_paid_expenses(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::findOrCreate('administrador', 'web'));
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $first = $this->property($type, 'Casa uno', $admin);
+        $second = $this->property($type, 'Casa dos', $admin);
+        $provider = MaintenanceProvider::create(['type' => 'tecnico_interno', 'name' => 'Técnico', 'email' => 'tecnico@example.test', 'is_active' => true]);
+        $ticket = $this->ticket($first, $provider, 'Trabajo', 'en_proceso');
+        $expense = Expense::create(['property_id' => $first->id, 'concept' => 'Costo', 'amount' => 100, 'due_date' => now()]);
+        $ticket->costs()->create(['expense_id' => $expense->id, 'labor_cost' => 100, 'material_cost' => 0, 'final_cost' => 100, 'currency' => 'MXN']);
+        $this->actingAs($admin)->patch(route('maintenance.meta', $ticket), ['property_id' => $second->id])->assertRedirect();
+        $this->assertSame($second->id, $ticket->fresh()->property_id);
+        $this->assertSame($second->id, $expense->fresh()->property_id);
+        $expense->update(['paid_at' => now()]);
+        $this->actingAs($admin)->patch(route('maintenance.meta', $ticket), ['property_id' => $first->id])->assertStatus(409);
+        $this->assertSame($second->id, $ticket->fresh()->property_id);
+        $this->assertSame($second->id, $expense->fresh()->property_id);
+    }
+
+    public function test_ticket_groups_paginate_independently(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::findOrCreate('administrador', 'web'));
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $property = $this->property($type, 'Casa', $admin);
+        $provider = MaintenanceProvider::create(['type' => 'tecnico_interno', 'name' => 'Técnico', 'email' => 'tecnico@example.test', 'is_active' => true]);
+        for ($i = 0; $i < 16; $i++) {
+            $this->ticket($property, $provider, 'Pendiente '.$i, 'pendiente');
+            $this->ticket($property, $provider, 'Trabajo '.$i, 'en_proceso');
+        }
+        $response = $this->actingAs($admin)->get(route('maintenance.index', ['attention_page' => 2]));
+        $response->assertOk()->assertViewHas('ticketBuckets', fn ($groups) => $groups['attention']->currentPage() === 2 && $groups['attention']->count() === 1 && $groups['work']->currentPage() === 1 && $groups['work']->count() === 15);
+        $response->assertSee('attention_page', false)->assertSee('work_page', false);
+    }
+
     public function test_grouping_rejects_different_providers_and_does_not_move_costs(): void
     {
         $admin = User::factory()->create();

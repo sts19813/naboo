@@ -187,6 +187,7 @@ class PropertyMapController extends Controller
             'id' => $property->id,
             'uuid' => $property->uuid,
             'name' => $property->internal_name,
+            'billing_currency' => strtoupper($property->billing_currency ?? 'mxn'),
             'reference' => $property->internal_reference,
             'address' => $property->full_address,
             'type' => $property->type?->name,

@@ -24,7 +24,7 @@
                         </div>
                         <div class="d-flex justify-content-between mb-3">
                             <span class="text-muted">Monto</span>
-                            <span class="fw-semibold">${{ number_format((float) $charge->amount, 2) }}</span>
+                            <span class="fw-semibold">{{ strtoupper($charge->property?->billing_currency ?? 'mxn') }} ${{ number_format((float) $charge->amount, 2) }}</span>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span class="text-muted">Estado</span>

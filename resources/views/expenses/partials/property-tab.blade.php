@@ -1,4 +1,5 @@
 <div class="tab-pane fade property-tab-pane" id="tab-expenses" role="tabpanel" aria-labelledby="tab-expenses-tab">
+    <p class="text-muted">Los gastos se registran en MXN.</p>
     <div class="card property-block-card">
         <div class="card-header border-0 pt-6 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>

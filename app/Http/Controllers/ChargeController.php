@@ -54,6 +54,7 @@ class ChargeController extends Controller
             : collect();
         $filters = $request->validate([
             'property' => ['nullable', 'string', 'exists:properties,uuid'],
+            'currency' => ['nullable', \Illuminate\Validation\Rule::in(array_keys(Property::BILLING_CURRENCY_LABELS))],
         ]);
 
         $selectedPropertyUuid = (string) ($filters['property'] ?? '');
@@ -69,6 +70,7 @@ class ChargeController extends Controller
             abort(403);
         }
         $selectedPropertyId = $selectedProperty?->id;
+        $selectedCurrency = $selectedProperty?->billing_currency ?? ($filters['currency'] ?? 'mxn');
         $selectedPropertyHasRentCharges = $selectedPropertyId
             ? Charge::query()
             ->where('property_id', $selectedPropertyId)
@@ -79,15 +81,17 @@ class ChargeController extends Controller
         $showPropertySetupCard = !$isTenant && (bool) ($selectedPropertyId && !$selectedPropertyHasRentCharges);
 
         $charges = Charge::query()
+            ->whereHas('property', fn ($query) => $query->where('billing_currency', $selectedCurrency))
             ->with(['tenant:id,full_name', 'property:id,internal_name,internal_reference'])
             ->where('status', '!=', Charge::STATUS_PAID)
             ->when($isTenant, fn($query) => $query->whereIn('property_id', $tenantPropertyIds))
             ->when($visiblePropertyIds !== null, fn($query) => $query->whereIn('property_id', $visiblePropertyIds))
             ->when($selectedPropertyId, fn($query) => $query->where('property_id', $selectedPropertyId))
-            ->latest('id')
+            ->orderBy('due_date')->orderBy('id')
             ->get();
 
         $payments = ChargePayment::query()
+            ->whereRaw('LOWER(currency) = ?', [$selectedCurrency])
             ->with(['charge.tenant:id,full_name', 'charge.property:id,internal_name,internal_reference'])
             ->where('status', ChargePayment::STATUS_SUCCEEDED)
             ->when(
@@ -102,12 +106,16 @@ class ChargeController extends Controller
             ->latest('id')
             ->get();
 
+        $thisMonthCharges = $charges->filter(fn (Charge $charge) => in_array($charge->status, [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL, Charge::STATUS_IN_VALIDATION], true) && $charge->due_date?->lte(now()->endOfMonth()))->values();
+
         $now = now();
         $chargeBaseQuery = fn() => Charge::query()
+            ->whereHas('property', fn ($query) => $query->where('billing_currency', $selectedCurrency))
             ->when($isTenant, fn($query) => $query->whereIn('property_id', $tenantPropertyIds))
             ->when($visiblePropertyIds !== null, fn($query) => $query->whereIn('property_id', $visiblePropertyIds))
             ->when($selectedPropertyId, fn($query) => $query->where('property_id', $selectedPropertyId));
         $paymentBaseQuery = fn() => ChargePayment::query()
+            ->whereRaw('LOWER(currency) = ?', [$selectedCurrency])
             ->when(
                 $isTenant,
                 fn($query) => $query->whereHas('charge', fn($chargeQuery) => $chargeQuery->whereIn('property_id', $tenantPropertyIds)),
@@ -117,6 +125,9 @@ class ChargeController extends Controller
                 $selectedPropertyId,
                 fn($query) => $query->whereHas('charge', fn($chargeQuery) => $chargeQuery->where('property_id', $selectedPropertyId)),
             );
+
+        $pendingValidationPayments = $paymentBaseQuery()->with(['charge.tenant:id,full_name', 'charge.property:id,uuid,internal_name,internal_reference'])
+            ->where('status', ChargePayment::STATUS_PENDING_VALIDATION)->latest('id')->get();
 
         $stats = [
             'pending_amount' => (float) $chargeBaseQuery()
@@ -198,6 +209,7 @@ class ChargeController extends Controller
 
         return view('charges.index', [
             'charges' => $charges,
+            'thisMonthCharges' => $thisMonthCharges,
             'payments' => $payments,
             'properties' => $propertiesQuery->get(['id', 'internal_name', 'internal_reference', 'tenant_id']),
             'chargeableProperties' => $chargeablePropertiesQuery->get([
@@ -223,6 +235,10 @@ class ChargeController extends Controller
             'stats' => $stats,
             'currentMonthLabel' => Carbon::create($now->year, $now->month, 1)->translatedFormat('M Y'),
             'selectedProperty' => $selectedProperty,
+            'selectedCurrency' => $selectedCurrency,
+            'pendingValidationPayments' => $pendingValidationPayments,
+            'filterProperties' => $this->propertyVisibility->scopeVisibleToUser(Property::query(), $user)
+                ->when($isTenant, fn ($query) => $query->whereIn('id', $tenantPropertyIds))->orderBy('internal_name')->get(['id', 'uuid', 'internal_name', 'internal_reference']),
             'showPropertySetupCard' => $showPropertySetupCard,
             'canManageCharges' => !$isTenant,
             'canDeletePaidCharges' => !$isTenant && (bool) $user?->can('cobranza.eliminar_pagados'),
@@ -653,7 +669,7 @@ class ChargeController extends Controller
             DB::transaction(function () use ($charge, $validated, $amount, $receiptPaths, $request, &$becamePaid): void {
             $charge->payments()->create([
                 'amount' => $amount,
-                'currency' => strtolower((string) config('services.stripe.currency', 'mxn')),
+                    'currency' => $charge->property()->value('billing_currency') ?: 'mxn',
                 'status' => ChargePayment::STATUS_SUCCEEDED,
                 'source' => ChargePayment::SOURCE_ADMIN,
                 'payment_method' => $validated['payment_method'],
@@ -698,7 +714,11 @@ class ChargeController extends Controller
         ]);
 
         $becamePaid = false;
-        DB::transaction(function () use ($payment, $charge, $validated, $request, &$becamePaid): void {
+        DB::transaction(function () use ($payment, &$charge, $validated, $request, &$becamePaid): void {
+            $charge = Charge::query()->whereKey($charge->id)->lockForUpdate()->firstOrFail();
+            $payment = ChargePayment::query()->whereKey($payment->id)->lockForUpdate()->firstOrFail();
+            abort_unless($payment->charge_id === $charge->id && $payment->status === ChargePayment::STATUS_PENDING_VALIDATION, 409);
+            abort_unless(strtolower((string) $payment->currency) === ($charge->property()->value('billing_currency') ?: 'mxn'), 409, 'La moneda del pago no coincide con la del cargo.');
             $payment->update([
                 'status' => ChargePayment::STATUS_SUCCEEDED,
                 'validated_by' => $request->user()?->id,

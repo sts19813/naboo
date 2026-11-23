@@ -109,17 +109,18 @@ class CopilotToolRegistry
         [$periodStart, $periodEnd] = $this->dashboardPeriod($arguments);
         $propertyQuery = $this->visibleProperties($user);
         $propertyIds = (clone $propertyQuery)->pluck('id');
+        $mxnPropertyIds = (clone $propertyQuery)->where('billing_currency', 'mxn')->pluck('id');
 
-        $charges = Charge::query()->whereIn('property_id', $propertyIds);
+        $charges = Charge::query()->whereIn('property_id', $mxnPropertyIds);
         $chargesForPeriod = Charge::query()
-            ->whereIn('property_id', $propertyIds)
+            ->whereIn('property_id', $mxnPropertyIds)
             ->where('status', '!=', Charge::STATUS_CANCELED)
             ->whereBetween('due_date', [$periodStart->toDateString(), $periodEnd->toDateString()]);
         $expenses = Expense::query()->whereIn('property_id', $propertyIds);
         $tickets = MaintenanceTicket::query()->whereIn('property_id', $propertyIds);
         $expectedIncome = (float) (clone $chargesForPeriod)->sum('amount');
         $paidThisPeriod = (float) ChargePayment::query()
-            ->whereHas('charge', fn (Builder $query) => $query->whereIn('property_id', $propertyIds))
+            ->whereHas('charge', fn (Builder $query) => $query->whereIn('property_id', $mxnPropertyIds))
             ->where('status', ChargePayment::STATUS_SUCCEEDED)
             ->whereBetween('paid_at', [$periodStart->copy()->startOfDay(), $periodEnd->copy()->endOfDay()])
             ->sum('amount');
@@ -151,6 +152,8 @@ class CopilotToolRegistry
                 'by_status' => $this->countBy((clone $propertyQuery), 'status'),
             ],
             'charges' => [
+                'currency' => 'MXN',
+                'note' => 'Los importes de este resumen corresponden solo a propiedades en MXN; consulte los cargos en otras monedas por separado.',
                 'period' => [
                     'start_date' => $periodStart->toDateString(),
                     'end_date' => $periodEnd->toDateString(),
@@ -168,13 +171,14 @@ class CopilotToolRegistry
                     ->whereDate('due_date', '<', now()->toDateString())
                     ->count(),
                 'paid_this_month' => (float) ChargePayment::query()
-                    ->whereHas('charge', fn (Builder $query) => $query->whereIn('property_id', $propertyIds))
+                    ->whereHas('charge', fn (Builder $query) => $query->whereIn('property_id', $mxnPropertyIds))
                     ->where('status', ChargePayment::STATUS_SUCCEEDED)
                     ->whereBetween('paid_at', [now()->startOfMonth(), now()->endOfMonth()])
                     ->sum('amount'),
                 'by_status' => $this->countBy((clone $charges), 'status'),
             ],
             'expenses' => [
+                'currency' => 'MXN',
                 'pending_amount' => (float) (clone $expenses)->whereNull('paid_at')->sum('amount'),
                 'overdue_count' => (clone $expenses)->whereNull('paid_at')->whereDate('due_date', '<', now()->toDateString())->count(),
                 'paid_this_month' => (float) (clone $expenses)->whereBetween('paid_at', [now()->startOfMonth(), now()->endOfMonth()])->sum('amount'),
@@ -312,10 +316,13 @@ class CopilotToolRegistry
             ->limit($limit)
             ->get();
 
+        $totalsByCurrency = $charges->groupBy(fn (Charge $charge) => strtoupper($charge->property?->billing_currency ?? 'mxn'))
+            ->map(fn ($items) => ['total_amount' => (float) $items->sum('amount'), 'total_outstanding' => (float) $items->sum(fn (Charge $charge) => $charge->outstanding_amount)])->all();
         return [
             'count' => $charges->count(),
-            'total_amount' => (float) $charges->sum('amount'),
-            'total_outstanding' => (float) $charges->sum(fn (Charge $charge) => max(0, (float) $charge->amount - (float) $charge->paid_amount)),
+            'total_amount' => count($totalsByCurrency) <= 1 ? (float) $charges->sum('amount') : null,
+            'total_outstanding' => count($totalsByCurrency) <= 1 ? (float) $charges->sum(fn (Charge $charge) => $charge->outstanding_amount) : null,
+            'totals_by_currency' => $totalsByCurrency,
             'charges' => $charges->map(fn (Charge $charge): array => $this->chargeCard($charge))->all(),
         ];
     }
@@ -662,6 +669,7 @@ class CopilotToolRegistry
             'zone' => $property->zone?->name ?? $property->zone_text,
             'address' => $property->full_address,
             'monthly_rent_price' => (float) $property->monthly_rent_price,
+            'billing_currency' => strtoupper($property->billing_currency ?? 'mxn'),
             'tenant' => $property->tenant?->full_name ?? $property->current_tenant_name,
             'contract_expires_at' => $property->contract_expires_at?->toDateString(),
             'advisor' => $property->advisor?->name,
@@ -680,6 +688,7 @@ class CopilotToolRegistry
             'status_label' => $charge->display_status_label,
             'due_date' => $charge->due_date?->toDateString(),
             'amount' => (float) $charge->amount,
+            'currency' => strtoupper($charge->property?->billing_currency ?? 'mxn'),
             'paid_amount' => (float) $charge->paid_amount,
             'outstanding_amount' => (float) $charge->outstanding_amount,
             'is_overdue' => (bool) $charge->is_overdue,

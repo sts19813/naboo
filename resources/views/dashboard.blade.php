@@ -327,6 +327,7 @@
             </div>
 
             <form method="GET" action="{{ route('dashboard') }}" class="d-flex flex-wrap align-items-end gap-3 dashboard-filter-panel">
+                <div class="dashboard-filter-field"><label class="form-label fs-8 fw-bold text-muted text-uppercase mb-1">Moneda</label><select name="billing_currency" class="form-select w-175px">@foreach (\App\Models\Property::BILLING_CURRENCY_LABELS as $currency => $label)<option value="{{ $currency }}" @selected($selectedBillingCurrency === $currency)>{{ $label }}</option>@endforeach</select></div>
                 <div class="dashboard-filter-field dashboard-filter-field--wide">
                     <label class="form-label fs-8 fw-bold text-muted text-uppercase mb-1">Asesor</label>
                     <select name="advisor_user_id" class="form-select w-225px">
@@ -521,6 +522,9 @@
             </div>
 
             <div class="col-xl-5">
+                @if ($selectedBillingCurrency === 'usd')
+                    <div id="dashboard_profitability_card" class="card h-100"><div class="card-body"><h3 class="card-title fw-bold text-dark">Rentabilidad</h3><p class="text-muted">Los gastos se registran en MXN; la utilidad en USD no se calcula sin una conversión de moneda.</p></div></div>
+                @else
                 <div id="dashboard_profitability_card" class="card h-100">
                     <div class="card-header border-0 pt-7">
                         <div>
@@ -561,6 +565,7 @@
                         <div id="dashboard_profitability_chart" class="min-h-300px"></div>
                     </div>
                 </div>
+                @endif
             </div>
 
             <div id="dashboard_advisor_commissions_card" class="card mb-8">

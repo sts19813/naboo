@@ -209,7 +209,8 @@ class AirbnbIntegrationController extends Controller
 
             $paidAt = Carbon::parse($validated['paid_at'] ?? $validated['occurred_on'] ?? now());
             $amount = (float) $validated['amount'];
-            $currency = strtolower((string) ($validated['currency'] ?? 'MXN'));
+            $currency = strtolower((string) ($validated['currency'] ?? $property->billing_currency ?? 'mxn'));
+            abort_if($currency !== ($property->billing_currency ?: 'mxn'), 422, 'La moneda del evento no coincide con la moneda de cobranza de la propiedad.');
 
             $charge = Charge::query()->create([
                 'property_id' => $property->id,
