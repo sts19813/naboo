@@ -89,6 +89,8 @@ El rol de revisor permite consultar y validar tickets completados dentro de un r
 
 Los reportes PDF y Excel de tickets y cortes se trasladaron de SuHomes, con filtros y colores de Naboo. Los filtros de propiedad incluyen tickets agrupados; los totales del reporte de cortes corresponden al corte completo. Los reportes se restringen a administradores sin limitación por asesor y los textos en Excel se guardan como texto, no como fórmulas.
 
+El control de propiedades permite exportar en PDF y Excel el inventario de documentos PDF actuales, faltantes, vencidos y rechazados. Las exportaciones respetan el alcance de propiedades del usuario y conservan como texto los valores de las celdas.
+
 La base local se respaldó antes de los cambios. Los conteos de las tablas originales de negocio se conservaron; los cambios en `migrations`, permisos y caché corresponden a las migraciones aplicadas. La comparación de conteos no es una comprobación de cada valor individual.
 
 **Pendiente:** los demás puntos del inventario requieren implementación y verificación individual. Las pruebas generales conservan cinco fallos de perfil que ya existían antes de esta integración.

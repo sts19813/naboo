@@ -105,6 +105,23 @@ class PropertyControlController extends Controller
         return redirect()->back()->with('success', $message);
     }
 
+    public function exportPdfDocuments(Request $request, \App\Services\PropertyDocumentPdfExportService $exporter): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $this->ensureCanManageControl($request);
+        $spreadsheet = $exporter->generate($request->user());
+        return response()->streamDownload(function () use ($spreadsheet): void {
+            try { (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output'); } finally { $spreadsheet->disconnectWorksheets(); }
+        }, 'control_documentos_pdf_propiedades_'.now()->format('Ymd_His').'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    public function exportPdfDocumentsReport(Request $request, \App\Services\PropertyDocumentPdfExportService $exporter)
+    {
+        $this->ensureCanManageControl($request);
+        $now = now();
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('properties.exports.documents-pdf', $exporter->report($request->user(), $now))->setPaper('a4', 'landscape')
+            ->download('control_documentos_pdf_propiedades_'.$now->format('Ymd_His').'.pdf');
+    }
+
     private function filterSnapshots(Collection $snapshots, string $search, string $statusFilter): Collection
     {
         return $snapshots

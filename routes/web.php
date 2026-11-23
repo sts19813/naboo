@@ -80,6 +80,8 @@ Route::middleware(['auth', 'system.access', 'provider.operational', 'reviewer.re
         Route::get('/mapa', [PropertyMapController::class, 'index'])->name('properties.map');
         Route::post('/mapa/sincronizar-ubicaciones', [PropertyMapController::class, 'syncPending'])->name('properties.map.sync-pending');
         Route::get('/propiedades/control', [PropertyControlController::class, 'index'])->name('properties.control');
+        Route::get('/propiedades/control/documentos-pdf/exportar', [PropertyControlController::class, 'exportPdfDocuments'])->name('properties.control.documents-pdf.export');
+        Route::get('/propiedades/control/documentos-pdf/exportar/pdf', [PropertyControlController::class, 'exportPdfDocumentsReport'])->name('properties.control.documents-pdf.export-pdf');
         Route::patch('/propiedades/{property}/control/{checkKey}', [PropertyControlController::class, 'updateCheck'])->name('properties.control.checks.update');
         Route::get('/propiedades/nueva', [PropertyController::class, 'create'])->name('properties.create');
         Route::post('/propiedades', [PropertyController::class, 'store'])->name('properties.store');
