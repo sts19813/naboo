@@ -15,6 +15,10 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
+    public function maintenanceReviewerAccess(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(MaintenanceReviewerAccess::class);
+    }
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 

@@ -85,6 +85,8 @@ Al crear un ticket desde la ficha, un asesor asignado puede elegir un técnico o
 
 Las propiedades admiten varios proveedores asignados y conservan el usuario que registró cada asignación. Se impide desactivar o cambiar el tipo de un proveedor mientras esté asignado. Desde la ficha se pueden programar visitas semanales, cada dos o tres semanas o mensuales para un proveedor activo asignado; cada visita genera un ticket y el periodo se limita a 80. El acceso de proveedores a la ficha y a esta programación todavía requiere adaptación y revisión de permisos.
 
+El rol de revisor permite consultar y validar tickets completados dentro de un rango relativo o de fechas configurado por usuario. Las validaciones conservan responsable y fecha, y el acceso a los demás módulos y operaciones de mantenimiento está restringido. Una cuenta sin rango configurado no puede consultar tickets.
+
 La base local se respaldó antes de los cambios. Los conteos de las tablas originales de negocio se conservaron; los cambios en `migrations`, permisos y caché corresponden a las migraciones aplicadas. La comparación de conteos no es una comprobación de cada valor individual.
 
 **Pendiente:** los demás puntos del inventario requieren implementación y verificación individual. Las pruebas generales conservan cinco fallos de perfil que ya existían antes de esta integración.

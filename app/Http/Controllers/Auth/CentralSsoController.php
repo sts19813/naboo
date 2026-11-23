@@ -127,7 +127,7 @@ class CentralSsoController extends Controller
     private function defaultRoute(User $user): string
     {
         $isTenant = $user->hasRole('inquilino') || $user->hasRole('tenant');
-        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician') || $user->hasRole('proveedor') || $user->hasRole('provider');
+        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician') || $user->hasRole('proveedor') || $user->hasRole('provider') || $user->hasRole('revisor de tickets');
         $isAdmin = $user->hasRole('administrador') || $user->hasRole('admin');
         $isAdvisor = ! $isAdmin && ($user->hasRole('asesores') || $user->hasRole('asesor') || $user->can('propiedades.ver_propias'));
 

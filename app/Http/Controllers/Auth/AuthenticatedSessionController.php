@@ -40,7 +40,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         $isTenant = $user->hasRole('inquilino') || $user->hasRole('tenant');
-        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician') || $user->hasRole('proveedor') || $user->hasRole('provider');
+        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician') || $user->hasRole('proveedor') || $user->hasRole('provider') || $user->hasRole('revisor de tickets');
         $isAdmin = $user->hasRole('administrador') || $user->hasRole('admin');
         $isAdvisor = ! $isAdmin && ($user->hasRole('asesores') || $user->hasRole('asesor') || $user->can('propiedades.ver_propias'));
 
@@ -50,7 +50,7 @@ class AuthenticatedSessionController extends Controller
             default => 'dashboard',
         };
 
-        if ($user->hasAnyRole(['proveedor', 'provider']) && ! $isAdmin) {
+        if (($user->hasAnyRole(['proveedor', 'provider']) && ! $isAdmin) || $user->hasRole('revisor de tickets')) {
             $request->session()->forget('url.intended');
             return redirect()->route('maintenance.index');
         }

@@ -43,6 +43,9 @@ class MaintenanceController extends Controller
 
     public function index(Request $request): View
     {
+        if ($request->user()?->hasRole('revisor de tickets')) {
+            return app(MaintenanceReviewController::class)->index($request);
+        }
         $user = $request->user();
         $role = $this->resolveRole($user);
         $filters = $request->validate([
@@ -364,6 +367,9 @@ class MaintenanceController extends Controller
 
     public function show(Request $request, MaintenanceTicket $maintenance): View
     {
+        if ($request->user()?->hasRole('revisor de tickets')) {
+            return app(MaintenanceReviewController::class)->show($request, $maintenance);
+        }
         $user = $request->user();
         $role = $this->resolveRole($user);
         $this->ensureTicketVisible($maintenance, $user, $role);

@@ -49,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'system.access' => EnsureUserHasSystemAccess::class,
             'storage.access' => EnsureStorageAccess::class,
             'provider.operational' => RestrictProviderToOperations::class,
+            'reviewer.restricted' => \App\Http\Middleware\RestrictTicketReviewerToMaintenance::class,
             'property.visible' => EnsurePropertyIsVisible::class,
             'abilities' => CheckAbilities::class,
             'airbnb.enabled' => EnsureAirbnbIntegrationEnabled::class,

@@ -4,6 +4,14 @@
 @endphp
 
 <div class="row g-5">
+    @php $reviewRange = $userItem?->maintenanceReviewerAccess; @endphp
+    <div class="col-12"><div class="border rounded p-3"><strong>Rango para revisor de tickets</strong><p class="text-muted small mb-2">Se aplica únicamente al rol Revisor de tickets.</p><div class="row g-2">
+        <div class="col-md-4"><label class="form-label">Tipo de rango</label><select class="form-select" name="reviewer_range_type"><option value="relative" @selected(($reviewRange?->range_type ?? 'relative') === 'relative')>Relativo</option><option value="custom" @selected($reviewRange?->range_type === 'custom')>Fechas específicas</option></select></div>
+        <div class="col-md-4"><label class="form-label">Días anteriores</label><input class="form-control" type="number" min="0" max="36500" name="reviewer_days_before" value="{{ $reviewRange?->days_before ?? 30 }}"></div>
+        <div class="col-md-4"><label class="form-label">Días posteriores</label><input class="form-control" type="number" min="0" max="36500" name="reviewer_days_after" value="{{ $reviewRange?->days_after ?? 0 }}"></div>
+        <div class="col-md-6"><label class="form-label">Desde</label><input class="form-control" type="date" name="reviewer_starts_on" value="{{ $reviewRange?->starts_on?->format('Y-m-d') }}"></div>
+        <div class="col-md-6"><label class="form-label">Hasta</label><input class="form-control" type="date" name="reviewer_ends_on" value="{{ $reviewRange?->ends_on?->format('Y-m-d') }}"></div>
+    </div></div></div>
     <div class="col-md-4">
         <label class="form-label required">Nombre</label>
         <input type="text" class="form-control form-control-solid" name="name" value="{{ $userItem?->name }}" required>

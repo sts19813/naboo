@@ -40,7 +40,13 @@ class UserAccessController extends Controller
             'role_names.*' => ['string', Rule::exists('roles', 'name')],
             'permission_names' => ['nullable', 'array'],
             'permission_names.*' => ['string', Rule::exists('permissions', 'name')],
+            'reviewer_range_type' => ['nullable', Rule::in(['relative', 'custom'])],
+            'reviewer_days_before' => ['nullable', 'integer', 'min:0', 'max:36500'],
+            'reviewer_days_after' => ['nullable', 'integer', 'min:0', 'max:36500'],
+            'reviewer_starts_on' => ['nullable', 'date'],
+            'reviewer_ends_on' => ['nullable', 'date', 'after_or_equal:reviewer_starts_on'],
         ]);
+        $this->ensureReviewerRange($validated);
 
         $user = User::query()->create([
             'name' => trim((string) $validated['name']),
@@ -50,6 +56,7 @@ class UserAccessController extends Controller
         ]);
         $user->syncRoles($validated['role_names'] ?? []);
         $user->syncPermissions($validated['permission_names'] ?? []);
+        $this->saveReviewerRange($user, $validated);
 
         return $this->respond($request, 'Usuario creado correctamente.', 'users');
     }
@@ -67,7 +74,13 @@ class UserAccessController extends Controller
             'role_names.*' => ['string', Rule::exists('roles', 'name')],
             'permission_names' => ['nullable', 'array'],
             'permission_names.*' => ['string', Rule::exists('permissions', 'name')],
+            'reviewer_range_type' => ['nullable', Rule::in(['relative', 'custom'])],
+            'reviewer_days_before' => ['nullable', 'integer', 'min:0', 'max:36500'],
+            'reviewer_days_after' => ['nullable', 'integer', 'min:0', 'max:36500'],
+            'reviewer_starts_on' => ['nullable', 'date'],
+            'reviewer_ends_on' => ['nullable', 'date', 'after_or_equal:reviewer_starts_on'],
         ]);
+        $this->ensureReviewerRange($validated);
 
         $payload = [
             'name' => trim((string) $validated['name']),
@@ -81,6 +94,7 @@ class UserAccessController extends Controller
         $user->update($payload);
         $user->syncRoles($validated['role_names'] ?? []);
         $user->syncPermissions($validated['permission_names'] ?? []);
+        $this->saveReviewerRange($user, $validated);
 
         return $this->respond($request, 'Usuario actualizado correctamente.', 'users');
     }
@@ -189,6 +203,28 @@ class UserAccessController extends Controller
         return $this->respond($request, 'Permiso eliminado correctamente.', 'permissions');
     }
 
+    private function ensureReviewerRange(array $data): void
+    {
+        if (in_array('revisor de tickets', $data['role_names'] ?? [], true) && ($data['reviewer_range_type'] ?? 'relative') === 'custom' && (blank($data['reviewer_starts_on'] ?? null) || blank($data['reviewer_ends_on'] ?? null))) {
+            throw ValidationException::withMessages(['reviewer_starts_on' => 'Indica el inicio y fin del rango del revisor.']);
+        }
+    }
+
+    private function saveReviewerRange(User $user, array $data): void
+    {
+        if (! $user->hasRole('revisor de tickets')) return;
+        $existing = $user->maintenanceReviewerAccess;
+        if ($existing && ! array_key_exists('reviewer_range_type', $data)) return;
+        $type = $data['reviewer_range_type'] ?? $existing?->range_type ?? 'relative';
+        $user->maintenanceReviewerAccess()->updateOrCreate([], [
+            'range_type' => $type,
+            'days_before' => $type === 'relative' ? ($data['reviewer_days_before'] ?? $existing?->days_before ?? 30) : null,
+            'days_after' => $type === 'relative' ? ($data['reviewer_days_after'] ?? $existing?->days_after ?? 0) : null,
+            'starts_on' => $type === 'custom' ? ($data['reviewer_starts_on'] ?? null) : null,
+            'ends_on' => $type === 'custom' ? ($data['reviewer_ends_on'] ?? null) : null,
+        ]);
+    }
+
     private function accessData(Request $request): array
     {
         $filters = $request->validate([
@@ -200,7 +236,7 @@ class UserAccessController extends Controller
         $permissions = Permission::query()->orderBy('name')->get();
 
         $users = User::query()
-            ->with(['roles:name,id', 'permissions:name,id'])
+            ->with(['roles:name,id', 'permissions:name,id', 'maintenanceReviewerAccess'])
             ->orderBy('name')
             ->get();
         $tenantUsers = $users

@@ -32,7 +32,7 @@ Route::get('/', function () {
     if (auth()->check()) {
         $user = auth()->user();
         $isTenant = $user->hasRole('inquilino') || $user->hasRole('tenant');
-        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician') || $user->hasRole('proveedor') || $user->hasRole('provider');
+        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician') || $user->hasRole('proveedor') || $user->hasRole('provider') || $user->hasRole('revisor de tickets');
         $isAdmin = $user->hasRole('administrador') || $user->hasRole('admin');
         $isAdvisor = ! $isAdmin && ($user->hasRole('asesores') || $user->hasRole('asesor') || $user->can('propiedades.ver_propias'));
 
@@ -55,7 +55,7 @@ Route::post('/stripe/webhook', [ChargePaymentController::class, 'webhook'])
     ->name('stripe.webhook')
     ->withoutMiddleware([ValidateCsrfToken::class]);
 
-Route::middleware(['auth', 'system.access', 'provider.operational', 'property.visible'])
+Route::middleware(['auth', 'system.access', 'provider.operational', 'reviewer.restricted', 'property.visible'])
     ->group(function () {
         Route::get('/perfil', [ProfileController::class, 'index'])->name('profile.index');
         if (config('features.subscription_module_enabled')) {
@@ -208,6 +208,7 @@ Route::middleware(['auth', 'system.access', 'provider.operational', 'property.vi
 
         Route::get('/mantenimiento', [MaintenanceController::class, 'index'])->name('maintenance.index');
         Route::get('/mantenimiento/cortes', [MaintenanceCutController::class, 'index'])->name('maintenance-cuts.index');
+        Route::patch('/mantenimiento/validar', [\App\Http\Controllers\MaintenanceReviewController::class, 'validateTickets'])->name('maintenance.validate');
         Route::post('/mantenimiento/cortes', [MaintenanceCutController::class, 'store'])->name('maintenance-cuts.store');
         Route::post('/mantenimiento', [MaintenanceController::class, 'store'])->name('maintenance.store');
         Route::post('/mantenimiento/agrupar', [MaintenanceController::class, 'groupTickets'])->name('maintenance.group');
@@ -244,7 +245,7 @@ Route::middleware(['auth', 'system.access', 'provider.operational', 'property.vi
     });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'system.access', 'provider.operational'])
+    ->middleware(['auth', 'system.access', 'provider.operational', 'reviewer.restricted'])
     ->name('dashboard');
 
 Route::middleware(['auth', 'system.access', 'provider.operational'])->group(function () {

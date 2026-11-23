@@ -11,6 +11,10 @@ use Illuminate\Support\Str;
 
 class MaintenanceTicket extends Model
 {
+    public function validation(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(MaintenanceTicketValidation::class, 'ticket_id');
+    }
     use HasFactory;
 
     public const PRIORITY_SORT_ORDER = ['urgente' => 0, 'alta' => 1, 'media' => 2, 'baja' => 3, 'sin_asignar' => 4];
