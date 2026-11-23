@@ -30,7 +30,11 @@ class ProfileController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
         ]);
 
-        $user->update($request->only('name', 'email'));
+        $user->fill($request->only('name', 'email'));
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+        $user->save();
 
         return back()->with('success', 'Perfil actualizado correctamente.');
     }

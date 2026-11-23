@@ -253,9 +253,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 Route::middleware(['auth', 'system.access', 'provider.operational'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile', fn () => redirect()->route('profile.index'))->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.legacy.update');
 });
 
 require __DIR__.'/auth.php';

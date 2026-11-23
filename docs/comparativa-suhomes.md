@@ -93,4 +93,6 @@ El control de propiedades permite exportar en PDF y Excel el inventario de docum
 
 La base local se respaldó antes de los cambios. Los conteos de las tablas originales de negocio se conservaron; los cambios en `migrations`, permisos y caché corresponden a las migraciones aplicadas. La comparación de conteos no es una comprobación de cada valor individual.
 
-**Pendiente:** los demás puntos del inventario requieren implementación y verificación individual. Las pruebas generales conservan cinco fallos de perfil que ya existían antes de esta integración.
+Se corrigió el conflicto entre las rutas de perfil de Naboo y las rutas heredadas del scaffolding; la ruta anterior redirige al perfil de Naboo y ya no oculta el formulario real. Cambiar el correo invalida su verificación. La suite general pasa en local.
+
+**Pendiente:** la moneda por propiedad requiere conservar la moneda de cada cargo histórico, impedir pagos en moneda distinta y separar los indicadores financieros. La copia local revisada contiene 478 cargos y 158 pagos, todos los pagos en MXN y sin pagos de distintas monedas en un mismo cargo. Los demás puntos del inventario requieren verificación individual antes de actualizar producción.
