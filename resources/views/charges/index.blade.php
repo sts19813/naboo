@@ -1065,8 +1065,9 @@
                                     placeholder="Numero de referencia">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Comprobante de pago (imagen)</label>
-                                <input type="file" name="receipt" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+                                <label class="form-label">Comprobantes de pago</label>
+                                <input type="file" name="receipts[]" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple>
+                                <div class="form-text">Hasta 10 imágenes o archivos PDF de 10 MB cada uno.</div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Notas</label>

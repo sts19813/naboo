@@ -4,6 +4,8 @@
 
 @push('styles')
     <style>
+        .access-module .access-user-avatar { flex: 0 0 auto; width: 42px; height: 42px; object-fit: cover; }
+
         .access-module .access-stat {
             border: 1px solid var(--border-soft);
             border-radius: 8px;

@@ -61,6 +61,7 @@ class DashboardModulesTest extends TestCase
     public function test_admin_sidebar_groups_every_module_in_a_compact_order(): void
     {
         $adminRole = Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']);
+        $adminRole->givePermissionTo(Permission::findOrCreate('Ver almacén', 'web'));
         $admin = User::factory()->create();
         $admin->assignRole($adminRole);
 
@@ -489,5 +490,66 @@ class DashboardModulesTest extends TestCase
             ->get(route('properties.control'))
             ->assertOk()
             ->assertSee('Control de Alta de Propiedades');
+    }
+
+    public function test_property_control_checks_can_be_manually_marked_and_unmarked(): void
+    {
+        $adminRole = Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($adminRole);
+        $type = PropertyType::query()->create(['name' => 'Casa control', 'slug' => 'casa-control', 'is_active' => true]);
+        $zone = Zone::query()->create(['name' => 'Zona control', 'slug' => 'zona-control', 'is_active' => true]);
+        $property = Property::query()->create([
+            'internal_name' => 'Casa con contrato no aplicable',
+            'property_type_id' => $type->id,
+            'zone_id' => $zone->id,
+            'full_address' => 'Calle Control 1',
+            'status' => Property::STATUS_AVAILABLE,
+            'monthly_rent_price' => 10000,
+            'facade_photo_path' => 'properties/control.jpg',
+            'created_by' => $admin->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('properties.control'))
+            ->assertOk()
+            ->assertViewHas('snapshots', fn (Collection $snapshots): bool => ($snapshots->first()['checks']['contract'] ?? true) === false);
+
+        $this->actingAs($admin)
+            ->patch(route('properties.control.checks.update', [$property, 'contract']), [
+                'is_resolved' => '1',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Se marcó el punto como resuelto manualmente.');
+
+        $this->assertDatabaseHas('property_control_overrides', [
+            'property_id' => $property->id,
+            'check_key' => 'contract',
+            'marked_by_user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('properties.control'))
+            ->assertOk()
+            ->assertSee('Desmarcar')
+            ->assertViewHas('snapshots', fn (Collection $snapshots): bool => ($snapshots->first()['checks']['contract'] ?? false) === true
+                && ($snapshots->first()['manual_checks']['contract'] ?? false) === true);
+
+        $this->actingAs($admin)
+            ->patch(route('properties.control.checks.update', [$property, 'contract']), [
+                'is_resolved' => '0',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Se quitó la marca manual del punto.');
+
+        $this->assertDatabaseMissing('property_control_overrides', [
+            'property_id' => $property->id,
+            'check_key' => 'contract',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('properties.control'))
+            ->assertOk()
+            ->assertViewHas('snapshots', fn (Collection $snapshots): bool => ($snapshots->first()['checks']['contract'] ?? true) === false);
     }
 }

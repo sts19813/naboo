@@ -18,6 +18,7 @@ use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyControlController;
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\PropertyLogbookController;
 use App\Http\Controllers\StorageItemController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantSuggestionController;
@@ -75,6 +76,7 @@ Route::middleware(['auth', 'system.access'])
 
         Route::get('/propiedades', [PropertyController::class, 'index'])->name('properties.index');
         Route::get('/propiedades/control', [PropertyControlController::class, 'index'])->name('properties.control');
+        Route::patch('/propiedades/{property}/control/{checkKey}', [PropertyControlController::class, 'updateCheck'])->name('properties.control.checks.update');
         Route::get('/propiedades/nueva', [PropertyController::class, 'create'])->name('properties.create');
         Route::post('/propiedades', [PropertyController::class, 'store'])->name('properties.store');
         Route::get('/propiedades/{property}/editar', [PropertyController::class, 'edit'])->name('properties.edit');
@@ -86,6 +88,10 @@ Route::middleware(['auth', 'system.access'])
         Route::patch('/propiedades/{property}/restaurar', [PropertyController::class, 'restore'])->name('properties.restore');
         Route::delete('/propiedades/{property}', [PropertyController::class, 'destroy'])->name('properties.destroy');
         Route::get('/propiedades/{property}', [PropertyController::class, 'show'])->name('properties.show');
+        Route::post('/propiedades/{property}/bitacora', [PropertyLogbookController::class, 'store'])->name('properties.logbook.store');
+        Route::delete('/propiedades/{property}/bitacora/{entry}', [PropertyLogbookController::class, 'destroy'])->name('properties.logbook.destroy');
+        Route::get('/propiedades/{property}/bitacora/adjuntos/{attachment}/vista', [PropertyLogbookController::class, 'preview'])->name('properties.logbook.attachments.preview');
+        Route::get('/propiedades/{property}/bitacora/adjuntos/{attachment}/descargar', [PropertyLogbookController::class, 'download'])->name('properties.logbook.attachments.download');
         Route::get('/propiedades/{property}/expediente', [DocumentController::class, 'propertyDossier'])->name('dossiers.properties.show');
         Route::post('/propiedades/{property}/expediente/documentos/{documentType}', [DocumentController::class, 'uploadPropertyDocument'])->name('dossiers.properties.documents.upload');
         Route::patch('/propiedades/{property}/expediente/documentos/{documentType}', [DocumentController::class, 'updatePropertyDocumentMetadata'])->name('dossiers.properties.documents.update');
@@ -167,6 +173,7 @@ Route::middleware(['auth', 'system.access'])
         Route::put('/seguridad/permisos/{permission}', [UserAccessController::class, 'updatePermission'])->name('access.permissions.update');
         Route::delete('/seguridad/permisos/{permission}', [UserAccessController::class, 'destroyPermission'])->name('access.permissions.destroy');
         Route::get('/cobranza', [ChargeController::class, 'index'])->name('charges.index');
+        Route::get('/cobranza/{charge}/comprobantes', [ChargeController::class, 'downloadReceipts'])->name('charges.receipts.download');
         Route::put('/cobranza/propiedades/{property}/configuracion', [ChargeController::class, 'updatePropertySetup'])->name('charges.properties.setup');
         Route::post('/cobranza', [ChargeController::class, 'store'])->name('charges.store');
         Route::put('/cobranza/{charge}', [ChargeController::class, 'update'])->name('charges.update');
@@ -214,6 +221,7 @@ Route::middleware(['auth', 'system.access'])
         Route::put('/mantenimiento/proveedores/{provider}', [MaintenanceController::class, 'updateProvider'])->name('maintenance.providers.update');
 
         // Almacén (storage items)
+        Route::middleware('storage.access')->group(function (): void {
         Route::resource('storage_items', StorageItemController::class);
         Route::post('storage_items/catalog/warehouse', [StorageItemController::class, 'storeWarehouse'])->name('storage_items.warehouses.store');
         Route::put('storage_items/catalog/warehouse/{warehouse}', [StorageItemController::class, 'updateWarehouse'])->name('storage_items.warehouses.update');
@@ -224,6 +232,7 @@ Route::middleware(['auth', 'system.access'])
         Route::get('storage_items/trash/view', [StorageItemController::class, 'trashed'])->name('storage_items.trashed');
         Route::post('storage_items/{storage_item}/restore', [StorageItemController::class, 'restore'])->name('storage_items.restore');
         Route::post('storage_items/{storage_item}/delete-with-note', [StorageItemController::class, 'deleteWithNote'])->name('storage_items.deleteWithNote');
+        });
     });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])

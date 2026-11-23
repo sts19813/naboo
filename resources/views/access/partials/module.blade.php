@@ -99,8 +99,13 @@
                                 @foreach ($administrativeUsers as $userItem)
                                     <tr>
                                         <td>
-                                            <div class="fw-semibold">{{ $userItem->name }}</div>
-                                            <div class="text-muted fs-8">{{ $userItem->email }}</div>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <img src="{{ $userItem->profilePhotoUrl() }}" alt="Foto de {{ $userItem->name }}" class="symbol symbol-42px symbol-circle access-user-avatar">
+                                                <div>
+                                                    <div class="fw-semibold">{{ $userItem->name }}</div>
+                                                    <div class="text-muted fs-8">{{ $userItem->email }}</div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
                                             <span class="badge {{ $userItem->is_active ? 'badge-light-success text-success' : 'badge-light-danger text-danger' }}">
@@ -249,8 +254,13 @@
                                 @foreach ($tenantUsers as $userItem)
                                     <tr>
                                         <td>
-                                            <div class="fw-semibold">{{ $userItem->name }}</div>
-                                            <div class="text-muted fs-8">{{ $userItem->email }}</div>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <img src="{{ $userItem->profilePhotoUrl() }}" alt="Foto de {{ $userItem->name }}" class="symbol symbol-42px symbol-circle access-user-avatar">
+                                                <div>
+                                                    <div class="fw-semibold">{{ $userItem->name }}</div>
+                                                    <div class="text-muted fs-8">{{ $userItem->email }}</div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
                                             <span class="badge {{ $userItem->is_active ? 'badge-light-success text-success' : 'badge-light-danger text-danger' }}">

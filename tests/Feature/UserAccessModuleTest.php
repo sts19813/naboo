@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -137,6 +138,35 @@ class UserAccessModuleTest extends TestCase
 
         $this->assertStringNotContainsString('colspan=', $tenantTableBody);
         $this->assertStringNotContainsString('<tr', $tenantTableBody);
+    }
+
+    public function test_user_tables_show_profile_photos_and_the_default_avatar(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('profile_photos/usuario-con-foto.jpg', 'photo');
+
+        $admin = $this->adminUser();
+        Role::query()->create(['name' => 'asesor', 'guard_name' => 'web']);
+        Role::query()->create(['name' => 'inquilino', 'guard_name' => 'web']);
+
+        $withPhoto = User::factory()->create([
+            'name' => 'Usuario Con Foto',
+            'profile_photo' => 'profile_photos/usuario-con-foto.jpg',
+        ]);
+        $withPhoto->assignRole('asesor');
+
+        $withoutPhoto = User::factory()->create([
+            'name' => 'Usuario Sin Foto',
+        ]);
+        $withoutPhoto->assignRole('inquilino');
+
+        $this->actingAs($admin)
+            ->get(route('access.index'))
+            ->assertOk()
+            ->assertSee('Foto de Usuario Con Foto')
+            ->assertSee($withPhoto->profilePhotoUrl())
+            ->assertSee('Foto de Usuario Sin Foto')
+            ->assertSee($withoutPhoto->profilePhotoUrl());
     }
 
     private function adminUser(): User

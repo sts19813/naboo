@@ -30,7 +30,7 @@ class PropertyControlService
         $inventoryItemsCount = $property->inventoryAreas
             ->sum(fn ($area) => $area->items->count());
 
-        $checks = [
+        $computedChecks = [
             'general_info' => $this->hasGeneralInfo($property),
             'advisor' => $property->advisors->isNotEmpty() || filled($property->advisor_user_id),
             'owner' => $property->owners->isNotEmpty(),
@@ -46,6 +46,17 @@ class PropertyControlService
                 fn ($document) => filled($document->file_path)
             ),
         ];
+        $manualOverrides = $property->controlOverrides
+            ->pluck('check_key')
+            ->intersect(array_keys(self::CHECK_LABELS))
+            ->flip()
+            ->map(fn () => true)
+            ->all();
+        $checks = collect(self::CHECK_LABELS)
+            ->mapWithKeys(fn (string $label, string $key): array => [
+                $key => (bool) ($computedChecks[$key] ?? false) || (bool) ($manualOverrides[$key] ?? false),
+            ])
+            ->all();
 
         $completedChecks = collect($checks)->filter()->count();
         $totalChecks = count($checks);
@@ -63,6 +74,8 @@ class PropertyControlService
         return [
             'property' => $property,
             'checks' => $checks,
+            'computed_checks' => $computedChecks,
+            'manual_checks' => $manualOverrides,
             'progress_percent' => $progressPercent,
             'completed_checks' => $completedChecks,
             'total_checks' => $totalChecks,

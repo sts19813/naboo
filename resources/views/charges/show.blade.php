@@ -123,6 +123,9 @@
         <div class="card mb-8">
             <div class="card-header">
                 <h3 class="card-title fw-bold">Pagos registrados</h3>
+                @if ($charge->payments->contains(fn ($payment) => $payment->status === \App\Models\ChargePayment::STATUS_SUCCEEDED && count($payment->receipt_files)))
+                    <div class="card-toolbar"><a class="btn btn-sm btn-light-primary" href="{{ route('charges.receipts.download', $charge) }}">Descargar comprobantes</a></div>
+                @endif
             </div>
             <div class="card-body py-0">
                 <div class="table-responsive">
@@ -157,11 +160,13 @@
                                         <span class="badge {{ $statusClass }}">{{ $payment->status_label }}</span>
                                     </td>
                                     <td>
-                                        @if ($payment->receipt_path)
-                                            <a href="{{ \Illuminate\Support\Facades\Storage::url($payment->receipt_path) }}"
-                                                target="_blank" class="btn btn-sm btn-light-primary">
-                                                Ver
-                                            </a>
+                                        @if (count($payment->receipt_files))
+                                            @foreach ($payment->receipt_files as $index => $receiptPath)
+                                                <a href="{{ \Illuminate\Support\Facades\Storage::url($receiptPath) }}"
+                                                    target="_blank" rel="noopener" class="btn btn-sm btn-light-primary">
+                                                    Ver {{ count($payment->receipt_files) > 1 ? $index + 1 : '' }}
+                                                </a>
+                                            @endforeach
                                         @else
                                             -
                                         @endif
@@ -238,8 +243,9 @@
                                 <input type="text" name="reference" class="form-control" value="{{ old('reference') }}">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Comprobante de pago</label>
-                                <input type="file" name="receipt" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+                                <label class="form-label">Comprobantes de pago</label>
+                                <input type="file" name="receipts[]" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple>
+                                <div class="form-text">Hasta 10 imágenes o archivos PDF de 10 MB cada uno.</div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Notas</label>

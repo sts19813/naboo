@@ -25,8 +25,12 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
 
 class ChargeController extends Controller
 {
@@ -520,6 +524,57 @@ class ChargeController extends Controller
         ]);
     }
 
+    public function downloadReceipts(Request $request, Charge $charge): BinaryFileResponse|StreamedResponse
+    {
+        $this->ensureChargeVisible($charge, $request->user());
+
+        $receipts = $charge->payments()
+            ->where('status', ChargePayment::STATUS_SUCCEEDED)
+            ->get()
+            ->flatMap(fn (ChargePayment $payment) => collect($payment->receipt_files)
+                ->map(fn (string $path, int $index) => [
+                    'payment' => $payment,
+                    'path' => $path,
+                    'receipt_index' => $index,
+                ]))
+            ->filter(fn (array $receipt) => Storage::disk('public')->exists($receipt['path']))
+            ->values();
+
+        abort_if($receipts->isEmpty(), 404);
+
+        if ($receipts->count() === 1) {
+            $receipt = $receipts->first();
+
+            return Storage::disk('public')->download(
+                $receipt['path'],
+                $this->receiptFileName($charge, $receipt['payment'], $receipt['path'], $receipt['receipt_index']),
+            );
+        }
+
+        abort_unless(class_exists(ZipArchive::class), 503, 'La descarga agrupada no está disponible en este servidor.');
+
+        $temporaryPath = tempnam(sys_get_temp_dir(), 'naboo-charge-receipts-');
+        $zip = new ZipArchive;
+        abort_unless($temporaryPath && $zip->open($temporaryPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true, 500);
+
+        foreach ($receipts as $index => $receipt) {
+            $zip->addFromString(
+                sprintf('%02d-%s', $index + 1, $this->receiptFileName(
+                    $charge,
+                    $receipt['payment'],
+                    $receipt['path'],
+                    $receipt['receipt_index'],
+                )),
+                Storage::disk('public')->get($receipt['path']),
+            );
+        }
+        $zip->close();
+
+        return response()
+            ->download($temporaryPath, 'comprobantes-cargo-'.$charge->uuid.'.zip', ['Content-Type' => 'application/zip'])
+            ->deleteFileAfterSend(true);
+    }
+
     public function destroy(Request $request, Charge $charge): RedirectResponse
     {
         if ($this->isTenantUser($request->user())) {
@@ -566,13 +621,22 @@ class ChargeController extends Controller
             return redirect()->back()->with('error', 'El monto no puede ser mayor al saldo pendiente.');
         }
 
-        $receiptPath = null;
+        $files = (array) $request->file('receipts', []);
         if ($request->hasFile('receipt')) {
-            $receiptPath = $request->file('receipt')->store("charges/{$charge->id}/payments", 'public');
+            $files[] = $request->file('receipt');
         }
 
+        $receiptPaths = [];
         $becamePaid = false;
-        DB::transaction(function () use ($charge, $validated, $amount, $receiptPath, $request, &$becamePaid): void {
+        try {
+            foreach ($files as $file) {
+                $path = $file->store("charges/{$charge->id}/payments", 'public');
+                if ($path === false) {
+                    throw new \RuntimeException('No fue posible guardar el comprobante.');
+                }
+                $receiptPaths[] = $path;
+            }
+            DB::transaction(function () use ($charge, $validated, $amount, $receiptPaths, $request, &$becamePaid): void {
             $charge->payments()->create([
                 'amount' => $amount,
                 'currency' => strtolower((string) config('services.stripe.currency', 'mxn')),
@@ -580,7 +644,8 @@ class ChargeController extends Controller
                 'source' => ChargePayment::SOURCE_ADMIN,
                 'payment_method' => $validated['payment_method'],
                 'reference' => $validated['reference'] ?? null,
-                'receipt_path' => $receiptPath,
+                'receipt_path' => $receiptPaths[0] ?? null,
+                'receipt_paths' => $receiptPaths ?: null,
                 'notes' => $validated['notes'] ?? null,
                 'payment_date' => $validated['payment_date'],
                 'paid_at' => Carbon::parse($validated['payment_date'])->endOfDay(),
@@ -588,7 +653,11 @@ class ChargeController extends Controller
             ]);
 
             $becamePaid = $charge->refreshPaymentStatus();
-        });
+            });
+        } catch (\Throwable $exception) {
+            Storage::disk('public')->delete($receiptPaths);
+            throw $exception;
+        }
 
         if ($becamePaid) {
             $this->sendCompletedMail($charge);
@@ -1299,6 +1368,18 @@ class ChargeController extends Controller
         if (!$visible) {
             abort(403);
         }
+    }
+
+    private function receiptFileName(
+        Charge $charge,
+        ChargePayment $payment,
+        string $path,
+        int $receiptIndex = 0,
+    ): string {
+        $extension = pathinfo($path, PATHINFO_EXTENSION) ?: 'archivo';
+        $receiptSuffix = count($payment->receipt_files) > 1 ? '-'.($receiptIndex + 1) : '';
+
+        return 'comprobante-'.$charge->uuid.'-'.$payment->id.$receiptSuffix.'.'.$extension;
     }
 
     private function getTenantAssignmentMissingRequirements(Tenant $tenant): array

@@ -8,6 +8,7 @@
         ->join('');
     $isTenant = $user->hasRole('inquilino') || $user->hasRole('tenant');
     $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician');
+    $canViewStorage = $user->canViewStorage();
     $isAdmin = $user->hasRole('administrador') || $user->hasRole('admin');
     $isAdvisor = !$isAdmin && !$isTenant && !$isTechnician && ($user->hasRole('asesores') || $user->hasRole('asesor') || $user->can('propiedades.ver_propias'));
     $canManageAccess = $user->can('usuarios.gestionar') || $user->hasRole('administrador') || $user->hasRole('admin');
@@ -39,7 +40,7 @@
         : ($isTechnician
             ? [
                 ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Mantenimiento', 'icon' => 'bi-tools'],
-                ['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam'],
+                ...($canViewStorage ? [['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam']] : []),
                 [
                     'patterns' => ['profile.*'],
                     'label' => 'Configuración',
@@ -87,7 +88,7 @@
                             ['patterns' => ['maintenance.technicians.index'], 'route' => 'maintenance.technicians.index', 'label' => 'Técnicos', 'icon' => 'bi-person-gear'],
                             ['patterns' => ['maintenance.providers.index'], 'route' => 'maintenance.providers.index', 'label' => 'Proveedores', 'icon' => 'bi-building'],
                         ] : []),
-                        ['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam'],
+                        ...($canViewStorage ? [['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam']] : []),
                     ],
                 ],
                 [
@@ -126,7 +127,7 @@
         : ($isTechnician
             ? [
                 ['patterns' => ['maintenance.index', 'maintenance.show'], 'route' => 'maintenance.index', 'label' => 'Tickets', 'icon' => 'bi-tools'],
-                ['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam'],
+                ...($canViewStorage ? [['patterns' => ['storage_items.*'], 'route' => 'storage_items.index', 'label' => 'Almacén', 'icon' => 'bi-box-seam']] : []),
             ]
             : [
                 ...($isAdvisor ? [['patterns' => ['advisor.tasks.*'], 'route' => 'advisor.tasks.index', 'label' => 'Pendientes', 'icon' => 'bi-list-check']] : []),

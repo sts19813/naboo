@@ -4,6 +4,12 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('/assets/css/propiedades.css') }}">
+    <style>
+        .logbook-entry__note { white-space: pre-wrap; }
+        .logbook-entry__images { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: .75rem; }
+        .logbook-entry__image { aspect-ratio: 1; overflow: hidden; border-radius: .475rem; }
+        .logbook-entry__image img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
 @endpush
 
 @section('content')
@@ -508,6 +514,9 @@
                             type="button" role="tab" aria-controls="tab-inventory" aria-selected="false">
                             Inventario
                         </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-logbook-tab" data-bs-toggle="tab" data-bs-target="#tab-logbook" type="button" role="tab" aria-controls="tab-logbook" aria-selected="false">Bitácora</button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="tab-history-tab" data-bs-toggle="tab" data-bs-target="#tab-history"
@@ -1445,6 +1454,9 @@
                         </div>
                     </div>
 
+                    <div class="tab-pane fade property-tab-pane" id="tab-logbook" role="tabpanel" aria-labelledby="tab-logbook-tab">
+                        @include('properties.partials.logbook-tab')
+                    </div>
                     <div class="tab-pane fade property-tab-pane" id="tab-history" role="tabpanel"
                         aria-labelledby="tab-history-tab">
                         <div class="card property-block-card">

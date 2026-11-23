@@ -1075,7 +1075,15 @@
                                                                 <div class="col-md-6">
                                                                     <div class="property-control-check {{ ($row['checks'][$key] ?? false) ? 'is-complete' : 'is-missing' }}">
                                                                         <i class="bi {{ ($row['checks'][$key] ?? false) ? 'bi-check-circle-fill' : 'bi-circle' }}"></i>
-                                                                        <span>{{ $label }}</span>
+                                                                        <span class="flex-grow-1">{{ $label }}</span>
+                                                                        @if (!($row['computed_checks'][$key] ?? false) || ($row['manual_checks'][$key] ?? false))
+                                                                            <form method="POST" action="{{ route('properties.control.checks.update', [$property, $key]) }}" class="js-property-control-action">
+                                                                                @csrf
+                                                                                @method('PATCH')
+                                                                                <input type="hidden" name="is_resolved" value="{{ ($row['manual_checks'][$key] ?? false) ? '0' : '1' }}">
+                                                                                <button type="submit" class="btn btn-sm btn-light-primary">{{ ($row['manual_checks'][$key] ?? false) ? 'Desmarcar' : 'No aplica' }}</button>
+                                                                            </form>
+                                                                        @endif
                                                                     </div>
                                                                 </div>
                                                             @endforeach

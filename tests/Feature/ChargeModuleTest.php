@@ -259,6 +259,64 @@ class ChargeModuleTest extends TestCase
         $this->assertSame('18000.00', $next->fresh()->amount);
     }
 
+    public function test_admin_can_attach_multiple_images_and_pdfs_when_registering_a_payment(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $charge = $this->createChargeFixture();
+
+        $response = $this->actingAs($user)->post(route('charges.payments.store', $charge), [
+            'amount' => 5000,
+            'payment_date' => now()->toDateString(),
+            'payment_method' => ChargePayment::METHOD_TRANSFER,
+            'receipts' => [
+                UploadedFile::fake()->image('frente.jpg'),
+                UploadedFile::fake()->image('reverso.png'),
+                UploadedFile::fake()->create('comprobante.pdf', 120, 'application/pdf'),
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+
+        $payment = $charge->payments()->latest('id')->firstOrFail();
+        $this->assertCount(3, $payment->receipt_files);
+        $this->assertSame($payment->receipt_files[0], $payment->receipt_path);
+        foreach ($payment->receipt_files as $receiptPath) {
+            Storage::disk('public')->assertExists($receiptPath);
+        }
+        $this->assertStringEndsWith('.pdf', $payment->receipt_files[2]);
+
+        if (class_exists(\ZipArchive::class)) {
+            $this->actingAs($user)
+                ->get(route('charges.receipts.download', $charge))
+                ->assertOk()
+                ->assertDownload('comprobantes-cargo-'.$charge->uuid.'.zip');
+        }
+    }
+
+    public function test_admin_cannot_attach_more_than_ten_receipts_to_one_payment(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $charge = $this->createChargeFixture();
+
+        $response = $this->actingAs($user)
+            ->from(route('charges.index'))
+            ->post(route('charges.payments.store', $charge), [
+                'amount' => 5000,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => ChargePayment::METHOD_TRANSFER,
+                'receipts' => collect(range(1, 11))
+                    ->map(fn (int $index) => UploadedFile::fake()->image("comprobante-{$index}.jpg"))
+                    ->all(),
+            ]);
+
+        $response->assertRedirect(route('charges.index'));
+        $response->assertSessionHasErrorsIn('registerPayment', ['receipts']);
+        $this->assertDatabaseMissing('charge_payments', ['charge_id' => $charge->id]);
+    }
+
     public function test_public_transfer_proof_sets_charge_in_validation(): void
     {
         Storage::fake('public');

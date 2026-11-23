@@ -27,6 +27,7 @@ class AccessControlSeeder extends Seeder
             'propietarios.eliminar',
             'cobranza.eliminar_pagados',
             'administracion de tecnicos',
+            'Ver almacén',
         ];
 
         $permissions = collect($permissionNames)

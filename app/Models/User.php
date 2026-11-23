@@ -131,4 +131,14 @@ class User extends Authenticatable
 
         return asset($this->profile_photo);
     }
+
+    public function canViewStorage(): bool
+    {
+        if ($this->hasRole('proveedor') || $this->hasRole('provider')) {
+            return false;
+        }
+
+        return ($this->hasRole('administrador') || $this->hasRole('admin') || $this->hasRole('tecnico') || $this->hasRole('technician'))
+            && $this->can('Ver almacén');
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Property;
 use App\Services\PropertyControlService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -17,12 +18,7 @@ class PropertyControlController extends Controller
 
     public function index(Request $request): View
     {
-        abort_unless(
-            $request->user()?->can('propiedades.control_ver')
-                || $request->user()?->hasRole('administrador')
-                || $request->user()?->hasRole('admin'),
-            403
-        );
+        $this->ensureCanManageControl($request);
 
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:190'],
@@ -43,6 +39,7 @@ class PropertyControlController extends Controller
                 'tenant.documents:id,tenant_id,file_path',
                 'inventoryAreas.items:id,property_inventory_area_id',
                 'charges:id,property_id',
+                'controlOverrides:id,property_id,check_key',
             ])
             ->orderBy('internal_name')
             ->get();
@@ -80,6 +77,32 @@ class PropertyControlController extends Controller
         ]);
     }
 
+    public function updateCheck(Request $request, Property $property, string $checkKey): RedirectResponse
+    {
+        $this->ensureCanManageControl($request);
+        abort_unless(array_key_exists($checkKey, $this->propertyControlService->checkLabels()), 404);
+
+        $validated = $request->validate([
+            'is_resolved' => ['required', 'boolean'],
+        ]);
+
+        if ((bool) $validated['is_resolved']) {
+            $property->controlOverrides()->updateOrCreate(
+                ['check_key' => $checkKey],
+                [
+                    'marked_by_user_id' => $request->user()?->id,
+                    'marked_at' => now(),
+                ],
+            );
+            $message = 'Se marcó el punto como resuelto manualmente.';
+        } else {
+            $property->controlOverrides()->where('check_key', $checkKey)->delete();
+            $message = 'Se quitó la marca manual del punto.';
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
     private function filterSnapshots(Collection $snapshots, string $search, string $statusFilter): Collection
     {
         return $snapshots
@@ -102,5 +125,15 @@ class PropertyControlController extends Controller
             'no_dossier' => $row['has_dossier_gap'],
             default => true,
         };
+    }
+
+    private function ensureCanManageControl(Request $request): void
+    {
+        abort_unless(
+            $request->user()?->can('propiedades.control_ver')
+                || $request->user()?->hasRole('administrador')
+                || $request->user()?->hasRole('admin'),
+            403
+        );
     }
 }

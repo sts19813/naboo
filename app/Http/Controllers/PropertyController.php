@@ -384,6 +384,8 @@ class PropertyController extends Controller
             'advisor',
             'advisors:id,name,email',
             'technicianProvider:id,uuid,user_id,name,email,type,specialty,is_active',
+            'logbookEntries.user:id,name,profile_photo',
+            'logbookEntries.attachments',
         ]);
         $propertyChangeLogs = $property->changeLogs()
             ->with('user:id,name')
