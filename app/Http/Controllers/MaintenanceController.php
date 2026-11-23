@@ -1275,6 +1275,9 @@ class MaintenanceController extends Controller
             'send_credentials_email' => ['nullable', 'boolean'],
         ]);
         $isTechnician = $validated['type'] === 'tecnico_interno';
+        if ((! (bool) ($validated['is_active'] ?? false) || $isTechnician) && $provider->properties()->exists()) {
+            return back()->withErrors(['is_active' => 'Quita las asignaciones a propiedades antes de desactivar o cambiar el tipo de este proveedor.'])->withInput();
+        }
         $wantsCreateAccount = $isTechnician && (bool) ($validated['create_user_account'] ?? false);
         $selectedUserId = $isTechnician ? ($validated['user_id'] ?? null) : null;
         if ($isTechnician && $wantsCreateAccount && $selectedUserId) {

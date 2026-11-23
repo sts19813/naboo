@@ -182,6 +182,12 @@ class Property extends Model
         return $this->belongsTo(MaintenanceProvider::class, 'technician_provider_id');
     }
 
+    public function supplierProviders(): BelongsToMany
+    {
+        return $this->belongsToMany(MaintenanceProvider::class, 'maintenance_provider_property')
+            ->withPivot('assigned_by_user_id')->withTimestamps();
+    }
+
     public function advisors(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'property_advisor')

@@ -16,6 +16,44 @@ class MaintenanceProviderAccessTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_can_assign_multiple_suppliers_and_preserve_existing_assignment_metadata(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::findOrCreate('administrador', 'web'));
+        $otherAdmin = User::factory()->create();
+        $otherAdmin->assignRole(Role::findOrCreate('administrador', 'web'));
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $property = Property::create(['internal_name' => 'Casa', 'property_type_id' => $type->id, 'full_address' => 'Calle 1', 'status' => Property::STATUS_AVAILABLE]);
+        $first = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Jardinería', 'is_active' => true]);
+        $second = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Alberca', 'is_active' => true]);
+        $inactive = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Inactivo', 'is_active' => false]);
+        $this->actingAs($admin)->put(route('properties.update.providers', $property), ['provider_ids' => [$first->id]])->assertSessionHasNoErrors();
+        $this->actingAs($otherAdmin)->put(route('properties.update.providers', $property), ['provider_ids' => [$first->id, $second->id]])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('maintenance_provider_property', ['property_id' => $property->id, 'maintenance_provider_id' => $first->id, 'assigned_by_user_id' => $admin->id]);
+        $this->actingAs($admin)->get(route('properties.show', $property))->assertOk()->assertSee('Jardinería')->assertSee('Alberca');
+        $this->actingAs($admin)->put(route('properties.update.providers', $property), ['provider_ids' => [$inactive->id]])->assertSessionHasErrors('provider_ids.0');
+        $this->assertCount(2, $property->supplierProviders()->get());
+        $this->actingAs($admin)->put(route('maintenance.providers.update', $first), ['type' => 'proveedor', 'name' => $first->name, 'is_active' => 0])->assertSessionHasErrors('is_active');
+        $this->assertTrue($first->fresh()->is_active);
+        $this->actingAs($admin)->put(route('properties.update.providers', $property), ['provider_ids' => [$second->id]])->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('maintenance_provider_property', ['property_id' => $property->id, 'maintenance_provider_id' => $first->id]);
+        $property->supplierProviders()->attach($inactive->id, ['assigned_by_user_id' => $admin->id]);
+        $this->actingAs($admin)->get(route('properties.show', $property))->assertOk()->assertSee('Inactivo');
+        $this->actingAs($admin)->put(route('properties.update.providers', $property), ['provider_ids' => [$second->id, $inactive->id]])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('maintenance_provider_property', ['property_id' => $property->id, 'maintenance_provider_id' => $inactive->id]);
+    }
+
+    public function test_advisor_cannot_assign_suppliers_to_another_advisors_property(): void
+    {
+        $advisor = User::factory()->create();
+        $advisor->assignRole(Role::findOrCreate('asesores', 'web'));
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $property = Property::create(['internal_name' => 'Casa', 'property_type_id' => $type->id, 'full_address' => 'Calle 1', 'status' => Property::STATUS_AVAILABLE]);
+        $supplier = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Proveedor', 'is_active' => true]);
+        $this->actingAs($advisor)->put(route('properties.update.providers', $property), ['provider_ids' => [$supplier->id]])->assertForbidden();
+        $this->assertDatabaseCount('maintenance_provider_property', 0);
+    }
+
     public function test_assigned_advisor_can_choose_an_active_provider_from_property_ticket_form(): void
     {
         Mail::fake();

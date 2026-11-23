@@ -230,6 +230,25 @@
                                     <!-- RESPONSABLES DE LA PROPIEDAD -->
                                     <div class="property-assignment-bar mt-4">
                                         <div class="dropdown property-assignment-dropdown">
+                                            <button class="btn btn-sm btn-primary dropdown-toggle property-assignment-button" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" @disabled(! $canManagePropertyTechnician)>
+                                                <span class="property-assignment-button__content"><span class="property-assignment-button__label">Proveedores</span><span class="property-assignment-button__value">{{ $property->supplierProviders->pluck('name')->join(', ') ?: 'Sin proveedores asignados' }}</span></span>
+                                            </button>
+                                            @if ($canManagePropertyTechnician)
+                                                <form class="dropdown-menu p-3" method="POST" action="{{ route('properties.update.providers', $property) }}">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <h6 class="dropdown-header px-0">Proveedores de la propiedad</h6>
+                                                    @forelse ($availablePropertySuppliers as $supplier)
+                                                        <label class="dropdown-item d-flex gap-2 align-items-center"><input class="form-check-input mt-0" type="checkbox" name="provider_ids[]" value="{{ $supplier->id }}" @checked($property->supplierProviders->contains('id', $supplier->id))><span>{{ $supplier->name }} @if ($supplier->category)<small class="text-muted">· {{ $supplier->category }}</small>@endif @unless ($supplier->is_active)<small class="text-muted">· Inactivo</small>@endunless</span></label>
+                                                    @empty
+                                                        <p class="text-muted small">No hay proveedores activos.</p>
+                                                    @endforelse
+                                                    <button class="btn btn-sm btn-primary mt-2" type="submit">Guardar proveedores</button>
+                                                </form>
+                                            @endif
+                                        </div>
+
+                                        <div class="dropdown property-assignment-dropdown">
                                             <button class="btn btn-sm btn-primary dropdown-toggle property-assignment-button" type="button"
                                                 data-bs-toggle="dropdown" title="{{ $property->tenant?->full_name ?: 'Sin inquilino asignado' }}">
                                                 <span class="property-assignment-button__content">

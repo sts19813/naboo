@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -73,6 +74,11 @@ class MaintenanceProvider extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(MaintenanceTicketAssignment::class, 'provider_id');
+    }
+
+    public function properties(): BelongsToMany
+    {
+        return $this->belongsToMany(Property::class, 'maintenance_provider_property')->withPivot('assigned_by_user_id')->withTimestamps();
     }
 
     public function currentAssignments(): HasMany

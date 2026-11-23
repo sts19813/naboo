@@ -379,6 +379,24 @@ class PropertyController extends Controller
             ->with('success', $tenant ? 'Inquilino actualizado correctamente.' : 'Inquilino quitado correctamente.');
     }
 
+    public function updateProviders(Request $request, Property $property): RedirectResponse
+    {
+        $this->ensureCanManagePropertyTechnician($request);
+        $validated = $request->validate([
+            'provider_ids' => ['nullable', 'array'],
+            'provider_ids.*' => ['integer', 'distinct', Rule::exists('maintenance_providers', 'id')->where(fn ($query) => $query->where('type', 'proveedor')->where(fn ($query) => $query->where('is_active', true)->orWhereIn('id', $property->supplierProviders()->select('maintenance_providers.id'))))],
+        ]);
+        DB::transaction(function () use ($property, $validated, $request): void {
+            $locked = Property::query()->lockForUpdate()->findOrFail($property->id);
+            $ids = collect($validated['provider_ids'] ?? [])->map(fn ($id) => (int) $id);
+            $existing = $locked->supplierProviders()->pluck('maintenance_providers.id');
+            $locked->supplierProviders()->detach($existing->diff($ids));
+            $locked->supplierProviders()->attach($ids->diff($existing)->mapWithKeys(fn ($id) => [$id => ['assigned_by_user_id' => $request->user()->id]])->all());
+        });
+
+        return back()->with('success', 'Proveedores de la propiedad actualizados correctamente.');
+    }
+
     public function show(Property $property): View
     {
         $this->ensureCanViewArchivedProperty(request(), $property);
@@ -395,6 +413,7 @@ class PropertyController extends Controller
             'advisor',
             'advisors:id,name,email',
             'technicianProvider:id,uuid,user_id,name,email,type,specialty,is_active',
+            'supplierProviders:id,name,type,is_active',
             'logbookEntries.user:id,name,profile_photo',
             'logbookEntries.attachments',
         ]);
@@ -640,6 +659,7 @@ class PropertyController extends Controller
                 ->where('type', 'tecnico_interno')
                 ->orderBy('name')
                 ->get(['id', 'uuid', 'name', 'email', 'type', 'specialty']),
+            'availablePropertySuppliers' => MaintenanceProvider::query()->where('type', 'proveedor')->where(fn (Builder $query) => $query->where('is_active', true)->orWhereIn('id', $property->supplierProviders->pluck('id')))->orderBy('name')->get(['id', 'name', 'category', 'is_active']),
             'propertyMaintenanceProviders' => MaintenanceProvider::query()
                 ->where('is_active', true)->orderBy('name')->get(['id', 'name', 'type']),
             'availableAdvisors' => $this->availableAdvisors(),
