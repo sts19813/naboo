@@ -933,6 +933,61 @@
     --maint-purple-text: #ff7192;
 }
 
+/* Cortes de mantenimiento: pendientes, sin costo y el historial. */
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts :is(.cut-metric, .cut-panel, .cut-table-column, .cut-summary-card) {
+    color: #dbe3ed;
+    background: #18212c;
+    border-color: #303c4c;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+}
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts :is(.cut-workspace, .cut-history-detail) { background: #111822; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts :is(.cut-tabs, .cut-summary-count) { background: #202a37; border-color: #344154; color: #c7d0dc; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-tab { color: #b5c1d1; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-tab span { background: #344154; color: #dce4ee; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-tab.active { background: #38202b; color: #ff7192; box-shadow: none; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-tab.active span { background: #583043; color: #fff; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts :is(.cut-metric strong, .cut-technician-name, .cut-summary-count strong, .cut-summary-lines strong, .cut-history-item summary > span > strong) { color: #eef2f7; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-ticket-link span { color: #c7d0dc; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-metric strong { white-space: normal; overflow-wrap: anywhere; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts :is(.cut-summary-total strong, .cut-history-total strong) { color: #75dda8 !important; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts :is(.cut-subtitle, .cut-metric small, .cut-panel-heading p, .cut-history-item small, .cut-summary-heading small, .cut-summary-lines > div, .cut-summary-note, .cut-empty p) { color: #a9b5c7; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts :is(.cut-panel-heading, .cut-summary-heading, .cut-summary-total, .cut-history-item, .cut-history-detail) { border-color: #303c4c; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts :is(.cut-select-all-button, .cut-summary-icon) { background: #38202b; color: #ff7192; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-metric-icon.is-blue { background: #1b3451; color: #86b9ff; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-metric-icon.is-purple { background: #302746; color: #c1a9ff; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-metric-icon.is-amber { background: #43351e; color: #ffd178; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts :is(.cut-metric-icon.is-green, .cut-empty > span, .cut-paid-icon) { background: #173c30; color: #75dda8; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts .cut-history-detail table { background: #18212c; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts table.table > tbody > tr.cut-ticket-row.is-selected > td { background: #38202b !important; }
+[data-bs-theme="dark"] body.su-admin-layout .maintenance-cuts table.table > tbody > tr.cut-ticket-row.is-incompatible > td { background: #151d28 !important; }
+
+/* Superficies propias de módulos que no usan componentes de tarjeta estándar. */
+[data-bs-theme="dark"] body.su-admin-layout .mailbox-module {
+    --mailbox-surface: #18212c; --mailbox-ink: #eef2f7; --mailbox-text: #c7d0dc;
+    --mailbox-muted: #a9b5c7; --mailbox-line: #303c4c;
+}
+[data-bs-theme="dark"] body.su-admin-layout .mailbox-row { background: #18212c; border-color: #303c4c; }
+[data-bs-theme="dark"] body.su-admin-layout .mailbox-avatar { background: #43351e; color: #ffd178; }
+[data-bs-theme="dark"] body.su-admin-layout .property-map-module { --map-panel: #18212c; --map-soft: #111822; }
+[data-bs-theme="dark"] body.su-admin-layout .property-map-module :is(.property-map-drawer, .property-map-toolbar, .property-map-step:not(.active)) { color: #dbe3ed; background: #18212c; border-color: #303c4c; }
+[data-bs-theme="dark"] body.su-admin-layout .property-map-module :is(.leaflet-popup-content-wrapper, .leaflet-popup-tip) { background: #18212c; color: #dbe3ed; }
+[data-bs-theme="dark"] body.su-admin-layout .property-map-module :is(.property-map-info, .property-map-charge-card, .property-map-empty) { color: #dbe3ed; background: #202a37; border-color: #303c4c; }
+[data-bs-theme="dark"] body.su-admin-layout .property-map-module :is(.property-map-info span, .property-map-charge-card span) { color: #a9b5c7; }
+[data-bs-theme="dark"] body.su-admin-layout .property-module .property-charge-tabs button:not([aria-selected="true"]) { color: #c7d0dc; background: #202a37; border-color: #344154; }
+[data-bs-theme="dark"] body.su-admin-layout :is(.charges-list-tabs, .documents-list-tabs) .nav-link:not(.active) { color: #c7d0dc; background: #202a37; border-color: #344154; }
+[data-bs-theme="dark"] body.su-admin-layout :is(.charges-list-tabs__count, .documents-list-tabs__count) { background: #344154; color: #e1e7ef; }
+[data-bs-theme="dark"] body.su-admin-layout :is(.storage-thumb, .storage-grid-media-placeholder, .documents-storage-widget) { background: #202a37; border-color: #303c4c; color: #c7d0dc; }
+[data-bs-theme="dark"] body.su-admin-layout :is(.directory-card, .directory-account-title) { background: #18212c; border-color: #303c4c; color: #dbe3ed; }
+[data-bs-theme="dark"] body.su-admin-layout .directory-card-heading { border-color: #303c4c; }
+[data-bs-theme="dark"] body.su-admin-layout .directory-tabs { background: #202a37; }
+[data-bs-theme="dark"] body.su-admin-layout .directory-tabs .nav-link { color: #b5c1d1; }
+[data-bs-theme="dark"] body.su-admin-layout .directory-tabs .nav-link.active { background: #38202b; color: #ff7192; box-shadow: none; }
+[data-bs-theme="dark"] body.su-admin-layout .directory-tabs .nav-link span { background: #344154; color: #dce4ee; }
+[data-bs-theme="dark"] body.su-admin-layout .directory-tabs .nav-link.active span { background: #583043; color: #fff; }
+[data-bs-theme="dark"] body.su-admin-layout .directory-empty strong { color: #eef2f7; }
+[data-bs-theme="dark"] body.su-admin-layout .directory-status { background: #303c4c; color: #dbe3ed; }
+[data-bs-theme="dark"] body.su-admin-layout .directory-status.is-active { background: #173c30; color: #75dda8; }
+
 [data-bs-theme="dark"] body.su-admin-layout :is(
     .maintenance-plain-btn,
     .maintenance-icon-btn,

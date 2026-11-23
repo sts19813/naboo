@@ -52,7 +52,7 @@
 
     @stack('styles')
     {{-- Se carga al final para sobreescribir los estilos claros definidos por cada módulo. --}}
-    <link rel="stylesheet" href="{{ asset('/assets/css/dark-theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('/assets/css/dark-theme.css') }}?v=20261123-2">
 </head>
 
 @php
