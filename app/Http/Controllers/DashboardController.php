@@ -7,6 +7,7 @@ use App\Models\ChargePayment;
 use App\Models\Expense;
 use App\Models\Property;
 use App\Models\User;
+use App\Support\PropertyVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -15,6 +16,8 @@ use Illuminate\View\View;
 class DashboardController extends Controller
 {
     private const ADVISOR_COMMISSION_RATE = 0.10;
+
+    public function __construct(private readonly PropertyVisibility $propertyVisibility) {}
 
     public function index(Request $request): View
     {
@@ -25,11 +28,12 @@ class DashboardController extends Controller
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'advisor_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'property_scope' => ['nullable', 'in:mine,all'],
+            'property_id' => ['nullable', 'integer', 'exists:properties,id'],
         ]);
 
         $isAdvisorUser = $this->isAdvisorUser($request);
-        $propertyScope = $isAdvisorUser && (($validated['property_scope'] ?? 'mine') === 'all') ? 'all' : 'mine';
-        $visiblePropertyIds = $isAdvisorUser && $propertyScope === 'mine'
+        $propertyScope = 'mine';
+        $visiblePropertyIds = $isAdvisorUser
             ? $this->advisorPropertyIds($request)
             : null;
         $availableAdvisors = $this->availableAdvisors();
@@ -41,6 +45,14 @@ class DashboardController extends Controller
             $visiblePropertyIds,
             $selectedAdvisorId ? $this->advisorFilterPropertyIds($selectedAdvisorId) : null,
         );
+        $availableProperties = Property::query()
+            ->when($filteredPropertyIds !== null, fn ($query) => $query->whereIn('id', $filteredPropertyIds->all()))
+            ->orderBy('internal_name')->get(['id', 'internal_name', 'internal_reference']);
+        $selectedPropertyId = isset($validated['property_id']) ? (int) $validated['property_id'] : null;
+        if ($selectedPropertyId !== null && ! $availableProperties->contains('id', $selectedPropertyId)) {
+            abort(403);
+        }
+        $filteredPropertyIds = $this->intersectPropertyIds($filteredPropertyIds, $selectedPropertyId ? collect([$selectedPropertyId]) : null);
 
         $dashboardPeriod = $this->resolveDashboardPeriod($validated);
         $periodStart = $dashboardPeriod['start'];
@@ -53,7 +65,7 @@ class DashboardController extends Controller
         $alerts = $this->buildImportantAlerts($periodStart, $periodEnd, $referenceDate, $filteredPropertyIds);
         $propertySummaries = $this->buildPropertySummaries($periodStart, $periodEnd, $referenceDate, $filteredPropertyIds);
         $profitability = $this->buildProfitabilitySummary($periodStart, $periodEnd, $filteredPropertyIds);
-        $advisorCommissions = $this->buildCurrentMonthAdvisorCommissions();
+        $advisorCommissions = $this->buildCurrentMonthAdvisorCommissions($filteredPropertyIds);
 
         return view('dashboard', [
             'selectedMonth' => $selectedMonth,
@@ -66,6 +78,8 @@ class DashboardController extends Controller
             'propertyScope' => $propertyScope,
             'selectedAdvisorId' => $selectedAdvisorId,
             'availableAdvisors' => $availableAdvisors,
+            'availableProperties' => $availableProperties,
+            'selectedPropertyId' => $selectedPropertyId,
             'dashboardKpis' => $kpis,
             'collectionSummary' => $collectionSummary,
             'importantAlerts' => $alerts,
@@ -76,7 +90,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function buildCurrentMonthAdvisorCommissions(): Collection
+    private function buildCurrentMonthAdvisorCommissions(?Collection $visiblePropertyIds): Collection
     {
         $monthStart = now()->startOfMonth();
         $monthEnd = now()->endOfMonth();
@@ -87,6 +101,7 @@ class DashboardController extends Controller
             ->selectRaw('COUNT(DISTINCT charges.property_id) as collected_properties_count')
             ->join('charges', 'charges.id', '=', 'charge_payments.charge_id')
             ->join('properties', 'properties.id', '=', 'charges.property_id')
+            ->when($visiblePropertyIds !== null, fn ($query) => $query->whereIn('properties.id', $visiblePropertyIds->all()))
             ->whereNotNull('properties.advisor_user_id')
             ->where('charge_payments.status', ChargePayment::STATUS_SUCCEEDED)
             ->whereBetween('charge_payments.paid_at', [
@@ -98,8 +113,8 @@ class DashboardController extends Controller
             ->keyBy(fn ($total) => (int) $total->advisor_id);
 
         return User::query()
-            ->whereHas('assignedProperties')
-            ->withCount('assignedProperties')
+            ->whereHas('assignedProperties', fn ($query) => $query->when($visiblePropertyIds !== null, fn ($query) => $query->whereIn('properties.id', $visiblePropertyIds->all())))
+            ->withCount(['assignedProperties' => fn ($query) => $query->when($visiblePropertyIds !== null, fn ($query) => $query->whereIn('properties.id', $visiblePropertyIds->all()))])
             ->orderBy('name')
             ->get(['id', 'name', 'email'])
             ->map(function (User $advisor) use ($paymentTotals): array {
@@ -552,10 +567,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        return (bool) $user
-            && ! $user->hasRole('administrador')
-            && ! $user->hasRole('admin')
-            && ($user->hasRole('asesores') || $user->can('propiedades.ver_propias'));
+        return $this->propertyVisibility->shouldLimitToOwnProperties($user);
     }
 
     private function advisorPropertyIds(Request $request): Collection
@@ -566,19 +578,15 @@ class DashboardController extends Controller
             return collect();
         }
 
-        return $user->advisorProperties()
-            ->select('properties.id')
-            ->pluck('properties.id')
-            ->merge(Property::query()->where('advisor_user_id', $user->id)->pluck('id'))
-            ->unique()
-            ->values();
+        return $this->propertyVisibility->ownPropertyIds($user);
     }
 
     private function advisorFilterPropertyIds(int $advisorId): Collection
     {
         return Property::query()
             ->where(function ($query) use ($advisorId): void {
-                $query->where('advisor_user_id', $advisorId)
+                $query->where('created_by', $advisorId)
+                    ->orWhere('advisor_user_id', $advisorId)
                     ->orWhereHas('advisors', fn ($advisorQuery) => $advisorQuery->whereKey($advisorId));
             })
             ->pluck('id')

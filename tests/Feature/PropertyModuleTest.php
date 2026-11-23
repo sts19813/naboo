@@ -287,7 +287,7 @@ class PropertyModuleTest extends TestCase
         ]);
     }
 
-    public function test_advisor_role_sees_all_properties_by_default(): void
+    public function test_advisor_role_only_sees_visible_properties(): void
     {
         $advisorRole = Role::query()->create(['name' => 'asesores', 'guard_name' => 'web']);
         $advisor = User::factory()->create();
@@ -319,14 +319,14 @@ class PropertyModuleTest extends TestCase
             ->get(route('properties.index'))
             ->assertOk()
             ->assertSee('Casa Asignada')
-            ->assertSee('Casa General')
+            ->assertDontSee('Casa General')
             ->assertSee('Nueva Propiedad');
 
         $this->actingAs($advisor)
             ->get(route('properties.index', ['property_scope' => 'mine']))
             ->assertOk()
             ->assertSee('Casa Asignada')
-            ->assertSee('Casa General');
+            ->assertDontSee('Casa General');
     }
 
     public function test_advisor_role_can_create_edit_and_assign_property_to_another_advisor(): void

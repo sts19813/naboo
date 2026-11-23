@@ -5,6 +5,7 @@ use App\Console\Commands\ReportBillingUsage;
 use App\Console\Commands\SendExpenseNotificationsCommand;
 use App\Console\Commands\SyncCentralUsers;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\EnsurePropertyIsVisible;
 use App\Http\Middleware\EnsureStorageAccess;
 use App\Http\Middleware\EnsureUserHasSystemAccess;
 use Illuminate\Console\Scheduling\Schedule;
@@ -41,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => EnsureEmailIsVerified::class,
             'system.access' => EnsureUserHasSystemAccess::class,
             'storage.access' => EnsureStorageAccess::class,
+            'property.visible' => EnsurePropertyIsVisible::class,
         ]);
 
         //

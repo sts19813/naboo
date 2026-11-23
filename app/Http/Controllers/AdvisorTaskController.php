@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\PropertyDocument;
 use App\Models\TenantDocument;
 use App\Models\User;
+use App\Support\PropertyVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -16,6 +17,10 @@ use Illuminate\View\View;
 
 class AdvisorTaskController extends Controller
 {
+    public function __construct(private readonly PropertyVisibility $propertyVisibility)
+    {
+    }
+
     public function index(Request $request): View
     {
         $validated = $request->validate([
@@ -443,12 +448,7 @@ class AdvisorTaskController extends Controller
             return collect();
         }
 
-        return $user->advisorProperties()
-            ->select('properties.id')
-            ->pluck('properties.id')
-            ->merge(Property::query()->where('advisor_user_id', $user->id)->pluck('id'))
-            ->unique()
-            ->values();
+        return $this->propertyVisibility->ownPropertyIds($user);
     }
 
     private function isTechnician(User $user): bool

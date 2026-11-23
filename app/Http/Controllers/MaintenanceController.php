@@ -17,6 +17,7 @@ use App\Models\MaintenanceTicketNotification;
 use App\Models\Property;
 use App\Models\User;
 use App\Support\NotificationSettings;
+use App\Support\PropertyVisibility;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -36,6 +37,8 @@ use Spatie\Permission\Models\Role;
 class MaintenanceController extends Controller
 {
     private const MANAGE_TECHNICIANS_PERMISSION = 'administracion de tecnicos';
+
+    public function __construct(private readonly PropertyVisibility $propertyVisibility) {}
 
     public function index(Request $request): View
     {
@@ -1216,7 +1219,7 @@ class MaintenanceController extends Controller
     {
         $query = Property::query();
         if ($role === 'administrador') {
-            return $query;
+            return $this->propertyVisibility->scopeVisibleToUser($query, $user);
         }
         if ($role === 'propietario') {
             return $query->whereHas('owners', fn (Builder $ownerQuery) => $ownerQuery->where('email', $user->email));
@@ -1254,7 +1257,10 @@ class MaintenanceController extends Controller
     {
         $query = MaintenanceTicket::query();
         if ($role === 'administrador') {
-            return $query;
+            return $query->when(
+                $this->propertyVisibility->shouldLimitToOwnProperties($user),
+                fn (Builder $tickets) => $tickets->whereHas('property', fn (Builder $properties) => $this->propertyVisibility->scopeVisibleToUser($properties, $user)),
+            );
         }
         if ($role === 'propietario') {
             return $query->whereHas('property.owners', fn (Builder $ownerQuery) => $ownerQuery->where('email', $user->email));

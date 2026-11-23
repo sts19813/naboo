@@ -327,15 +327,6 @@
             </div>
 
             <form method="GET" action="{{ route('dashboard') }}" class="d-flex flex-wrap align-items-end gap-3 dashboard-filter-panel">
-                @if ($isAdvisorUser)
-                    <div class="dashboard-filter-field dashboard-filter-field--wide">
-                        <label class="form-label fs-8 fw-bold text-muted text-uppercase mb-1">Propiedades</label>
-                        <select name="property_scope" class="form-select w-200px">
-                            <option value="mine" {{ $propertyScope !== 'all' ? 'selected' : '' }}>Mis propiedades</option>
-                            <option value="all" {{ $propertyScope === 'all' ? 'selected' : '' }}>Todas las propiedades</option>
-                        </select>
-                    </div>
-                @endif
                 <div class="dashboard-filter-field dashboard-filter-field--wide">
                     <label class="form-label fs-8 fw-bold text-muted text-uppercase mb-1">Asesor</label>
                     <select name="advisor_user_id" class="form-select w-225px">
@@ -344,6 +335,15 @@
                             <option value="{{ $advisor->id }}" {{ (string) $selectedAdvisorId === (string) $advisor->id ? 'selected' : '' }}>
                                 {{ $advisor->name }}{{ $advisor->email ? ' · ' . $advisor->email : '' }}
                             </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="dashboard-filter-field dashboard-filter-field--wide">
+                    <label class="form-label fs-8 fw-bold text-muted text-uppercase mb-1" for="dashboard_property_filter">Propiedad</label>
+                    <select name="property_id" id="dashboard_property_filter" class="form-select w-225px" data-control="select2" data-placeholder="Todas las propiedades" data-allow-clear="true">
+                        <option value="">Todas las propiedades</option>
+                        @foreach ($availableProperties as $property)
+                            <option value="{{ $property->id }}" @selected($selectedPropertyId === $property->id)>{{ $property->internal_name }}{{ $property->internal_reference ? ' · ' . $property->internal_reference : '' }}</option>
                         @endforeach
                     </select>
                 </div>

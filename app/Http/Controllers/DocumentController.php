@@ -15,6 +15,7 @@ use App\Models\TenantDocumentVersion;
 use App\Services\DossierDocumentRequirementService;
 use App\Support\DossierSettings;
 use App\Support\DossierStorageUsage;
+use App\Support\PropertyVisibility;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,10 @@ class DocumentController extends Controller
 {
     private const DELETE_FILES_PERMISSION = 'expedientes.eliminar_archivos';
 
-    public function __construct(private readonly DossierDocumentRequirementService $requirements)
+    public function __construct(
+        private readonly DossierDocumentRequirementService $requirements,
+        private readonly PropertyVisibility $propertyVisibility,
+    )
     {
     }
 
@@ -41,7 +45,7 @@ class DocumentController extends Controller
 
         $activeView = (string) ($filters['view'] ?? 'all');
 
-        $documents = $this->buildDocumentsCollection();
+        $documents = $this->buildDocumentsCollection($request);
         $documents = $documents->whereNotNull('file_url')->sortByDesc('updated_at')->values();
 
         $stats = [
@@ -683,21 +687,30 @@ class DocumentController extends Controller
         return back()->with('success', 'Versión eliminada del expediente de propietario.');
     }
 
-    private function buildDocumentsCollection(): Collection
+    private function buildDocumentsCollection(Request $request): Collection
     {
         $propertyDocuments = PropertyDocument::query()
+            ->when($this->propertyVisibility->shouldLimitToOwnProperties($request->user()), function ($query) use ($request): void {
+                $query->whereHas('property', fn ($propertyQuery) => $this->propertyVisibility->scopeVisibleToUser($propertyQuery, $request->user()));
+            })
             ->with(['property:id,uuid,internal_name', 'latestVersion'])
             ->withCount('versions')
             ->get()
             ->map(fn (PropertyDocument $document) => $this->mapPropertyDocument($document));
 
         $tenantDocuments = TenantDocument::query()
+            ->when($this->propertyVisibility->shouldLimitToOwnProperties($request->user()), function ($query) use ($request): void {
+                $query->whereHas('tenant.properties', fn ($propertyQuery) => $this->propertyVisibility->scopeVisibleToUser($propertyQuery, $request->user()));
+            })
             ->with(['tenant:id,uuid,full_name', 'latestVersion'])
             ->withCount('versions')
             ->get()
             ->map(fn (TenantDocument $document) => $this->mapTenantDocument($document));
 
         $ownerDocuments = OwnerDocument::query()
+            ->when($this->propertyVisibility->shouldLimitToOwnProperties($request->user()), function ($query) use ($request): void {
+                $query->whereHas('owner.properties', fn ($propertyQuery) => $this->propertyVisibility->scopeVisibleToUser($propertyQuery, $request->user()));
+            })
             ->with(['owner:id,uuid,name', 'latestVersion'])
             ->withCount('versions')
             ->get()

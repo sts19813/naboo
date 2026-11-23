@@ -23,6 +23,7 @@ use App\Models\User;
 use App\Models\Zone;
 use App\Services\DossierDocumentRequirementService;
 use App\Services\PropertyDeletionService;
+use App\Support\PropertyVisibility;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,6 +60,7 @@ class PropertyController extends Controller
     public function __construct(
         private readonly DossierDocumentRequirementService $requirements,
         private readonly PropertyDeletionService $propertyDeletion,
+        private readonly PropertyVisibility $propertyVisibility,
     ) {}
 
     public function index(Request $request): View
@@ -70,7 +72,7 @@ class PropertyController extends Controller
 
         abort_if($showArchived && ! $canArchiveProperties, 403);
 
-        $properties = Property::query()
+        $properties = $this->propertyVisibility->scopeVisibleToUser(Property::query(), $request->user())
             ->when($showArchived, fn ($query) => $query->whereNotNull('archived_at'))
             ->when(! $showArchived, fn ($query) => $query->whereNull('archived_at'))
             ->with(['type', 'zone', 'tenant', 'advisor', 'advisors:id,name,email'])

@@ -583,7 +583,8 @@ class CopilotToolRegistry
         if ($user->hasRole('asesores') || $user->hasRole('asesor') || $user->can('propiedades.ver_propias')) {
             return $query->where(function (Builder $builder) use ($user): void {
                 $builder
-                    ->where('advisor_user_id', $user->id)
+                    ->where('created_by', $user->id)
+                    ->orWhere('advisor_user_id', $user->id)
                     ->orWhereHas('advisors', fn (Builder $advisorQuery) => $advisorQuery->where('users.id', $user->id));
             });
         }

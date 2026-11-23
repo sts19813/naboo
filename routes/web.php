@@ -53,7 +53,7 @@ Route::post('/stripe/webhook', [ChargePaymentController::class, 'webhook'])
     ->name('stripe.webhook')
     ->withoutMiddleware([ValidateCsrfToken::class]);
 
-Route::middleware(['auth', 'system.access'])
+Route::middleware(['auth', 'system.access', 'property.visible'])
     ->group(function () {
         Route::get('/perfil', [ProfileController::class, 'index'])->name('profile.index');
         if (config('features.subscription_module_enabled')) {

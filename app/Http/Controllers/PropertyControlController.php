@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Property;
 use App\Services\PropertyControlService;
+use App\Support\PropertyVisibility;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -13,6 +14,7 @@ class PropertyControlController extends Controller
 {
     public function __construct(
         private readonly PropertyControlService $propertyControlService,
+        private readonly PropertyVisibility $propertyVisibility,
     ) {
     }
 
@@ -29,7 +31,7 @@ class PropertyControlController extends Controller
         $search = mb_strtolower($rawSearch);
         $statusFilter = $filters['status'] ?? 'all';
 
-        $properties = Property::query()
+        $properties = $this->propertyVisibility->scopeVisibleToUser(Property::query(), $request->user())
             ->with([
                 'advisor:id,name,email',
                 'advisors:id,name,email',

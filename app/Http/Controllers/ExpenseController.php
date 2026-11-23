@@ -14,6 +14,7 @@ use App\Models\Property;
 use App\Models\RecurringExpenseItem;
 use App\Models\RecurringExpenseItemFile;
 use App\Services\RecurringExpenseGenerator;
+use App\Support\PropertyVisibility;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,10 @@ use Illuminate\View\View;
 
 class ExpenseController extends Controller
 {
+    public function __construct(private readonly PropertyVisibility $propertyVisibility)
+    {
+    }
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -31,10 +36,19 @@ class ExpenseController extends Controller
         ]);
 
         $selectedPropertyUuid = trim((string) ($filters['property'] ?? ''));
+        $visiblePropertyIds = $this->propertyVisibility->shouldLimitToOwnProperties($request->user())
+            ? $this->propertyVisibility->ownPropertyIds($request->user())
+            : null;
 
         $selectedProperty = $selectedPropertyUuid !== ''
-            ? Property::query()->where('uuid', $selectedPropertyUuid)->first()
+            ? Property::query()
+                ->when($visiblePropertyIds !== null, fn (Builder $query) => $query->whereIn('id', $visiblePropertyIds->all()))
+                ->where('uuid', $selectedPropertyUuid)
+                ->first()
             : null;
+        if ($visiblePropertyIds !== null && $selectedPropertyUuid !== '' && ! $selectedProperty) {
+            abort(403);
+        }
 
         $expensesQuery = Expense::query()
             ->with([
@@ -42,6 +56,7 @@ class ExpenseController extends Controller
                 'files:id,expense_id,path,type,mime_type,original_name',
             ])
             ->withCount('files')
+            ->when($visiblePropertyIds !== null, fn (Builder $query) => $query->whereIn('property_id', $visiblePropertyIds->all()))
             ->when($selectedProperty, fn (Builder $query) => $query->where('property_id', $selectedProperty->id));
 
         $expenses = $expensesQuery
@@ -50,6 +65,7 @@ class ExpenseController extends Controller
 
         $summaryBaseQuery = Expense::query()
             ->includedInTotals()
+            ->when($visiblePropertyIds !== null, fn (Builder $query) => $query->whereIn('property_id', $visiblePropertyIds->all()))
             ->when($selectedProperty, fn (Builder $query) => $query->where('property_id', $selectedProperty->id));
 
         $summary = [
@@ -62,7 +78,10 @@ class ExpenseController extends Controller
 
         return view('expenses.index', [
             'expenses' => $expenses,
-            'properties' => Property::query()->orderBy('internal_name')->get(['id', 'uuid', 'internal_name', 'internal_reference']),
+            'properties' => Property::query()
+                ->when($visiblePropertyIds !== null, fn (Builder $query) => $query->whereIn('id', $visiblePropertyIds->all()))
+                ->orderBy('internal_name')
+                ->get(['id', 'uuid', 'internal_name', 'internal_reference']),
             'selectedProperty' => $selectedProperty,
             'summary' => $summary,
             'globalSetup' => $globalSetup,

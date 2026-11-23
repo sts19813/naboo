@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Charge;
 use App\Models\ChargePayment;
+use App\Models\Expense;
 use App\Models\Property;
 use App\Models\PropertyType;
 use App\Models\Tenant;
@@ -107,7 +108,7 @@ class DashboardModulesTest extends TestCase
             ->assertSee('Perfil');
     }
 
-    public function test_advisor_dashboard_defaults_to_assigned_properties_and_can_view_all(): void
+    public function test_advisor_dashboard_only_shows_visible_properties(): void
     {
         $advisorRole = Role::query()->create(['name' => 'asesores', 'guard_name' => 'web']);
         $advisor = User::factory()->create();
@@ -155,7 +156,137 @@ class DashboardModulesTest extends TestCase
             ->get(route('dashboard', ['property_scope' => 'all']))
             ->assertOk()
             ->assertSee('Casa Dashboard Asignada')
-            ->assertSee('Casa Dashboard General');
+            ->assertDontSee('Casa Dashboard General');
+    }
+
+    public function test_dashboard_can_filter_all_indicators_by_property(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-15 10:00:00'));
+
+        try {
+            $viewer = User::factory()->create();
+            $firstAdvisor = User::factory()->create(['name' => 'Asesor Propiedad Uno']);
+            $secondAdvisor = User::factory()->create(['name' => 'Asesor Propiedad Dos']);
+            $type = PropertyType::query()->create([
+                'name' => 'Casa',
+                'slug' => 'casa',
+                'is_active' => true,
+            ]);
+            $zone = Zone::query()->create([
+                'name' => 'Centro',
+                'slug' => 'centro',
+                'is_active' => true,
+            ]);
+            $tenant = Tenant::query()->create([
+                'full_name' => 'Cliente de filtro',
+                'phone_primary' => '5555555555',
+            ]);
+
+            $firstProperty = Property::query()->create([
+                'internal_name' => 'Casa Indicadores Uno',
+                'property_type_id' => $type->id,
+                'zone_id' => $zone->id,
+                'full_address' => 'Calle 1',
+                'status' => Property::STATUS_OCCUPIED,
+                'tenant_id' => $tenant->id,
+                'advisor_user_id' => $firstAdvisor->id,
+                'monthly_rent_price' => 1000,
+                'created_by' => $viewer->id,
+            ]);
+            $secondProperty = Property::query()->create([
+                'internal_name' => 'Casa Indicadores Dos',
+                'property_type_id' => $type->id,
+                'zone_id' => $zone->id,
+                'full_address' => 'Calle 2',
+                'status' => Property::STATUS_OCCUPIED,
+                'tenant_id' => $tenant->id,
+                'advisor_user_id' => $secondAdvisor->id,
+                'monthly_rent_price' => 2000,
+                'created_by' => $viewer->id,
+            ]);
+
+            $firstCharge = Charge::query()->create([
+                'property_id' => $firstProperty->id,
+                'tenant_id' => $tenant->id,
+                'type' => Charge::TYPE_RENT,
+                'due_date' => '2026-06-10',
+                'amount' => 1000,
+                'paid_amount' => 1000,
+                'period_month' => 6,
+                'period_year' => 2026,
+                'concept' => 'Renta propiedad uno',
+                'status' => Charge::STATUS_PAID,
+                'created_by' => $viewer->id,
+            ]);
+            Charge::query()->create([
+                'property_id' => $secondProperty->id,
+                'tenant_id' => $tenant->id,
+                'type' => Charge::TYPE_RENT,
+                'due_date' => '2026-06-20',
+                'amount' => 2000,
+                'paid_amount' => 0,
+                'period_month' => 6,
+                'period_year' => 2026,
+                'concept' => 'Renta propiedad dos',
+                'status' => Charge::STATUS_PENDING,
+                'created_by' => $viewer->id,
+            ]);
+            ChargePayment::query()->create([
+                'charge_id' => $firstCharge->id,
+                'amount' => 1000,
+                'status' => ChargePayment::STATUS_SUCCEEDED,
+                'paid_at' => Carbon::parse('2026-06-10 09:00:00'),
+            ]);
+
+            Expense::query()->create([
+                'property_id' => $firstProperty->id,
+                'concept' => 'Mantenimiento propiedad uno',
+                'amount' => 100,
+                'due_date' => '2026-06-10',
+                'paid_at' => Carbon::parse('2026-06-10 09:00:00'),
+                'created_by' => $viewer->id,
+            ]);
+            Expense::query()->create([
+                'property_id' => $secondProperty->id,
+                'concept' => 'Mantenimiento propiedad dos',
+                'amount' => 500,
+                'due_date' => '2026-06-10',
+                'paid_at' => Carbon::parse('2026-06-10 09:00:00'),
+                'created_by' => $viewer->id,
+            ]);
+
+            $response = $this->actingAs($viewer)
+                ->get(route('dashboard', [
+                    'property_id' => $firstProperty->id,
+                    'preset' => 'custom',
+                    'start_date' => '2026-06-01',
+                    'end_date' => '2026-06-30',
+                ]))
+                ->assertOk()
+                ->assertSee('Propiedad')
+                ->assertSee('id="dashboard_property_filter"', false)
+                ->assertSee('data-control="select2"', false)
+                ->assertSee('Casa Indicadores Uno');
+
+            $response
+                ->assertViewHas('selectedPropertyId', $firstProperty->id)
+                ->assertViewHas('availableProperties', fn (Collection $properties): bool => $properties->pluck('id')->sort()->values()->all() === [$firstProperty->id, $secondProperty->id])
+                ->assertViewHas('dashboardKpis', fn (array $kpis): bool => $kpis[0]['value'] === '1'
+                    && $kpis[2]['value'] === '$1,000.00'
+                    && $kpis[3]['value'] === '$1,000.00'
+                    && $kpis[4]['value'] === '$0.00')
+                ->assertViewHas('collectionSummary', fn (array $summary): bool => $summary['series'] === [1000.0, 0.0, 0.0])
+                ->assertViewHas('propertySummaries', fn (Collection $summaries): bool => $summaries->count() === 1
+                    && $summaries->first()['property']->is($firstProperty))
+                ->assertViewHas('profitabilitySummary', fn (array $summary): bool => $summary['income_total'] === 1000.0
+                    && $summary['expense_total'] === 100.0
+                    && $summary['profit_total'] === 900.0)
+                ->assertViewHas('advisorCommissions', fn (Collection $commissions): bool => $commissions->count() === 1
+                    && $commissions->first()['advisor']->is($firstAdvisor)
+                    && $commissions->first()['collected_amount'] === 1000.0);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_collection_kpis_match_donut_values_for_selected_range(): void
