@@ -6,6 +6,8 @@
     <div class="maintenance-module maintenance-cuts py-8">
         @php
             $showHistory = !$errors->any() && (session('success') || request('tab') === 'historial');
+            $showZeroCost = !$showHistory && request('tab') === 'sin-costo';
+            $showPending = !$showHistory && !$showZeroCost;
         @endphp
         <div class="cut-heading">
             <div>
@@ -48,12 +50,16 @@
         </div>
 
         <div class="cut-tabs" role="tablist" aria-label="Secciones del corte de mantenimiento">
-            <button class="cut-tab {{ $showHistory ? '' : 'active' }}" id="pending-tab" data-bs-toggle="tab"
+            <button class="cut-tab {{ $showPending ? 'active' : '' }}" id="pending-tab" data-bs-toggle="tab"
                 data-bs-target="#pending-pane" type="button" role="tab" aria-controls="pending-pane"
-                aria-selected="{{ $showHistory ? 'false' : 'true' }}">
+                aria-selected="{{ $showPending ? 'true' : 'false' }}">
                 <i class="bi bi-list-check"></i>
                 Pendientes de pago
                 <span>{{ $tickets->count() }}</span>
+            </button>
+            <button class="cut-tab {{ $showZeroCost ? 'active' : '' }}" id="zero-cost-tab" data-bs-toggle="tab"
+                data-bs-target="#zero-cost-pane" type="button" role="tab" aria-controls="zero-cost-pane" aria-selected="{{ $showZeroCost ? 'true' : 'false' }}">
+                <i class="bi bi-slash-circle"></i> Tickets sin costo <span>{{ $zeroCostTickets->count() }}</span>
             </button>
             <button class="cut-tab {{ $showHistory ? 'active' : '' }}" id="history-tab" data-bs-toggle="tab"
                 data-bs-target="#history-pane" type="button" role="tab" aria-controls="history-pane"
@@ -65,7 +71,7 @@
         </div>
 
         <div class="tab-content">
-        <div class="tab-pane fade {{ $showHistory ? '' : 'show active' }}" id="pending-pane" role="tabpanel" aria-labelledby="pending-tab" tabindex="0">
+        <div class="tab-pane fade {{ $showPending ? 'show active' : '' }}" id="pending-pane" role="tabpanel" aria-labelledby="pending-tab" tabindex="0">
         <section class="cut-panel">
             <div class="cut-panel-heading">
                 <div>
@@ -173,6 +179,36 @@
         </section>
         </div>
 
+        <div class="tab-pane fade {{ $showZeroCost ? 'show active' : '' }}" id="zero-cost-pane" role="tabpanel" aria-labelledby="zero-cost-tab" tabindex="0">
+            <section class="cut-panel">
+                <div class="cut-panel-heading"><div><h2>Tickets sin costo</h2><p>Selecciona tickets de un mismo técnico para cerrar su corte sin pago.</p></div></div>
+                @if ($zeroCostTickets->isEmpty())
+                    <div class="cut-empty"><h3>No hay tickets sin costo pendientes</h3></div>
+                @else
+                    <form method="POST" action="{{ route('maintenance-cuts.store') }}" id="zeroCostCutForm">
+                        @csrf
+                        <div class="table-responsive cut-table-wrap">
+                            <table class="table cut-table align-middle mb-0">
+                                <thead><tr><th>Seleccionar</th><th>Ticket</th><th>Propiedad</th><th>Técnico</th><th>Completado</th></tr></thead>
+                                <tbody>
+                                    @foreach ($zeroCostTickets as $ticket)
+                                        <tr>
+                                            <td><input class="form-check-input zero-cost-checkbox" type="checkbox" name="ticket_ids[]" value="{{ $ticket->id }}" data-technician-key="{{ $ticket->current_provider_id ? 'technician-'.$ticket->current_provider_id : 'unassigned' }}" aria-label="Seleccionar ticket {{ $ticket->display_reference }}"></td>
+                                            <td><a class="cut-ticket-link" href="{{ route('maintenance.show', $ticket) }}">#{{ $ticket->display_reference }} · {{ $ticket->title }}</a></td>
+                                            <td>{{ $ticket->property?->internal_name ?? '-' }}</td>
+                                            <td>{{ $ticket->currentProvider?->name ?? 'Sin técnico asignado' }}</td>
+                                            <td>{{ $ticket->completed_at?->format('d/m/Y H:i') ?: '-' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-5"><button class="maintenance-primary-btn" type="submit" id="closeZeroCostButton" disabled>Cerrar seleccionados</button></div>
+                    </form>
+                @endif
+            </section>
+        </div>
+
         <div class="tab-pane fade {{ $showHistory ? 'show active' : '' }}" id="history-pane" role="tabpanel" aria-labelledby="history-tab" tabindex="0">
         <section class="cut-panel">
             <div class="cut-panel-heading">
@@ -251,7 +287,7 @@
     @media(max-width:767px){.cut-tabs{width:100%;display:grid;grid-template-columns:1fr 1fr}.cut-tab{justify-content:center;padding:.7rem .5rem;font-size:.82rem}.cut-tab i{display:none}.cut-tab span{min-width:20px;height:20px}.cut-workspace{display:block}.cut-table-wrap{max-height:none}.cut-summary-card{display:block;margin:.75rem;border-radius:15px;padding:1rem}.cut-summary-count{margin:1rem 0}.cut-summary-lines{display:grid}.cut-summary-note{margin:1rem 0}.cut-table th:last-child,.cut-table td:last-child{padding-right:1rem}}
     .cut-workspace{gap:1.25rem;padding:1.25rem}.cut-table-column{border:1px solid #e7ebf2;border-radius:16px;overflow:hidden}.cut-table th:last-child,.cut-table td:last-child{padding-right:2rem}.cut-summary-card{margin:0;background:#fff;color:#17213b;border:1px solid #e2e7f0;box-shadow:0 12px 28px rgba(25,40,75,.09)}.cut-summary-heading{border-bottom-color:#e8ecf3}.cut-summary-heading small{color:#8792aa}.cut-summary-heading h3{color:#17213b}.cut-summary-icon{background:#fff0f4;color:#ef285c}.cut-summary-count{background:#f6f7fa;color:#69758e;border:1px solid #ebedf3}.cut-summary-count strong{color:#17213b}.cut-summary-lines>div{color:#69758e}.cut-summary-lines strong{color:#17213b}.cut-summary-lines .cut-summary-total{border-top-color:#e5e9f0;color:#17213b}.cut-summary-note{color:#7d889f}.cut-summary-note i{color:#ef285c}
     @media(max-width:1200px){.cut-summary-card{margin:0}}
-    @media(max-width:767px){.cut-workspace{padding:.75rem;display:grid;gap:.75rem}.cut-summary-card{margin:0}.cut-table th:last-child,.cut-table td:last-child{padding-right:1.35rem}}
+    @media(max-width:767px){.cut-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.cut-tab{min-width:0;font-size:.72rem;gap:.25rem;padding:.6rem .2rem}.cut-workspace{padding:.75rem;display:grid;gap:.75rem}.cut-summary-card{margin:0}.cut-table th:last-child,.cut-table td:last-child{padding-right:1.35rem}}
     @media(min-width:768px){.cut-table-wrap{overflow-x:visible}.cut-table{width:100%;min-width:0;table-layout:fixed}.cut-ticket-link{min-width:0}.cut-table th,.cut-table td{padding-left:.5rem;padding-right:.5rem}.cut-table th:nth-child(2){width:14%}.cut-table th:nth-child(3){width:15%}.cut-table th:nth-child(4){width:12%}.cut-table th:nth-child(5),.cut-table th:nth-child(6){width:12%}.cut-table th:nth-child(7),.cut-table th:nth-child(8){width:9%}.cut-table th:nth-child(9){width:10%}.cut-table th:last-child,.cut-table td:last-child{padding-right:1.75rem}}
     @media(max-width:767px){.cut-table{min-width:1020px}.cut-table-wrap{overflow-x:auto}}
 </style>
@@ -259,6 +295,41 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+    [['pending-tab', null], ['zero-cost-tab', 'sin-costo'], ['history-tab', 'historial']].forEach(([id, tab]) => {
+        document.getElementById(id)?.addEventListener('shown.bs.tab', () => {
+            const url = new URL(window.location.href);
+            if (tab) url.searchParams.set('tab', tab); else url.searchParams.delete('tab');
+            window.history.replaceState({}, '', url);
+        });
+    });
+    const form = document.getElementById('zeroCostCutForm');
+    if (!form) return;
+    const boxes = Array.from(form.querySelectorAll('.zero-cost-checkbox'));
+    const button = document.getElementById('closeZeroCostButton');
+    function updateSelection() {
+        const selected = boxes.filter(box => box.checked);
+        const key = selected[0]?.dataset.technicianKey;
+        boxes.forEach(box => { box.disabled = Boolean(key && box.dataset.technicianKey !== key && !box.checked); });
+        button.disabled = selected.length === 0 || selected.some(box => box.dataset.technicianKey !== key);
+    }
+    boxes.forEach(box => box.addEventListener('change', updateSelection));
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        if (button.disabled) return;
+        const count = boxes.filter(box => box.checked).length;
+        const result = await window.Swal.fire({
+            title: 'Cerrar tickets sin costo',
+            text: `¿Confirmas el cierre sin costo de ${count} ticket(s)?`,
+            icon: 'question', showCancelButton: true,
+            confirmButtonText: 'Sí, cerrar', cancelButtonText: 'Cancelar',
+            buttonsStyling: false, customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-light' },
+        });
+        if (result.isConfirmed) { button.disabled = true; form.submit(); }
+    });
+    updateSelection();
+});
+
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('maintenanceCutForm');
     if (!form) return;

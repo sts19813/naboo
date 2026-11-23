@@ -18,7 +18,7 @@ class MaintenanceCutController extends Controller
     {
         $this->ensureAdministrator($request);
 
-        $tickets = MaintenanceTicket::query()
+        $completedTickets = MaintenanceTicket::query()
             ->where('status', 'completado')
             ->whereDoesntHave('cutItem')
             ->with([
@@ -31,6 +31,10 @@ class MaintenanceCutController extends Controller
             ->orderByDesc('completed_at')
             ->orderByDesc('id')
             ->get();
+
+        [$zeroCostTickets, $tickets] = $completedTickets->partition(
+            fn (MaintenanceTicket $ticket): bool => round((float) ($ticket->grand_total ?? 0), 2) <= 0
+        );
 
         $cuts = MaintenanceCut::query()
             ->with([
@@ -45,6 +49,7 @@ class MaintenanceCutController extends Controller
 
         return view('maintenance.cuts.index', [
             'tickets' => $tickets,
+            'zeroCostTickets' => $zeroCostTickets,
             'cuts' => $cuts,
             'pendingTotals' => $this->totalsFor($tickets),
             'paidGrandTotal' => (float) MaintenanceCut::query()->sum('grand_total'),
@@ -105,6 +110,13 @@ class MaintenanceCutController extends Controller
                 ];
             });
             $totals = $this->totalsFor($rows);
+
+            if ($rows->contains(fn (array $row) => $row['grand_total'] <= 0)
+                && $rows->contains(fn (array $row) => $row['grand_total'] > 0)) {
+                throw ValidationException::withMessages([
+                    'ticket_ids' => 'Los tickets sin costo deben cerrarse en su propio corte, separados de los tickets con monto.',
+                ]);
+            }
 
             $cut = MaintenanceCut::create([
                 'paid_by_user_id' => $request->user()?->id,

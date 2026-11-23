@@ -146,6 +146,59 @@ class MaintenanceCutModuleTest extends TestCase
         $this->assertDatabaseCount('maintenance_cut_items', 0);
     }
 
+    public function test_zero_cost_completed_tickets_are_separated_from_payable_cut_tickets(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::query()->create(['name' => 'administrador', 'guard_name' => 'web']));
+        $property = $this->createProperty($admin);
+
+        $payableTicket = $this->createTicket($property, 'Ticket con pago pendiente', 'completado');
+        $payableTicket->costs()->create([
+            'labor_cost' => 450,
+            'material_cost' => 50,
+            'final_cost' => 500,
+            'currency' => 'MXN',
+        ]);
+        $zeroCostTicket = $this->createTicket($property, 'Ticket cerrado sin costo', 'completado');
+
+        $this->actingAs($admin)
+            ->get(route('maintenance-cuts.index'))
+            ->assertOk()
+            ->assertSee('Pendientes de pago')
+            ->assertSee('Tickets sin costo')
+            ->assertSee('Ticket cerrado sin costo')
+            ->assertSee('Ticket con pago pendiente')
+            ->assertSee('name="ticket_ids[]" value="'.$payableTicket->id.'"', false)
+            ->assertSee('id="zeroCostCutForm"', false)
+            ->assertSee('name="ticket_ids[]" value="'.$zeroCostTicket->id.'"', false)
+            ->assertSee('Cerrar seleccionados');
+
+        $this->actingAs($admin)
+            ->post(route('maintenance-cuts.store'), ['ticket_ids' => [$payableTicket->id, $zeroCostTicket->id]])
+            ->assertSessionHasErrors('ticket_ids');
+
+        $this->assertDatabaseCount('maintenance_cuts', 0);
+        $this->assertDatabaseCount('maintenance_cut_items', 0);
+
+        $this->actingAs($admin)
+            ->post(route('maintenance-cuts.store'), ['ticket_ids' => [$zeroCostTicket->id]])
+            ->assertRedirect(route('maintenance-cuts.index'));
+
+        $this->assertDatabaseHas('maintenance_cuts', [
+            'paid_by_user_id' => $admin->id,
+            'ticket_count' => 1,
+            'labor_total' => 0,
+            'material_total' => 0,
+            'grand_total' => 0,
+        ]);
+        $this->assertDatabaseHas('maintenance_cut_items', [
+            'ticket_id' => $zeroCostTicket->id,
+            'labor_total' => 0,
+            'material_total' => 0,
+            'grand_total' => 0,
+        ]);
+    }
+
     public function test_completed_tickets_from_different_technicians_cannot_share_a_cut(): void
     {
         $admin = User::factory()->create();
