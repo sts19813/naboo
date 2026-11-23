@@ -20,6 +20,7 @@ use App\Http\Controllers\PropertyControlController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyAirbnbController;
 use App\Http\Controllers\PropertyLogbookController;
+use App\Http\Controllers\PropertyMapController;
 use App\Http\Controllers\StorageItemController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantSuggestionController;
@@ -76,6 +77,8 @@ Route::middleware(['auth', 'system.access', 'property.visible'])
         Route::get('/buzon', [TenantSuggestionController::class, 'index'])->name('mailbox.index');
 
         Route::get('/propiedades', [PropertyController::class, 'index'])->name('properties.index');
+        Route::get('/mapa', [PropertyMapController::class, 'index'])->name('properties.map');
+        Route::post('/mapa/sincronizar-ubicaciones', [PropertyMapController::class, 'syncPending'])->name('properties.map.sync-pending');
         Route::get('/propiedades/control', [PropertyControlController::class, 'index'])->name('properties.control');
         Route::patch('/propiedades/{property}/control/{checkKey}', [PropertyControlController::class, 'updateCheck'])->name('properties.control.checks.update');
         Route::get('/propiedades/nueva', [PropertyController::class, 'create'])->name('properties.create');

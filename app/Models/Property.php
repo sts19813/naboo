@@ -18,6 +18,7 @@ class Property extends Model
     private const CHANGE_LOG_IGNORED_ATTRIBUTES = [
         'updated_at',
         'created_at',
+        'map_latitude', 'map_longitude', 'map_resolved_url', 'map_coordinates_resolved_at', 'map_coordinates_checked_at',
     ];
 
     private array $pendingPropertyChangeSet = [];
@@ -61,6 +62,7 @@ class Property extends Model
         'zone_text',
         'full_address',
         'map_url',
+        'map_latitude', 'map_longitude', 'map_resolved_url', 'map_coordinates_resolved_at', 'map_coordinates_checked_at',
         'complex_name',
         'official_number',
         'unit_number',
@@ -111,6 +113,10 @@ class Property extends Model
             'archived_at' => 'datetime',
             'airbnb_enabled_at' => 'datetime',
             'airbnb_managed_at' => 'datetime',
+            'map_latitude' => 'decimal:7',
+            'map_longitude' => 'decimal:7',
+            'map_coordinates_resolved_at' => 'datetime',
+            'map_coordinates_checked_at' => 'datetime',
         ];
     }
 
@@ -123,6 +129,15 @@ class Property extends Model
         });
 
         static::updating(function (self $property): void {
+            if ($property->isDirty('map_url')) {
+                $property->forceFill([
+                    'map_latitude' => null,
+                    'map_longitude' => null,
+                    'map_resolved_url' => null,
+                    'map_coordinates_resolved_at' => null,
+                    'map_coordinates_checked_at' => null,
+                ]);
+            }
             $property->pendingPropertyChangeSet = $property->buildPendingPropertyChangeSet();
         });
 

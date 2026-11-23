@@ -419,9 +419,14 @@
                 <h1 class="mb-1 fw-bold text-dark">{{ $showArchived ? 'Propiedades archivadas' : 'Propiedades' }}</h1>
                 <div class="text-muted fs-6">{{ $properties->count() }} propiedades encontradas</div>
             </div>
+            <div class="d-flex flex-wrap gap-2">
+            @if (auth()->user()->hasAnyRole(['administrador', 'admin']) || !auth()->user()->hasAnyRole(['inquilino', 'tenant', 'propietario', 'owner', 'tecnico', 'technician', 'proveedor', 'provider']))
+                <a href="{{ route('properties.map') }}" class="btn btn-light-primary fw-bold"><i class="ki-outline ki-geolocation fs-4 me-1"></i> Ver mapa</a>
+            @endif
             <a href="{{ route('properties.create') }}" class="btn btn-primary fw-bold">
                 <i class="ki-outline ki-plus fs-4 me-1"></i> Nueva Propiedad
             </a>
+            </div>
         </div>
 
         @if ($canArchiveProperties)

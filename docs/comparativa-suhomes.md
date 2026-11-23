@@ -69,6 +69,8 @@ Revisión del código local: SuHomes `a3c84ac` y Naboo `0a292a2`. Este documento
 
 Se integraron y probaron la bitácora de propiedades con imágenes, el registro de varios comprobantes por pago y su descarga, las marcas manuales del control de propiedades, el permiso de acceso al almacén y las fotos de perfil en tablas de usuarios. Se aplicaron únicamente las migraciones de bitácora, comprobantes, control y permiso de almacén. La migración específica de Casa 320 B no fue trasladada ni ejecutada.
 
+El mapa interactivo de propiedades se integró con filtros, detalles, sincronización de enlaces pendientes y visibilidad por asesor. La resolución de red solo sigue redirecciones HTTPS de Google Maps permitidas; los enlaces no admitidos no se consultan.
+
 La ficha de propiedad también permite filtrar la lista de gastos y sus totales por mes actual, últimos tres meses o todos los periodos.
 
 La API de Airbnb y sus validaciones ya están preparadas y probadas en local, desactivadas por defecto y sin pestaña visible; consulta `docs/airbnb-integracion.md`.
