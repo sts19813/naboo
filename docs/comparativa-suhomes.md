@@ -81,6 +81,8 @@ La API de Airbnb y sus validaciones ya están preparadas y probadas en local, de
 
 En una segunda etapa se agregó el filtro por propiedad al panel y se restringieron a las propiedades visibles por asesor los listados de propiedades, cobranza, gastos, documentos y tickets, además del acceso directo a propiedades y varios registros vinculados. También se ajustaron los indicadores y comisiones del panel al alcance visible. Los accesos y operaciones no cubiertos por estas pruebas, en particular los flujos generales de propietarios e inquilinos, todavía requieren revisión.
 
+Al crear un ticket desde la ficha, un asesor asignado puede elegir un técnico o proveedor activo; los técnicos no reciben un botón que no pueden usar. La agrupación de tickets sigue pendiente: la implementación de SuHomes mueve los costos al ticket principal, por lo que debe conservarse el ticket de origen y protegerse la eliminación de propiedades cruzadas antes de trasladarla.
+
 La base local se respaldó antes de los cambios. Los conteos de las tablas originales de negocio se conservaron; los cambios en `migrations`, permisos y caché corresponden a las migraciones aplicadas. La comparación de conteos no es una comprobación de cada valor individual.
 
 **Pendiente:** los demás puntos del inventario requieren implementación y verificación individual. Las pruebas generales conservan cinco fallos de perfil que ya existían antes de esta integración.

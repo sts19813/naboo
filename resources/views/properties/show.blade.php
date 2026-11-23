@@ -1561,6 +1561,15 @@
                                         <label class="form-label required">Fecha reporte</label>
                                         <input class="form-control" type="datetime-local" name="reported_at" value="{{ now()->format('Y-m-d\\TH:i') }}" required>
                                     </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Técnico o proveedor asignado <span class="text-muted">(opcional)</span></label>
+                                        <select class="form-select" name="provider_id">
+                                            <option value="">Asignar al técnico responsable de la propiedad</option>
+                                            @foreach ($propertyMaintenanceProviders as $provider)
+                                                <option value="{{ $provider->id }}" @selected(old('provider_id') == $provider->id)>{{ $provider->name }} · {{ \App\Models\MaintenanceProvider::TYPE_LABELS[$provider->type] ?? $provider->type }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 @endif
                                 <div class="col-md-12">
                                     <label class="form-label required">Título</label>

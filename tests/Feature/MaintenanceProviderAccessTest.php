@@ -16,6 +16,32 @@ class MaintenanceProviderAccessTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_assigned_advisor_can_choose_an_active_provider_from_property_ticket_form(): void
+    {
+        Mail::fake();
+        $advisor = User::factory()->create();
+        $advisor->assignRole(Role::findOrCreate('asesores', 'web'));
+        $creator = User::factory()->create();
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $property = Property::create(['internal_name' => 'Casa asesor', 'property_type_id' => $type->id, 'full_address' => 'Calle 1', 'status' => Property::STATUS_AVAILABLE, 'created_by' => $creator->id]);
+        $property->advisors()->attach($advisor->id);
+        $active = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Proveedor activo', 'email' => 'activo@example.test', 'is_active' => true]);
+        $inactive = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Proveedor inactivo', 'email' => 'inactivo@example.test', 'is_active' => false]);
+
+        $this->actingAs($advisor)->get(route('properties.show', $property))->assertOk()
+            ->assertSee('createPropertyMaintenanceTicketModal', false)->assertSee('Técnico o proveedor asignado')
+            ->assertSee('Proveedor activo')->assertDontSee('Proveedor inactivo');
+        $payload = ['property_id' => $property->id, 'category' => 'plomeria', 'priority' => 'media',
+            'title' => 'Ticket elegido', 'exact_location' => 'Cocina', 'description' => 'Reparación',
+            'reported_at' => now()->toDateTimeString(), 'provider_id' => $active->id];
+        $this->actingAs($advisor)->post(route('maintenance.store'), $payload)->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('maintenance_tickets', ['property_id' => $property->id, 'title' => 'Ticket elegido', 'current_provider_id' => $active->id]);
+        $payload['provider_id'] = $inactive->id;
+        $payload['title'] = 'Ticket inválido';
+        $this->actingAs($advisor)->post(route('maintenance.store'), $payload)->assertSessionHasErrorsIn('createMaintenanceTicket', 'provider_id');
+        $this->assertDatabaseMissing('maintenance_tickets', ['title' => 'Ticket inválido']);
+    }
+
     public function test_supplier_only_sees_assigned_tickets_and_can_complete_them(): void
     {
         Mail::fake();

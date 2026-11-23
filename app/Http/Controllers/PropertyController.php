@@ -620,8 +620,7 @@ class PropertyController extends Controller
                 || auth()->user()?->hasRole('admin')
                 || auth()->user()?->hasRole('inquilino')
                 || auth()->user()?->hasRole('tenant')
-                || auth()->user()?->hasRole('tecnico')
-                || auth()->user()?->hasRole('technician')
+                || ($this->isAdvisorUser(auth()->user()) && ! auth()->user()?->hasAnyRole(['tecnico', 'technician', 'proveedor', 'provider']))
             ),
             'isTenantMaintenanceReporter' => $isTenantMaintenanceReporter,
             'propertyChangeLogs' => $propertyChangeLogs,
@@ -633,6 +632,8 @@ class PropertyController extends Controller
                 ->where('type', 'tecnico_interno')
                 ->orderBy('name')
                 ->get(['id', 'uuid', 'name', 'email', 'type', 'specialty']),
+            'propertyMaintenanceProviders' => MaintenanceProvider::query()
+                ->where('is_active', true)->orderBy('name')->get(['id', 'name', 'type']),
             'availableAdvisors' => $this->availableAdvisors(),
             'canManagePropertyAdvisors' => $this->canManagePropertyAssignments(auth()->user()),
             'canManagePropertyTechnician' => $this->canManagePropertyTechnician(auth()->user()),
