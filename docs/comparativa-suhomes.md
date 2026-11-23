@@ -71,7 +71,7 @@ Se integraron y probaron la bitácora de propiedades con imágenes, el registro 
 
 Los cortes de efectivo ahora agrupan pendientes e histórico por moneda, no permiten combinar monedas en un corte nuevo y muestran por separado los importes de cortes históricos mixtos. La moneda por propiedad todavía requiere adaptar los demás resúmenes y operaciones financieras antes de habilitarse.
 
-Los cortes de mantenimiento permiten filtrar las listas por propiedad, técnico y texto. Los tickets sin costo tienen una pestaña y cierre propios; el servidor impide mezclarlos con tickets con importe en el mismo corte. Los nuevos cortes de mantenimiento marcan como pagados los gastos vinculados que aún estaban pendientes, sin modificar fechas de pago previas; se omitió la migración de corrección histórica de SuHomes. Los proveedores se limitan a sus tickets asignados y pueden terminarlos, mientras que los técnicos no pueden completarlos ni crear tickets. Los reportes de mantenimiento siguen pendientes.
+Los cortes de mantenimiento permiten filtrar las listas por propiedad, técnico y texto. Los tickets sin costo tienen una pestaña y cierre propios; el servidor impide mezclarlos con tickets con importe en el mismo corte. Los nuevos cortes de mantenimiento marcan como pagados los gastos vinculados que aún estaban pendientes, sin modificar fechas de pago previas; se omitió la migración de corrección histórica de SuHomes. Los proveedores se limitan a sus tickets asignados y pueden terminarlos, mientras que los técnicos no pueden completarlos ni crear tickets.
 
 El mapa interactivo de propiedades se integró con filtros, detalles, sincronización de enlaces pendientes y visibilidad por asesor. La resolución de red solo sigue redirecciones HTTPS de Google Maps permitidas; los enlaces no admitidos no se consultan.
 
@@ -86,6 +86,8 @@ Al crear un ticket desde la ficha, un asesor asignado puede elegir un técnico o
 Las propiedades admiten varios proveedores asignados y conservan el usuario que registró cada asignación. Se impide desactivar o cambiar el tipo de un proveedor mientras esté asignado. Desde la ficha se pueden programar visitas semanales, cada dos o tres semanas o mensuales para un proveedor activo asignado; cada visita genera un ticket y el periodo se limita a 80. El acceso de proveedores a la ficha y a esta programación todavía requiere adaptación y revisión de permisos.
 
 El rol de revisor permite consultar y validar tickets completados dentro de un rango relativo o de fechas configurado por usuario. Las validaciones conservan responsable y fecha, y el acceso a los demás módulos y operaciones de mantenimiento está restringido. Una cuenta sin rango configurado no puede consultar tickets.
+
+Los reportes PDF y Excel de tickets y cortes se trasladaron de SuHomes, con filtros y colores de Naboo. Los filtros de propiedad incluyen tickets agrupados; los totales del reporte de cortes corresponden al corte completo. Los reportes se restringen a administradores sin limitación por asesor y los textos en Excel se guardan como texto, no como fórmulas.
 
 La base local se respaldó antes de los cambios. Los conteos de las tablas originales de negocio se conservaron; los cambios en `migrations`, permisos y caché corresponden a las migraciones aplicadas. La comparación de conteos no es una comprobación de cada valor individual.
 

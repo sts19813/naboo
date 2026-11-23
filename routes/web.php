@@ -207,7 +207,9 @@ Route::middleware(['auth', 'system.access', 'provider.operational', 'reviewer.re
         Route::delete('/gastos/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
 
         Route::get('/mantenimiento', [MaintenanceController::class, 'index'])->name('maintenance.index');
+        Route::get('/mantenimiento/exportar/{format}', [\App\Http\Controllers\MaintenanceReportController::class, 'tickets'])->name('maintenance.export');
         Route::get('/mantenimiento/cortes', [MaintenanceCutController::class, 'index'])->name('maintenance-cuts.index');
+        Route::get('/mantenimiento/cortes/exportar/{format}', [\App\Http\Controllers\MaintenanceReportController::class, 'cuts'])->name('maintenance-cuts.export');
         Route::patch('/mantenimiento/validar', [\App\Http\Controllers\MaintenanceReviewController::class, 'validateTickets'])->name('maintenance.validate');
         Route::post('/mantenimiento/cortes', [MaintenanceCutController::class, 'store'])->name('maintenance-cuts.store');
         Route::post('/mantenimiento', [MaintenanceController::class, 'store'])->name('maintenance.store');

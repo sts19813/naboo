@@ -132,6 +132,19 @@
                 </div>
             </div>
 
+            @if ($canExportReports)
+                <details class="maintenance-filter-panel"><summary class="fw-bold">Exportar tickets</summary>
+                    <form class="row g-3 align-items-end mt-1" method="GET">
+                        <div class="col-md-3"><label class="form-label">Técnicos</label><select class="form-select" name="technician_ids[]" multiple>@foreach ($providers->where('type', 'tecnico_interno') as $provider)<option value="{{ $provider->id }}">{{ $provider->name }}</option>@endforeach</select></div>
+                        <div class="col-md-3"><label class="form-label">Estados</label><select class="form-select" name="statuses[]" multiple>@foreach (\App\Models\MaintenanceTicket::STATUS_LABELS as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></div>
+                        <div class="col-md-2"><label class="form-label">Completado desde</label><input class="form-control" type="date" name="date_from"></div>
+                        <div class="col-md-2"><label class="form-label">Hasta</label><input class="form-control" type="date" name="date_to"></div>
+                        <div class="col-md-2"><label class="form-label">Orden</label><select class="form-select" name="sort_completed"><option value="completed_desc">Más recientes</option><option value="completed_asc">Más antiguos</option></select></div>
+                        <div class="col-12 d-flex gap-2"><button class="maintenance-primary-btn" formaction="{{ route('maintenance.export', 'pdf') }}">Descargar PDF</button><button class="maintenance-soft-btn" formaction="{{ route('maintenance.export', 'excel') }}">Descargar Excel</button></div>
+                    </form>
+                </details>
+            @endif
+
             @if (!$isTenant)
                 <div class="collapse" id="maintenanceFiltersCollapse">
                     <div class="maintenance-filter-panel">

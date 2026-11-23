@@ -30,6 +30,20 @@
             </div>
         @endif
 
+        @if ($canExportReports)
+            <details class="cut-panel p-5"><summary class="fw-bold">Exportar historial de cortes</summary>
+                <p class="text-muted mt-2 mb-0">Los filtros seleccionan cortes completos; los importes corresponden al corte entero.</p>
+                <form class="row g-3 align-items-end mt-1" method="GET">
+                    <div class="col-md-3"><label class="form-label">Proveedor</label><select class="form-select" name="provider_ids[]" multiple>@foreach ($reportProviders as $provider)<option value="{{ $provider->id }}">{{ $provider->name }}</option>@endforeach</select></div>
+                    <div class="col-md-3"><label class="form-label">Propiedad</label><select class="form-select" name="property_ids[]" multiple>@foreach ($reportProperties as $property)<option value="{{ $property->id }}">{{ $property->internal_name }}</option>@endforeach</select></div>
+                    <div class="col-md-2"><label class="form-label">Pagado desde</label><input class="form-control" type="date" name="date_from"></div><div class="col-md-2"><label class="form-label">Hasta</label><input class="form-control" type="date" name="date_to"></div>
+                    <div class="col-md-2"><label class="form-label">Orden</label><select class="form-select" name="sort_paid"><option value="paid_desc">Más recientes</option><option value="paid_asc">Más antiguos</option></select></div>
+                    <div class="col-md-6"><label class="form-label">Título o folio de ticket</label><input class="form-control" name="search"></div>
+                    <div class="col-12 d-flex gap-2"><button class="maintenance-primary-btn" formaction="{{ route('maintenance-cuts.export', 'pdf') }}">Descargar PDF</button><button class="maintenance-primary-btn" formaction="{{ route('maintenance-cuts.export', 'excel') }}">Descargar Excel</button></div>
+                </form>
+            </details>
+        @endif
+
         <div class="cut-metrics">
             <article class="cut-metric">
                 <span class="cut-metric-icon is-blue"><i class="bi bi-ticket-perforated"></i></span>

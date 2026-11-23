@@ -237,6 +237,7 @@ class MaintenanceController extends Controller
             'canUpdateTicketMeta' => in_array($role, ['administrador', 'tecnico'], true),
             'canManageCosts' => $role === 'administrador',
             'canGroupTickets' => ($role === 'tecnico' || ($role === 'administrador' && ! $this->propertyVisibility->shouldLimitToOwnProperties($user))) && $activeTab !== 'cancelados',
+            'canExportReports' => $user->hasAnyRole(['administrador', 'admin']) && ! $this->propertyVisibility->shouldLimitToOwnProperties($user),
             'isTenant' => $role === 'inquilino',
         ]);
     }

@@ -58,6 +58,9 @@ class MaintenanceCutController extends Controller
             'cuts' => $cuts,
             'pendingTotals' => $this->totalsFor($tickets),
             'paidGrandTotal' => (float) MaintenanceCut::query()->sum('grand_total'),
+            'canExportReports' => ! app(\App\Support\PropertyVisibility::class)->shouldLimitToOwnProperties($request->user()),
+            'reportProviders' => \App\Models\MaintenanceProvider::query()->orderBy('name')->get(['id', 'name']),
+            'reportProperties' => \App\Models\Property::query()->orderBy('internal_name')->get(['id', 'internal_name']),
         ]);
     }
 
