@@ -1246,7 +1246,12 @@
                                         <tbody>
                                             @forelse ($propertyCharges as $charge)
                                                 <tr>
-                                                    <td>{{ $charge->concept }}</td>
+                                                    <td>{{ $charge->concept }}
+                                                        @if ($charge->source === \App\Models\Charge::SOURCE_AIRBNB_SU)
+                                                            <span class="badge badge-light-primary">Airbnb SU</span>
+                                                            <div class="text-muted fs-8">Cliente: {{ $charge->customer_display_name }}</div>
+                                                        @endif
+                                                    </td>
                                                     <td>{{ str_pad((string) $charge->period_month, 2, '0', STR_PAD_LEFT) }}/{{ $charge->period_year }}
                                                     </td>
                                                     <td>{{ $charge->due_date?->format('d/m/Y') ?? '-' }}</td>

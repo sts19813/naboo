@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\GenerateRecurringExpensesCommand;
+use App\Console\Commands\IssueAirbnbIntegrationTokenCommand;
 use App\Console\Commands\ReportBillingUsage;
 use App\Console\Commands\SendExpenseNotificationsCommand;
 use App\Console\Commands\SyncCentralUsers;
@@ -13,6 +14,9 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use App\Http\Middleware\EnsureAirbnbIntegrationEnabled;
+use App\Http\Middleware\EnsureActiveIntegrationClient;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         SendExpenseNotificationsCommand::class,
         ReportBillingUsage::class,
         SyncCentralUsers::class,
+        IssueAirbnbIntegrationTokenCommand::class,
     ])
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('expenses:generate-recurring')->dailyAt('07:45')->withoutOverlapping();
@@ -43,6 +48,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'system.access' => EnsureUserHasSystemAccess::class,
             'storage.access' => EnsureStorageAccess::class,
             'property.visible' => EnsurePropertyIsVisible::class,
+            'abilities' => CheckAbilities::class,
+            'airbnb.enabled' => EnsureAirbnbIntegrationEnabled::class,
+            'integration.client' => EnsureActiveIntegrationClient::class,
         ]);
 
         //

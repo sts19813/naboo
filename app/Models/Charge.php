@@ -17,6 +17,8 @@ class Charge extends Model
     public const TYPE_PENALTY = 'penalty';
     public const TYPE_DEPOSIT_ADJUSTMENT = 'deposit_adjustment';
     public const TYPE_OTHER = 'other';
+    public const SOURCE_MANUAL = 'manual';
+    public const SOURCE_AIRBNB_SU = 'airbnbsu';
 
     public const STATUS_PENDING = 'pending';
     public const STATUS_IN_VALIDATION = 'in_validation';
@@ -52,6 +54,7 @@ class Charge extends Model
         'uuid',
         'property_id',
         'tenant_id',
+        'customer_name',
         'type',
         'due_date',
         'amount',
@@ -61,6 +64,7 @@ class Charge extends Model
         'concept',
         'notes',
         'status',
+        'source',
         'payment_token',
         'paid_at',
         'created_by',
@@ -114,6 +118,11 @@ class Charge extends Model
     public function getTypeLabelAttribute(): string
     {
         return self::TYPE_LABELS[$this->type] ?? ucfirst(str_replace('_', ' ', $this->type));
+    }
+
+    public function getCustomerDisplayNameAttribute(): string
+    {
+        return $this->customer_name ?: ($this->tenant?->full_name ?: '-');
     }
 
     public function getStatusLabelAttribute(): string

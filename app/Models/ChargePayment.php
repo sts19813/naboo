@@ -26,6 +26,7 @@ class ChargePayment extends Model
     public const SOURCE_STRIPE = 'stripe';
 
     public const SOURCE_PUBLIC_TRANSFER = 'public_transfer';
+    public const SOURCE_AIRBNB_SU = 'airbnbsu';
 
     public const METHOD_SPEI = 'spei';
 

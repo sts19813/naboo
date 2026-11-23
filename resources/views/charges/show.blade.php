@@ -81,7 +81,7 @@
                     </div>
                     <div class="col-lg-4">
                         <div class="text-muted fs-7 mb-1">Inquilino</div>
-                        <div class="fw-semibold">{{ $charge->tenant?->full_name ?? '-' }}</div>
+                        <div class="fw-semibold">{{ $charge->customer_display_name }}</div>
                         <div class="text-muted fs-8">{{ $charge->tenant?->email ?? '-' }}</div>
                     </div>
                     <div class="col-lg-4">

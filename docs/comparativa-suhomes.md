@@ -69,6 +69,8 @@ Revisión del código local: SuHomes `a3c84ac` y Naboo `0a292a2`. Este documento
 
 Se integraron y probaron la bitácora de propiedades con imágenes, el registro de varios comprobantes por pago y su descarga, las marcas manuales del control de propiedades, el permiso de acceso al almacén y las fotos de perfil en tablas de usuarios. Se aplicaron únicamente las migraciones de bitácora, comprobantes, control y permiso de almacén. La migración específica de Casa 320 B no fue trasladada ni ejecutada.
 
+La API de Airbnb y sus validaciones ya están preparadas y probadas en local, desactivadas por defecto y sin pestaña visible; consulta `docs/airbnb-integracion.md`.
+
 En una segunda etapa se agregó el filtro por propiedad al panel y se restringieron a las propiedades visibles por asesor los listados de propiedades, cobranza, gastos, documentos y tickets, además del acceso directo a propiedades y varios registros vinculados. También se ajustaron los indicadores y comisiones del panel al alcance visible. Los accesos y operaciones no cubiertos por estas pruebas, en particular los flujos generales de propietarios e inquilinos, todavía requieren revisión.
 
 La base local se respaldó antes de los cambios. Los conteos de las tablas originales de negocio se conservaron; los cambios en `migrations`, permisos y caché corresponden a las migraciones aplicadas. La comparación de conteos no es una comprobación de cada valor individual.

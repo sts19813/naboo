@@ -18,6 +18,7 @@ use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyControlController;
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\PropertyAirbnbController;
 use App\Http\Controllers\PropertyLogbookController;
 use App\Http\Controllers\StorageItemController;
 use App\Http\Controllers\TenantController;
@@ -88,6 +89,7 @@ Route::middleware(['auth', 'system.access', 'property.visible'])
         Route::patch('/propiedades/{property}/restaurar', [PropertyController::class, 'restore'])->name('properties.restore');
         Route::delete('/propiedades/{property}', [PropertyController::class, 'destroy'])->name('properties.destroy');
         Route::get('/propiedades/{property}', [PropertyController::class, 'show'])->name('properties.show');
+        Route::patch('/propiedades/{property}/airbnb', [PropertyAirbnbController::class, 'update'])->middleware('airbnb.enabled')->name('properties.airbnb.update');
         Route::post('/propiedades/{property}/bitacora', [PropertyLogbookController::class, 'store'])->name('properties.logbook.store');
         Route::delete('/propiedades/{property}/bitacora/{entry}', [PropertyLogbookController::class, 'destroy'])->name('properties.logbook.destroy');
         Route::get('/propiedades/{property}/bitacora/adjuntos/{attachment}/vista', [PropertyLogbookController::class, 'preview'])->name('properties.logbook.attachments.preview');

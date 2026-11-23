@@ -762,7 +762,7 @@
                                         <div class="charges-list-meta">{{ $charge->type_label }}</div>
                                     </td>
                                     <td>
-                                        <div class="charges-list-value">{{ $charge->tenant?->full_name ?? '-' }}</div>
+                                        <div class="charges-list-value">{{ $charge->customer_display_name }}</div>
                                         <div class="charges-list-meta">
                                             {{ $charge->property?->internal_reference ?: $charge->property?->internal_name ?: '-' }}
                                         </div>
@@ -874,7 +874,7 @@
                                             <div class="charges-list-meta">{{ $payment->reference ?: 'Sin referencia' }}</div>
                                         </td>
                                         <td>
-                                            <div class="charges-list-value">{{ $payment->charge?->tenant?->full_name ?? '-' }}</div>
+                                            <div class="charges-list-value">{{ $payment->charge?->customer_display_name ?? '-' }}</div>
                                             <div class="charges-list-meta">
                                                 {{ $payment->charge?->property?->internal_reference ?: $payment->charge?->property?->internal_name ?: '-' }}
                                             </div>

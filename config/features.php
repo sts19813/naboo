@@ -11,4 +11,5 @@ return [
     |
     */
     'subscription_module_enabled' => env('SUBSCRIPTION_MODULE_ENABLED', false),
+    'airbnb_integration_enabled' => env('AIRBNB_INTEGRATION_ENABLED', false),
 ];
