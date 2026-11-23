@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ app()->getLocale() }}">
 <head>
+    @include('partials.pwa-head')
     <base href="{{ asset('/') }}">
     <title>@yield('title', config('app.name', 'Naboo') . ' | Acceso')</title>
 
@@ -85,6 +86,7 @@
     <script src="{{ asset('metronic/assets/js/scripts.bundle.js') }}"></script>
     @include('partials.suwork-toasts')
 
+    @include('partials.pwa-register')
     @stack('scripts')
 </body>
 </html>

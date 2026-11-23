@@ -3,6 +3,7 @@
 
 
 <head>
+    @include('partials.pwa-head')
     <meta charset="utf-8">
     <title>@yield('title', 'Naboo')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -169,6 +170,7 @@
 
     @include('partials.suwork-toasts')
 
+    @include('partials.pwa-register')
     @stack('scripts')
 </body>
 

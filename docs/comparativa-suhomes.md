@@ -97,4 +97,6 @@ Se corrigió el conflicto entre las rutas de perfil de Naboo y las rutas heredad
 
 La cobranza incorpora el filtro de propiedades, el orden por vencimiento, una pestaña de comprobantes pendientes y el botón Stripe solo cuando existe una clave de producción. Los documentos muestran el estado calculado según archivo y vencimiento; los rechazos existentes se conservan y un documento vencido no satisface los requisitos de asignación de inquilino.
 
+Se agregó el manifiesto instalable de Naboo, con iconos derivados del símbolo existente y una pantalla sin conexión. El service worker solo conserva esa pantalla estática y no guarda páginas autenticadas, respuestas de API ni archivos de propiedades.
+
 La copia local revisada contiene 478 cargos y 158 pagos, todos los pagos en MXN y sin pagos de distintas monedas en un mismo cargo. La migración de moneda se detiene si detecta pagos históricos en otra moneda. La equivalencia completa de todos los puntos del inventario todavía requiere verificación individual.
