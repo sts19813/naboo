@@ -106,7 +106,7 @@
         </div>
     </div>
 
-    @if (trim((string) config('services.openai.key')) !== '')
+    @if (trim((string) config('services.openai.key')) !== '' && (!auth()->user()?->hasAnyRole(['proveedor', 'provider']) || auth()->user()?->hasAnyRole(['administrador', 'admin'])))
         @include('partials.copilot')
     @endif
 

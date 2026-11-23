@@ -618,7 +618,7 @@ class MaintenanceModuleTest extends TestCase
         $response->assertSee('<section class="ticket-panel d-none" id="ticket-chat-section" hidden>', false);
     }
 
-    public function test_property_technician_and_assigned_technician_can_view_ticket_but_only_property_technician_manages_costs(): void
+    public function test_only_the_assigned_technician_can_view_and_manage_the_ticket_costs(): void
     {
         $technicianRole = Role::query()->create(['name' => 'tecnico', 'guard_name' => 'web']);
         $propertyTechnicianUser = User::factory()->create(['email' => 'propiedad-costos@example.com']);
@@ -677,21 +677,19 @@ class MaintenanceModuleTest extends TestCase
         $this->actingAs($propertyTechnicianUser)
             ->get(route('maintenance.index'))
             ->assertOk()
-            ->assertSee('Ticket visible por propiedad y asignación');
+            ->assertDontSee('Ticket visible por propiedad y asignación');
 
         $this->actingAs($propertyTechnicianUser)
             ->get(route('maintenance.show', $ticket))
-            ->assertOk()
-            ->assertSee('Costos y gastos del incidente')
-            ->assertSee('Agregar costo');
+            ->assertForbidden();
 
         $this->actingAs($assignedTechnicianUser)
             ->get(route('maintenance.show', $ticket))
             ->assertOk()
             ->assertSee('Ticket visible por propiedad y asignación')
-            ->assertDontSee('Agregar costo');
+            ->assertSee('Agregar costo');
 
-        $this->actingAs($assignedTechnicianUser)
+        $this->actingAs($propertyTechnicianUser)
             ->put(route('maintenance.costs', $ticket), [
                 'labor_cost' => 1,
                 'material_cost' => 1,
@@ -699,7 +697,7 @@ class MaintenanceModuleTest extends TestCase
             ])
             ->assertForbidden();
 
-        $this->actingAs($propertyTechnicianUser)
+        $this->actingAs($assignedTechnicianUser)
             ->from(route('maintenance.show', $ticket))
             ->put(route('maintenance.costs', $ticket), [
                 'labor_cost' => 450,
@@ -717,7 +715,7 @@ class MaintenanceModuleTest extends TestCase
         $this->assertDatabaseHas('expenses', [
             'property_id' => $property->id,
             'amount' => 600,
-            'created_by' => $propertyTechnicianUser->id,
+            'created_by' => $assignedTechnicianUser->id,
         ]);
 
         $this->actingAs($unrelatedTechnicianUser)

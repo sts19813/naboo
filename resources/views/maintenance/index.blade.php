@@ -36,11 +36,13 @@
             $roleTitle = match ($role) {
                 'inquilino' => 'Mis reportes de mantenimiento',
                 'tecnico' => 'Mis tickets asignados',
+                'proveedor' => 'Mis tickets asignados',
                 default => 'Mantenimiento',
             };
             $roleSubtitle = match ($role) {
                 'inquilino' => 'Consulta tus tickets y levanta nuevos reportes para tus propiedades asignadas.',
                 'tecnico' => 'Agenda de campo, evidencias, estados y comunicación del ticket.',
+                'proveedor' => 'Consulta y actualiza los tickets asignados.',
                 default => 'Operación diaria de tickets, técnicos, propiedades y visitas programadas.',
             };
 

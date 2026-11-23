@@ -32,7 +32,7 @@ Route::get('/', function () {
     if (auth()->check()) {
         $user = auth()->user();
         $isTenant = $user->hasRole('inquilino') || $user->hasRole('tenant');
-        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician');
+        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician') || $user->hasRole('proveedor') || $user->hasRole('provider');
         $isAdmin = $user->hasRole('administrador') || $user->hasRole('admin');
         $isAdvisor = ! $isAdmin && ($user->hasRole('asesores') || $user->hasRole('asesor') || $user->can('propiedades.ver_propias'));
 
@@ -55,7 +55,7 @@ Route::post('/stripe/webhook', [ChargePaymentController::class, 'webhook'])
     ->name('stripe.webhook')
     ->withoutMiddleware([ValidateCsrfToken::class]);
 
-Route::middleware(['auth', 'system.access', 'property.visible'])
+Route::middleware(['auth', 'system.access', 'provider.operational', 'property.visible'])
     ->group(function () {
         Route::get('/perfil', [ProfileController::class, 'index'])->name('profile.index');
         if (config('features.subscription_module_enabled')) {
@@ -241,10 +241,10 @@ Route::middleware(['auth', 'system.access', 'property.visible'])
     });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'system.access'])
+    ->middleware(['auth', 'system.access', 'provider.operational'])
     ->name('dashboard');
 
-Route::middleware(['auth', 'system.access'])->group(function () {
+Route::middleware(['auth', 'system.access', 'provider.operational'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

@@ -227,7 +227,7 @@ class MaintenanceController extends Controller
             ],
             'calendarItems' => $calendarItems,
             'role' => $role,
-            'canCreateTicket' => in_array($role, ['administrador', 'inquilino', 'tecnico'], true),
+            'canCreateTicket' => in_array($role, ['administrador', 'inquilino'], true),
             'canManageProviders' => $this->canManageTechnicians($user),
             'canManageAssignments' => $role === 'administrador',
             'canUpdateTicketMeta' => in_array($role, ['administrador', 'tecnico'], true),
@@ -270,7 +270,7 @@ class MaintenanceController extends Controller
     {
         $user = $request->user();
         $role = $this->resolveRole($user);
-        if (! in_array($role, ['administrador', 'inquilino', 'tecnico'], true)) {
+        if (! in_array($role, ['administrador', 'inquilino'], true)) {
             abort(403);
         }
 
@@ -403,11 +403,13 @@ class MaintenanceController extends Controller
             ? MaintenanceTicket::STATUS_LABELS
             : array_intersect_key(
                 MaintenanceTicket::STATUS_LABELS,
-                array_flip(['revisado', 'programado', 'en_proceso', 'esperando_material', 'completado', 'cancelado', 'reabierto'])
+                array_flip($role === 'proveedor'
+                    ? ['revisado', 'programado', 'en_proceso', 'esperando_material', 'completado', 'reabierto']
+                    : ['revisado', 'programado', 'en_proceso', 'esperando_material', 'cancelado', 'reabierto'])
             );
 
         $canViewCosts = $role === 'administrador'
-            || ($role === 'tecnico' && $this->isPropertyTechnician($maintenance, $user));
+            || (in_array($role, ['tecnico', 'proveedor'], true) && $this->isAssignedProvider($maintenance, $user, $role));
         $isMaintenancePaid = $maintenance->cutItem !== null;
 
         return view('maintenance.show', [
@@ -425,10 +427,11 @@ class MaintenanceController extends Controller
             'messageChannels' => MaintenanceTicketMessage::CHANNEL_LABELS,
             'canManageAssignments' => in_array($role, ['administrador', 'tecnico'], true),
             'canViewCosts' => $canViewCosts,
-            'canManageCosts' => $canViewCosts && ! $isMaintenancePaid,
+            'canManageCosts' => $canViewCosts && ! $isMaintenancePaid && ($role === 'administrador' || ! in_array($maintenance->status, ['completado', 'cancelado'], true)),
             'isMaintenancePaid' => $isMaintenancePaid,
             'canEditTicket' => $role === 'administrador',
-            'canChangeStatus' => in_array($role, ['administrador', 'tecnico'], true),
+            'canChangeStatus' => in_array($role, ['administrador', 'tecnico', 'proveedor'], true),
+            'canCompleteTicket' => in_array($role, ['administrador', 'proveedor'], true),
             'canQuickScheduleVisit' => in_array($role, ['administrador', 'tecnico'], true),
         ]);
     }
@@ -479,7 +482,10 @@ class MaintenanceController extends Controller
         $nextStatus = (string) $validated['status'];
         $fromStatus = (string) $maintenance->status;
 
-        if (! in_array($role, ['administrador', 'tecnico'], true)) {
+        if (! in_array($role, ['administrador', 'tecnico', 'proveedor'], true)) {
+            abort(403);
+        }
+        if (($role === 'tecnico' && $nextStatus === 'completado') || ($role === 'proveedor' && $nextStatus === 'cancelado')) {
             abort(403);
         }
         if ($role !== 'administrador') {
@@ -805,8 +811,11 @@ class MaintenanceController extends Controller
         $user = $request->user();
         $role = $this->resolveRole($user);
         $this->ensureTicketVisible($maintenance, $user, $role);
-        if ($role !== 'administrador' && ($role !== 'tecnico' || ! $this->isPropertyTechnician($maintenance, $user))) {
+        if ($role !== 'administrador' && (! in_array($role, ['tecnico', 'proveedor'], true) || ! $this->isAssignedProvider($maintenance, $user, $role))) {
             abort(403);
+        }
+        if ($role !== 'administrador' && in_array($maintenance->status, ['completado', 'cancelado'], true)) {
+            abort(409, 'Este ticket ya fue completado y sus costos no se pueden modificar.');
         }
         if ($maintenance->cutItem()->exists()) {
             abort(409, 'Este ticket ya fue pagado y sus costos no se pueden modificar.');
@@ -825,8 +834,14 @@ class MaintenanceController extends Controller
 
         $totalCost = round((float) $validated['labor_cost'] + (float) $validated['material_cost'], 2);
 
-        DB::transaction(function () use ($maintenance, $validated, $request, $user, $totalCost): void {
+        DB::transaction(function () use ($maintenance, $validated, $request, $user, $totalCost, $role): void {
             $lockedTicket = MaintenanceTicket::query()->whereKey($maintenance->id)->lockForUpdate()->firstOrFail();
+            if ($role !== 'administrador' && ! $this->isAssignedProvider($lockedTicket, $user, $role)) {
+                abort(403);
+            }
+            if ($role !== 'administrador' && in_array($lockedTicket->status, ['completado', 'cancelado'], true)) {
+                abort(409, 'Este ticket ya fue completado y sus costos no se pueden modificar.');
+            }
             if ($lockedTicket->cutItem()->exists()) {
                 abort(409, 'Este ticket ya fue pagado y sus costos no se pueden modificar.');
             }
@@ -1202,6 +1217,9 @@ class MaintenanceController extends Controller
         if ($user->hasRole('administrador') || $user->hasRole('admin')) {
             return 'administrador';
         }
+        if ($user->hasRole('proveedor') || $user->hasRole('provider')) {
+            return 'proveedor';
+        }
         if ($user->hasRole('propietario') || $user->hasRole('owner')) {
             return 'propietario';
         }
@@ -1220,6 +1238,9 @@ class MaintenanceController extends Controller
         $query = Property::query();
         if ($role === 'administrador') {
             return $this->propertyVisibility->scopeVisibleToUser($query, $user);
+        }
+        if ($role === 'proveedor') {
+            return $query->whereHas('maintenanceTickets.currentProvider', fn (Builder $providerQuery) => $this->constrainProviderToUser($providerQuery, $user, 'proveedor'));
         }
         if ($role === 'propietario') {
             return $query->whereHas('owners', fn (Builder $ownerQuery) => $ownerQuery->where('email', $user->email));
@@ -1262,6 +1283,9 @@ class MaintenanceController extends Controller
                 fn (Builder $tickets) => $tickets->whereHas('property', fn (Builder $properties) => $this->propertyVisibility->scopeVisibleToUser($properties, $user)),
             );
         }
+        if ($role === 'proveedor') {
+            return $query->whereHas('currentProvider', fn (Builder $providerQuery) => $this->constrainProviderToUser($providerQuery, $user, 'proveedor'));
+        }
         if ($role === 'propietario') {
             return $query->whereHas('property.owners', fn (Builder $ownerQuery) => $ownerQuery->where('email', $user->email));
         }
@@ -1274,15 +1298,16 @@ class MaintenanceController extends Controller
                 ->whereHas('currentProvider', function (Builder $providerQuery) use ($user): void {
                     $this->constrainProviderToUser($providerQuery, $user);
                 })
-                ->orWhereHas('property.technicianProvider', function (Builder $providerQuery) use ($user): void {
-                    $this->constrainProviderToUser($providerQuery, $user);
+                ->orWhere(function (Builder $unassigned) use ($user): void {
+                    $unassigned->whereNull('current_provider_id')
+                        ->whereHas('property.technicianProvider', fn (Builder $providerQuery) => $this->constrainProviderToUser($providerQuery, $user));
                 });
         });
     }
 
-    private function constrainProviderToUser(Builder $query, User $user): void
+    private function constrainProviderToUser(Builder $query, User $user, string $type = 'tecnico_interno'): void
     {
-        $query->where('maintenance_providers.type', 'tecnico_interno')
+        $query->where('maintenance_providers.type', $type)
             ->where(function (Builder $identityQuery) use ($user): void {
                 $identityQuery->where('maintenance_providers.user_id', $user->id);
 
@@ -1300,6 +1325,12 @@ class MaintenanceController extends Controller
                 $this->constrainProviderToUser($providerQuery, $user);
             })
             ->exists();
+    }
+
+    private function isAssignedProvider(MaintenanceTicket $ticket, User $user, string $role): bool
+    {
+        $type = $role === 'proveedor' ? 'proveedor' : 'tecnico_interno';
+        return $ticket->currentProvider()->where(fn (Builder $query) => $this->constrainProviderToUser($query, $user, $type))->exists();
     }
 
     private function ensureTicketVisible(MaintenanceTicket $ticket, User $user, string $role): void

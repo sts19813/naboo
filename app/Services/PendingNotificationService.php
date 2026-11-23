@@ -29,6 +29,7 @@ class PendingNotificationService
 
         return $this->cache[$cacheKey] ??= match (true) {
             $user->hasAnyRole(['administrador', 'admin']) => $this->forAdministrator(),
+            $user->hasAnyRole(['proveedor', 'provider']) => ['total' => 0, 'route' => route('maintenance.index'), 'items' => []],
             $user->hasAnyRole(['tecnico', 'technician']) => $this->forTechnician($user),
             $user->hasAnyRole(['inquilino', 'tenant']) => $this->forTenant($user),
             $user->hasAnyRole(['asesores', 'asesor', 'advisor']) || $user->can('propiedades.ver_propias') => $this->forAdvisor($user),

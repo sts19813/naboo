@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Expense;
 use App\Models\MaintenanceProvider;
 use App\Models\MaintenanceTicket;
 use App\Models\Property;
@@ -23,13 +24,29 @@ class MaintenanceCutModuleTest extends TestCase
         $property = $this->createProperty($admin);
 
         $first = $this->createTicket($property, 'Cambio de bomba', 'completado');
+        $firstPendingExpense = Expense::query()->create([
+            'property_id' => $property->id,
+            'concept' => 'Mantenimiento pendiente',
+            'amount' => 750,
+            'due_date' => now()->toDateString(),
+        ]);
         $first->costs()->create([
+            'expense_id' => $firstPendingExpense->id,
             'labor_cost' => 500,
             'material_cost' => 250,
             'final_cost' => 750,
             'currency' => 'MXN',
         ]);
+        $alreadyPaidAt = now()->subDays(2)->startOfSecond();
+        $firstAlreadyPaidExpense = Expense::query()->create([
+            'property_id' => $property->id,
+            'concept' => 'Mantenimiento ya pagado',
+            'amount' => 150,
+            'due_date' => now()->toDateString(),
+            'paid_at' => $alreadyPaidAt,
+        ]);
         $first->costs()->create([
+            'expense_id' => $firstAlreadyPaidExpense->id,
             'labor_cost' => 100,
             'material_cost' => 50,
             'final_cost' => 150,
@@ -37,7 +54,14 @@ class MaintenanceCutModuleTest extends TestCase
         ]);
 
         $second = $this->createTicket($property, 'Reparación eléctrica', 'completado');
+        $secondPendingExpense = Expense::query()->create([
+            'property_id' => $property->id,
+            'concept' => 'Mantenimiento segundo',
+            'amount' => 1000,
+            'due_date' => now()->toDateString(),
+        ]);
         $second->costs()->create([
+            'expense_id' => $secondPendingExpense->id,
             'labor_cost' => 300,
             'material_cost' => 700,
             'final_cost' => 1000,
@@ -73,6 +97,12 @@ class MaintenanceCutModuleTest extends TestCase
             'ticket_id' => $second->id,
             'grand_total' => 1000,
         ]);
+        $this->assertNotNull($firstPendingExpense->fresh()->paid_at);
+        $this->assertNotNull($secondPendingExpense->fresh()->paid_at);
+        $this->assertTrue(
+            $firstAlreadyPaidExpense->fresh()->paid_at->equalTo($alreadyPaidAt),
+            'El corte no debe sobrescribir la fecha de pago de un gasto ya pagado.'
+        );
 
         $this->actingAs($admin)
             ->get(route('maintenance.index', ['tab' => 'completados']))

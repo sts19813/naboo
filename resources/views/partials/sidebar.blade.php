@@ -7,7 +7,7 @@
         ->map(fn($word) => mb_substr($word, 0, 1))
         ->join('');
     $isTenant = $user->hasRole('inquilino') || $user->hasRole('tenant');
-    $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician');
+    $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician') || $user->hasRole('proveedor') || $user->hasRole('provider');
     $canViewStorage = $user->canViewStorage();
     $isAdmin = $user->hasRole('administrador') || $user->hasRole('admin');
     $isAdvisor = !$isAdmin && !$isTenant && !$isTechnician && ($user->hasRole('asesores') || $user->hasRole('asesor') || $user->can('propiedades.ver_propias'));

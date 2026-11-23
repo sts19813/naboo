@@ -131,7 +131,7 @@ class GoogleAuthController extends Controller
         $request->session()->regenerate();
 
         $isTenant = $user->hasRole('inquilino') || $user->hasRole('tenant');
-        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician');
+        $isTechnician = $user->hasRole('tecnico') || $user->hasRole('technician') || $user->hasRole('proveedor') || $user->hasRole('provider');
         $isAdmin = $user->hasRole('administrador') || $user->hasRole('admin');
         $isAdvisor = ! $isAdmin && ($user->hasRole('asesores') || $user->hasRole('asesor') || $user->can('propiedades.ver_propias'));
 
@@ -140,6 +140,11 @@ class GoogleAuthController extends Controller
             $isAdvisor => 'advisor.tasks.index',
             default => 'dashboard',
         };
+
+        if ($user->hasAnyRole(['proveedor', 'provider']) && ! $isAdmin) {
+            $request->session()->forget('url.intended');
+            return redirect()->route('maintenance.index');
+        }
 
         return redirect()->intended(route($defaultRoute, absolute: false));
     }

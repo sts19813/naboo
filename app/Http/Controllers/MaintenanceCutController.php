@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Expense;
 use App\Models\MaintenanceCut;
 use App\Models\MaintenanceTicket;
 use Illuminate\Http\RedirectResponse;
@@ -69,7 +70,7 @@ class MaintenanceCutController extends Controller
                 ->whereIn('id', $ticketIds)
                 ->where('status', 'completado')
                 ->whereDoesntHave('cutItem')
-                ->with('costs:id,ticket_id,labor_cost,material_cost,final_cost')
+                ->with('costs:id,ticket_id,expense_id,labor_cost,material_cost,final_cost')
                 ->lockForUpdate()
                 ->get();
 
@@ -114,6 +115,19 @@ class MaintenanceCutController extends Controller
                 'paid_at' => now(),
             ]);
             $cut->items()->createMany($rows->all());
+
+            $expenseIds = $tickets
+                ->flatMap(fn (MaintenanceTicket $ticket) => $ticket->costs->pluck('expense_id'))
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($expenseIds->isNotEmpty()) {
+                Expense::query()
+                    ->whereIn('id', $expenseIds->all())
+                    ->whereNull('paid_at')
+                    ->update(['paid_at' => $cut->paid_at]);
+            }
 
             return $cut;
         });

@@ -69,6 +69,8 @@ Revisión del código local: SuHomes `a3c84ac` y Naboo `0a292a2`. Este documento
 
 Se integraron y probaron la bitácora de propiedades con imágenes, el registro de varios comprobantes por pago y su descarga, las marcas manuales del control de propiedades, el permiso de acceso al almacén y las fotos de perfil en tablas de usuarios. Se aplicaron únicamente las migraciones de bitácora, comprobantes, control y permiso de almacén. La migración específica de Casa 320 B no fue trasladada ni ejecutada.
 
+Los nuevos cortes de mantenimiento marcan como pagados los gastos vinculados que aún estaban pendientes, sin modificar fechas de pago previas; se omitió la migración de corrección histórica de SuHomes. Los proveedores se limitan a sus tickets asignados y pueden terminarlos, mientras que los técnicos no pueden completarlos ni crear tickets. La asignación de múltiples proveedores, las agrupaciones y los reportes de mantenimiento siguen pendientes.
+
 El mapa interactivo de propiedades se integró con filtros, detalles, sincronización de enlaces pendientes y visibilidad por asesor. La resolución de red solo sigue redirecciones HTTPS de Google Maps permitidas; los enlaces no admitidos no se consultan.
 
 La ficha de propiedad también permite filtrar la lista de gastos y sus totales por mes actual, últimos tres meses o todos los periodos.
