@@ -555,6 +555,24 @@ class PropertyController extends Controller
             ->orderBy('due_date', 'asc')
             ->orderBy('id', 'asc')
             ->get();
+        $chargeCategory = static function (Charge $charge): string {
+            if ($charge->status === Charge::STATUS_IN_VALIDATION) return 'validation';
+            if (in_array($charge->status, [Charge::STATUS_PENDING, Charge::STATUS_PARTIAL], true)) return $charge->is_overdue ? 'overdue' : 'upcoming';
+            if ($charge->status === Charge::STATUS_PAID) return 'paid';
+            return 'other';
+        };
+        $chargePriority = ['overdue' => 0, 'validation' => 1, 'upcoming' => 2, 'paid' => 3, 'other' => 4];
+        $propertyCharges = $propertyCharges->sort(function (Charge $a, Charge $b) use ($chargeCategory, $chargePriority): int {
+            $categoryA = $chargeCategory($a);
+            $categoryB = $chargeCategory($b);
+            $rank = $chargePriority[$categoryA] <=> $chargePriority[$categoryB];
+            if ($rank !== 0) return $rank;
+            $dateA = ($categoryA === 'paid' ? ($a->paid_at ?? $a->due_date) : $a->due_date)?->getTimestamp() ?? 0;
+            $dateB = ($categoryB === 'paid' ? ($b->paid_at ?? $b->due_date) : $b->due_date)?->getTimestamp() ?? 0;
+            return (in_array($categoryA, ['paid', 'other'], true) ? $dateB <=> $dateA : $dateA <=> $dateB) ?: ($a->id <=> $b->id);
+        })->values();
+        $chargeTabCounts = $propertyCharges->groupBy($chargeCategory)->map->count();
+        $chargeDefaultTab = collect(['overdue', 'validation', 'upcoming', 'paid'])->first(fn ($category) => ($chargeTabCounts[$category] ?? 0) > 0) ?? 'all';
         $expensePeriod = request()->query('expense_period', 'month');
         if (! in_array($expensePeriod, ['month', 'three_months', 'all'], true)) {
             $expensePeriod = 'month';
@@ -689,6 +707,9 @@ class PropertyController extends Controller
             'tenants' => $tenants,
             'tenantAssignmentChecks' => $tenantAssignmentChecks,
             'propertyCharges' => $propertyCharges,
+            'chargeCategory' => $chargeCategory,
+            'chargeTabCounts' => $chargeTabCounts,
+            'chargeDefaultTab' => $chargeDefaultTab,
             'propertyExpenses' => $propertyExpenses,
             'propertyRecurringExpenseItems' => $propertyRecurringExpenseItems,
             'rentChargesTotal' => $rentChargesTotal,

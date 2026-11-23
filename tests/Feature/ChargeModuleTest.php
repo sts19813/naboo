@@ -603,6 +603,69 @@ class ChargeModuleTest extends TestCase
         $response->assertDontSee('Cargo Casa C');
     }
 
+    public function test_property_charge_tabs_prioritize_overdue_and_preserve_all_categories(): void
+    {
+        $user = User::factory()->create();
+        $overdue = $this->createChargeFixture();
+        $overdue->update(['due_date' => now()->subDays(3)]);
+        foreach ([
+            'validation' => [Charge::STATUS_IN_VALIDATION, -5],
+            'upcoming' => [Charge::STATUS_PENDING, 5],
+            'paid' => [Charge::STATUS_PAID, -10],
+            'other' => [Charge::STATUS_CANCELED, -20],
+        ] as $category => [$status, $days]) {
+            $charge = $overdue->replicate(['uuid', 'payment_token']);
+            $charge->status = $status;
+            $charge->due_date = now()->addDays($days);
+            $charge->concept = 'Cargo '.$category;
+            $charge->save();
+        }
+
+        $response = $this->actingAs($user)->get(route('properties.show', $overdue->property));
+        $response->assertOk()->assertSee('data-property-charge-filter="overdue"', false)
+            ->assertSee('data-property-charge-filter="validation"', false)
+            ->assertSee('data-property-charge-filter="upcoming"', false)
+            ->assertSee('data-property-charge-filter="paid"', false)
+            ->assertSee('data-property-charge-filter="all"', false)
+            ->assertSee('data-property-edit-charge', false);
+        $this->assertSame('overdue', $response->viewData('chargeDefaultTab'));
+        $categories = $response->viewData('propertyCharges')->map($response->viewData('chargeCategory'))->all();
+        $this->assertSame(['overdue', 'validation', 'upcoming', 'paid', 'other'], $categories);
+    }
+
+    public function test_property_charge_edit_returns_to_property_and_protects_pending_payments(): void
+    {
+        $user = User::factory()->create();
+        $charge = $this->createChargeFixture();
+        $returnTo = route('properties.show', $charge->property).'#tab-charges';
+        $payload = [
+            'type' => Charge::TYPE_RENT, 'due_date' => now()->toDateString(),
+            'amount' => 19000, 'period_month' => 3, 'period_year' => 2026,
+            'concept' => 'Renta actualizada', 'charge_uuid' => $charge->uuid,
+            'return_to' => $returnTo, 'apply_following_rents' => 0,
+        ];
+        $this->actingAs($user)->put(route('charges.update', $charge), $payload)->assertRedirect($returnTo);
+        $this->assertDatabaseHas('charges', ['id' => $charge->id, 'amount' => 19000, 'concept' => 'Renta actualizada']);
+
+        ChargePayment::create(['charge_id' => $charge->id, 'amount' => 12000, 'status' => ChargePayment::STATUS_PENDING_VALIDATION]);
+        $this->from(route('properties.show', $charge->property))->put(route('charges.update', $charge), array_merge($payload, ['amount' => 10000]))
+            ->assertSessionHasErrorsIn('updateCharge', ['amount']);
+        $this->assertDatabaseHas('charges', ['id' => $charge->id, 'amount' => 19000]);
+    }
+
+    public function test_tenant_cannot_edit_a_charge_directly(): void
+    {
+        $charge = $this->createChargeFixture();
+        $user = User::factory()->create();
+        Role::findOrCreate('inquilino', 'web');
+        $user->assignRole('inquilino');
+        $this->actingAs($user)->put(route('charges.update', $charge), [
+            'type' => Charge::TYPE_RENT, 'due_date' => now()->toDateString(), 'amount' => 1,
+            'period_month' => 3, 'period_year' => 2026, 'concept' => 'Cambio',
+        ])->assertForbidden();
+        $this->assertDatabaseHas('charges', ['id' => $charge->id, 'amount' => 18000]);
+    }
+
     private function createChargeFixture(): Charge
     {
         $user = User::factory()->create();

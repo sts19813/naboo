@@ -430,30 +430,39 @@ class ChargeController extends Controller
 
     public function update(UpdateChargeRequest $request, Charge $charge): RedirectResponse
     {
+        abort_if($this->isTenantUser($request->user()), 403);
         $validated = $request->validated();
+        $fallbackUrl = route('charges.index', $this->chargesIndexRouteParamsFromRequest($request));
+        $returnUrl = $this->resolveSafeReturnUrl($validated['return_to'] ?? null, $fallbackUrl);
 
         if (in_array($charge->status, [Charge::STATUS_PAID, Charge::STATUS_CANCELED], true)) {
-            return redirect()
-                ->route('charges.index', $this->chargesIndexRouteParamsFromRequest($request))
+            return redirect()->to($returnUrl)
                 ->with('error', 'Este cargo no se puede editar por su estado actual.');
         }
 
         $newAmount = (float) $validated['amount'];
         if ($newAmount < (float) $charge->paid_amount) {
-            return redirect()->route('charges.index', $this->chargesIndexRouteParamsFromRequest($request))->with(
+            return redirect()->to($returnUrl)->with(
                 'error',
                 'El monto no puede ser menor al total ya pagado de este cargo.',
             );
         }
 
-        $applyFollowing = $request->boolean('apply_following_rents')
-            && $charge->type === Charge::TYPE_RENT
-            && $validated['type'] === Charge::TYPE_RENT
-            && (int) round($newAmount * 100) !== (int) round((float) $charge->amount * 100);
+        $applyFollowing = false;
         $updatedFollowing = 0;
         $skippedFollowing = 0;
 
-        DB::transaction(function () use ($charge, $validated, $applyFollowing, &$updatedFollowing, &$skippedFollowing): void {
+        DB::transaction(function () use (&$charge, $validated, $request, &$applyFollowing, &$updatedFollowing, &$skippedFollowing): void {
+            $charge = Charge::query()->whereKey($charge->id)->lockForUpdate()->firstOrFail();
+            abort_if(in_array($charge->status, [Charge::STATUS_PAID, Charge::STATUS_CANCELED], true), 409, 'El estado del cargo cambió; actualiza la página.');
+            abort_if((float) $validated['amount'] < (float) $charge->paid_amount, 409, 'El monto no puede ser menor a lo pagado.');
+            if ((float) $validated['amount'] < (float) $charge->amount) {
+                $pendingAmount = (float) $charge->payments()->where('status', ChargePayment::STATUS_PENDING_VALIDATION)->lockForUpdate()->get()->sum('amount');
+                if ((int) round(((float) $charge->paid_amount + $pendingAmount) * 100) > (int) round((float) $validated['amount'] * 100)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'El monto no puede ser menor a los pagos registrados y comprobantes pendientes.'])->errorBag('updateCharge');
+                }
+            }
+            $applyFollowing = $request->boolean('apply_following_rents') && $charge->type === Charge::TYPE_RENT && $validated['type'] === Charge::TYPE_RENT && (int) round((float) $validated['amount'] * 100) !== (int) round((float) $charge->amount * 100);
             $charge->update([
                 'type' => $validated['type'],
                 'due_date' => $validated['due_date'],
@@ -520,8 +529,7 @@ class ChargeController extends Controller
             }
         }
 
-        return redirect()
-            ->route('charges.index', $this->chargesIndexRouteParamsFromRequest($request))
+        return redirect()->to($returnUrl)
             ->with('success', $message);
     }
 

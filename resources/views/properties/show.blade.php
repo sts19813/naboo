@@ -9,6 +9,14 @@
         .logbook-entry__images { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: .75rem; }
         .logbook-entry__image { aspect-ratio: 1; overflow: hidden; border-radius: .475rem; }
         .logbook-entry__image img { width: 100%; height: 100%; object-fit: cover; }
+        .property-charge-tabs { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.25rem; }
+        .property-charge-tabs button { border:1px solid #e8ebf2; background:#fff; color:#526078; border-radius:12px; padding:.65rem .85rem; font-weight:700; }
+        .property-charge-tabs button[aria-selected="true"] { background:#ff3366; border-color:#ff3366; color:#fff; }
+        .property-charge-tabs button span { display:inline-block; margin-left:.25rem; padding:.1rem .4rem; border-radius:8px; background:rgba(130,140,160,.12); }
+        .property-charge-tabs button[aria-selected="true"] span { background:rgba(255,255,255,.22); }
+        #propertyChargesTable tr[hidden] { display:none !important; }
+        .property-charge-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:.4rem; }
+        .property-charge-actions form { margin:0; }
     </style>
 @endpush
 
@@ -77,6 +85,10 @@
                 <i class="ki-outline ki-check-circle fs-2hx text-success me-4"></i>
                 <div class="fw-semibold">{{ session('success') }}</div>
             </div>
+        @endif
+
+        @if (session('error'))
+            <div class="alert alert-danger d-flex align-items-center p-5 mb-8"><div class="fw-semibold">{{ session('error') }}</div></div>
         @endif
 
         @if (session('warning'))
@@ -1251,8 +1263,14 @@
                                     class="btn btn-sm btn-light-primary">Abrir cobranza</a>
                             </div>
                             <div class="card-body pt-0">
-                                <div class="table-responsive">
-                                    <table class="table table-row-bordered align-middle mb-0">
+                                <div class="property-charge-tabs" role="tablist" aria-label="Filtrar registros de cobranza">
+                                    @foreach (['overdue' => 'Vencidos', 'validation' => 'Por validar', 'upcoming' => 'Próximos', 'paid' => 'Pagados', 'all' => 'Todos'] as $key => $label)
+                                        <button type="button" role="tab" id="property-charge-filter-{{ $key }}" data-property-charge-filter="{{ $key }}" aria-controls="propertyChargesPanel" aria-selected="{{ $chargeDefaultTab === $key ? 'true' : 'false' }}" tabindex="{{ $chargeDefaultTab === $key ? '0' : '-1' }}">{{ $label }} <span>{{ $key === 'all' ? $propertyCharges->count() : ($chargeTabCounts[$key] ?? 0) }}</span></button>
+                                    @endforeach
+                                </div>
+                                <p class="text-muted fs-7 mb-4">Los vencidos aparecen primero; los próximos están ordenados por fecha de vencimiento.</p>
+                                <div class="table-responsive" id="propertyChargesPanel" role="tabpanel" aria-labelledby="property-charge-filter-{{ $chargeDefaultTab }}">
+                                    <table class="table table-row-bordered align-middle mb-0" id="propertyChargesTable">
                                         <thead>
                                             <tr class="text-muted text-uppercase fs-8">
                                                 <th>Concepto</th>
@@ -1265,7 +1283,8 @@
                                         </thead>
                                         <tbody>
                                             @forelse ($propertyCharges as $charge)
-                                                <tr>
+                                                @php $category = $chargeCategory($charge); @endphp
+                                                <tr data-property-charge-row="{{ $category }}" @if ($chargeDefaultTab !== 'all' && $chargeDefaultTab !== $category) hidden @endif>
                                                     <td>{{ $charge->concept }}
                                                         @if ($charge->source === \App\Models\Charge::SOURCE_AIRBNB_SU)
                                                             <span class="badge badge-light-primary">Airbnb SU</span>
@@ -1275,18 +1294,23 @@
                                                     <td>{{ str_pad((string) $charge->period_month, 2, '0', STR_PAD_LEFT) }}/{{ $charge->period_year }}
                                                     </td>
                                                     <td>{{ $charge->due_date?->format('d/m/Y') ?? '-' }}</td>
-                                                    <td>${{ number_format((float) $charge->amount, 2) }}</td>
+                                                    <td>{{ strtoupper($property->billing_currency ?? 'mxn') }} ${{ number_format((float) $charge->amount, 2) }}
+                                                        @if ($charge->outstanding_amount > 0 && $charge->status !== \App\Models\Charge::STATUS_CANCELED)<div class="text-muted fs-8">Saldo: ${{ number_format($charge->outstanding_amount, 2) }}</div>@endif
+                                                    </td>
                                                     <td>
                                                         <span
                                                             class="badge {{ $charge->status_badge_class }}">{{ $charge->display_status_label }}</span>
                                                     </td>
-                                                    <td class="text-end">
+                                                    <td class="text-end"><div class="property-charge-actions">
                                                         <a href="{{ route('charges.show', [
                                                             'charge' => $charge,
                                                             'property' => $property->uuid,
                                                             'return_to' => route('properties.show', $property) . '#tab-charges',
                                                         ]) }}"
                                                             class="btn btn-sm btn-light">Ver</a>
+                                                        @if ($canManageCharges && in_array($charge->status, [\App\Models\Charge::STATUS_PENDING, \App\Models\Charge::STATUS_PARTIAL, \App\Models\Charge::STATUS_IN_VALIDATION], true))
+                                                            <button type="button" class="btn btn-sm btn-light-primary" data-property-edit-charge data-action="{{ route('charges.update', $charge) }}" data-charge="{{ $charge->uuid }}" data-type="{{ $charge->type }}" data-due-date="{{ $charge->due_date?->format('Y-m-d') }}" data-amount="{{ number_format((float) $charge->amount, 2, '.', '') }}" data-period-month="{{ $charge->period_month }}" data-period-year="{{ $charge->period_year }}" data-concept="{{ $charge->concept }}" data-notes="{{ $charge->notes }}">Editar</button>
+                                                        @endif
                                                         @php
                                                             $canDeleteThisCharge = $canManageCharges
                                                                 && $charge->status !== \App\Models\Charge::STATUS_CANCELED
@@ -1305,7 +1329,7 @@
                                                                 <button type="submit" class="btn btn-sm btn-light-danger">Eliminar</button>
                                                             </form>
                                                         @endif
-                                                    </td>
+                                                    </div></td>
                                                 </tr>
                                             @empty
                                                 <tr>
@@ -1313,6 +1337,7 @@
                                                         registrados para esta propiedad.</td>
                                                 </tr>
                                             @endforelse
+                                            @if ($propertyCharges->isNotEmpty())<tr data-property-charge-empty hidden><td colspan="6" class="text-center text-muted py-8">No hay registros en esta categoría.</td></tr>@endif
                                         </tbody>
                                     </table>
                                 </div>
@@ -1648,6 +1673,15 @@
             </div>
         </div>
     @endif
+    @if ($canManageCharges)
+        @include('charges.partials.edit-modal', [
+            'typeOptions' => \App\Models\Charge::TYPE_LABELS,
+            'editChargeProperty' => $property,
+            'editChargeReturnTo' => route('properties.show', $property) . '#tab-charges',
+            'editChargeCurrency' => $property->billing_currency ?? 'mxn',
+            'editChargeApplyFollowingDefault' => false,
+        ])
+    @endif
 @endsection
 
 @push('scripts')
@@ -1655,6 +1689,64 @@
     @include('inventory-checks.partials.export-pdf-progress-script')
 
     <script>
+        (() => {
+            const tabs = Array.from(document.querySelectorAll('[data-property-charge-filter]'));
+            const rows = Array.from(document.querySelectorAll('[data-property-charge-row]'));
+            const empty = document.querySelector('[data-property-charge-empty]');
+            const panel = document.getElementById('propertyChargesPanel');
+            const selectTab = (tab) => {
+                tabs.forEach(item => {
+                    const selected = item === tab;
+                    item.setAttribute('aria-selected', String(selected));
+                    item.tabIndex = selected ? 0 : -1;
+                });
+                let visible = 0;
+                rows.forEach(row => {
+                    row.hidden = tab.dataset.propertyChargeFilter !== 'all' && row.dataset.propertyChargeRow !== tab.dataset.propertyChargeFilter;
+                    if (!row.hidden) visible++;
+                });
+                if (empty) empty.hidden = visible > 0;
+                if (panel) panel.setAttribute('aria-labelledby', tab.id);
+            };
+            tabs.forEach((tab, index) => {
+                tab.addEventListener('click', () => selectTab(tab));
+                tab.addEventListener('keydown', event => {
+                    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                    event.preventDefault();
+                    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                    tabs[next].focus();
+                    selectTab(tabs[next]);
+                });
+            });
+
+            const modal = document.getElementById('editChargeModal');
+            if (!modal) return;
+            const form = document.getElementById('editChargeForm');
+            const type = document.getElementById('editChargeType');
+            const following = document.getElementById('applyFollowingRents');
+            const syncFollowing = () => { document.getElementById('applyFollowingRentsContainer').hidden = type.value !== 'rent'; };
+            type.addEventListener('change', syncFollowing);
+            document.querySelectorAll('[data-property-edit-charge]').forEach(button => {
+                button.addEventListener('click', () => {
+                    form.action = button.dataset.action;
+                    const fields = { editChargeUuid: 'charge', editChargeType: 'type', editChargeDueDate: 'dueDate', editChargeAmount: 'amount', editChargePeriodMonth: 'periodMonth', editChargePeriodYear: 'periodYear', editChargeConcept: 'concept', editChargeNotes: 'notes' };
+                    Object.entries(fields).forEach(([id, key]) => { document.getElementById(id).value = button.dataset[key] || ''; });
+                    following.checked = false;
+                    syncFollowing();
+                    bootstrap.Modal.getOrCreateInstance(modal).show();
+                });
+            });
+            @if ($errors->updateCharge->any() && old('charge_uuid'))
+                const original = document.querySelector('[data-property-edit-charge][data-charge=' + CSS.escape(@json(old('charge_uuid'))) + ']');
+                if (original) {
+                    form.action = original.dataset.action;
+                    syncFollowing();
+                    bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-charges-tab')).show();
+                    history.replaceState(null, '', '#tab-charges');
+                    bootstrap.Modal.getOrCreateInstance(modal).show();
+                }
+            @endif
+        })();
         (() => {
             const showTenantChangeBlockedAlert = async (form) => {
                 const message = form.dataset.blockedMessage
