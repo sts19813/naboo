@@ -397,6 +397,60 @@ class PropertyController extends Controller
         return back()->with('success', 'Proveedores de la propiedad actualizados correctamente.');
     }
 
+    public function storeScheduledMaintenance(Request $request, Property $property): RedirectResponse
+    {
+        $this->ensureCanManagePropertyTechnician($request);
+        $validated = $request->validateWithBag('scheduledMaintenance', [
+            'provider_id' => ['required', 'integer', Rule::exists('maintenance_providers', 'id')->where(fn ($q) => $q->where('type', 'proveedor')->where('is_active', true))],
+            'frequency' => ['required', Rule::in(['weekly', 'biweekly', 'every_three_weeks', 'monthly'])],
+            'start_date' => ['required', 'date'], 'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'visit_time' => ['required', 'date_format:H:i'],
+            'category' => ['required', Rule::in(array_keys(MaintenanceTicket::CATEGORY_LABELS))],
+            'priority' => ['required', Rule::in(array_keys(MaintenanceTicket::PRIORITY_LABELS))],
+            'title' => ['required', 'string', 'max:190'], 'exact_location' => ['required', 'string', 'max:255'],
+            'description' => ['required', 'string', 'max:10000'],
+            'additional_notes' => ['nullable', 'string', 'max:10000'],
+            'payer' => ['nullable', Rule::in(array_keys(MaintenanceTicket::COST_PAYER_LABELS))],
+            'payment_rule' => ['nullable', Rule::in(array_keys(MaintenanceTicket::PAYMENT_RULE_LABELS))],
+        ]);
+
+        $provider = $property->supplierProviders()->where('maintenance_providers.id', $validated['provider_id'])->where('maintenance_providers.is_active', true)->first();
+        if (! $provider) {
+            return back()->withErrors(['provider_id' => 'Selecciona un proveedor activo asignado a esta propiedad.'], 'scheduledMaintenance')->withInput();
+        }
+        [$hour, $minute] = array_map('intval', explode(':', $validated['visit_time']));
+        $cursor = Carbon::parse($validated['start_date'])->startOfDay()->setTime($hour, $minute);
+        $end = Carbon::parse($validated['end_date'])->endOfDay();
+        $dates = collect();
+        while ($cursor->lte($end) && $dates->count() <= 80) {
+            $dates->push($cursor->copy());
+            $cursor = match ($validated['frequency']) {
+                'weekly' => $cursor->addWeek(), 'biweekly' => $cursor->addWeeks(2),
+                'every_three_weeks' => $cursor->addWeeks(3), 'monthly' => $cursor->addMonthNoOverflow(),
+            };
+        }
+        if ($dates->count() > 80) {
+            return back()->withErrors(['end_date' => 'El periodo no puede generar más de 80 tickets.'], 'scheduledMaintenance')->withInput();
+        }
+        DB::transaction(function () use ($dates, $validated, $property, $provider, $request): void {
+            foreach ($dates as $date) {
+                $ticket = MaintenanceTicket::create([
+                    'property_id' => $property->id, 'reported_by_user_id' => $request->user()->id,
+                    'current_provider_id' => $provider->id, 'reported_by_role' => $this->isAdvisorUser($request->user()) ? 'asesor' : 'administrador', 'reported_by_name' => $request->user()->name,
+                    'category' => $validated['category'], 'priority' => $validated['priority'], 'status' => 'programado',
+                    'title' => trim($validated['title']), 'exact_location' => trim($validated['exact_location']),
+                    'description' => trim($validated['description']), 'additional_notes' => $validated['additional_notes'] ?? null,
+                    'reported_at' => now(), 'scheduled_visit_at' => $date, 'payer' => $validated['payer'] ?? null,
+                    'payment_rule' => $validated['payment_rule'] ?? null, 'assigned_at' => now(),
+                ]);
+                $ticket->update(['reference' => str_pad((string) $ticket->id, 8, '0', STR_PAD_LEFT)]);
+                $ticket->assignments()->create(['provider_id' => $provider->id, 'assigned_by_user_id' => $request->user()->id, 'notes' => 'Mantenimiento programado desde la propiedad.', 'assigned_at' => now(), 'is_current' => true]);
+                $ticket->statusHistory()->create(['changed_by_user_id' => $request->user()->id, 'from_status' => null, 'to_status' => 'programado', 'notes' => 'Mantenimiento programado creado automáticamente.', 'changed_at' => now()]);
+            }
+        });
+        return redirect()->to(route('properties.show', $property).'#tab-maintenance')->with('success', 'Se crearon '.$dates->count().' tickets programados para '.$provider->name.'.');
+    }
+
     public function show(Property $property): View
     {
         $this->ensureCanViewArchivedProperty(request(), $property);

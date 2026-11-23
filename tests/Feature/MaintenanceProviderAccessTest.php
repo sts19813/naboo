@@ -54,6 +54,31 @@ class MaintenanceProviderAccessTest extends TestCase
         $this->assertDatabaseCount('maintenance_provider_property', 0);
     }
 
+    public function test_scheduled_maintenance_creates_only_assigned_supplier_visits_with_limits(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::findOrCreate('administrador', 'web'));
+        $type = PropertyType::create(['name' => 'Casa', 'slug' => 'casa', 'is_active' => true]);
+        $property = Property::create(['internal_name' => 'Casa', 'property_type_id' => $type->id, 'full_address' => 'Calle 1', 'status' => Property::STATUS_AVAILABLE]);
+        $provider = MaintenanceProvider::create(['type' => 'proveedor', 'name' => 'Jardinería', 'is_active' => true]);
+        $property->supplierProviders()->attach($provider->id);
+        $payload = ['provider_id' => $provider->id, 'frequency' => 'every_three_weeks', 'start_date' => '2027-01-01', 'end_date' => '2027-02-12', 'visit_time' => '09:30', 'category' => 'plomeria', 'priority' => 'media', 'title' => 'Visita recurrente', 'exact_location' => 'Jardín', 'description' => 'Trabajo'];
+        $this->actingAs($admin)->get(route('properties.show', $property))->assertOk()->assertSee('Programar recurrente');
+        $this->actingAs($admin)->post(route('properties.maintenance.schedule', $property), $payload)->assertSessionHasNoErrors();
+        $tickets = MaintenanceTicket::where('title', 'Visita recurrente')->orderBy('scheduled_visit_at')->get();
+        $this->assertCount(3, $tickets);
+        $this->assertSame(['2027-01-01 09:30', '2027-01-22 09:30', '2027-02-12 09:30'], $tickets->map(fn ($ticket) => $ticket->scheduled_visit_at->format('Y-m-d H:i'))->all());
+        $this->assertSame(3, $tickets->sum(fn ($ticket) => $ticket->assignments()->count()));
+        $payload['frequency'] = 'weekly';
+        $payload['end_date'] = '2030-01-01';
+        $this->actingAs($admin)->post(route('properties.maintenance.schedule', $property), $payload)->assertSessionHasErrorsIn('scheduledMaintenance', 'end_date');
+        $this->assertSame(3, MaintenanceTicket::where('title', 'Visita recurrente')->count());
+        $property->supplierProviders()->detach($provider->id);
+        $payload['end_date'] = '2027-02-12';
+        $this->actingAs($admin)->post(route('properties.maintenance.schedule', $property), $payload)->assertSessionHasErrorsIn('scheduledMaintenance', 'provider_id');
+        $this->assertSame(3, MaintenanceTicket::where('title', 'Visita recurrente')->count());
+    }
+
     public function test_assigned_advisor_can_choose_an_active_provider_from_property_ticket_form(): void
     {
         Mail::fake();

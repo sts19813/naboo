@@ -1332,6 +1332,9 @@
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
+                                    @if ($canManagePropertyTechnician)
+                                        <button class="btn btn-sm btn-light-primary" data-bs-toggle="modal" data-bs-target="#schedulePropertyMaintenanceModal">Programar recurrente</button>
+                                    @endif
                                     <a href="{{ route('maintenance.index', ['property' => $property->uuid]) }}" class="btn btn-sm btn-light-primary">
                                         Abrir módulo
                                     </a>
@@ -1543,6 +1546,30 @@
             </div>
         </div>
     </div>
+
+    @if ($canManagePropertyTechnician)
+        <div class="modal fade" id="schedulePropertyMaintenanceModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg"><form class="modal-content" method="POST" action="{{ route('properties.maintenance.schedule', $property) }}">
+                @csrf
+                <div class="modal-header"><h3 class="modal-title">Programar mantenimiento recurrente</h3><button type="button" class="btn btn-icon btn-sm btn-light" data-bs-dismiss="modal">×</button></div>
+                <div class="modal-body"><p class="text-muted">Se creará un ticket por cada visita, hasta un máximo de 80.</p>
+                    @if ($errors->scheduledMaintenance->any())<div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->scheduledMaintenance->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+                    <div class="row g-4">
+                        <div class="col-md-6"><label class="form-label required">Proveedor asignado</label><select class="form-select" name="provider_id" required><option value="">Seleccionar</option>@foreach ($property->supplierProviders->where('is_active', true) as $supplier)<option value="{{ $supplier->id }}" @selected(old('provider_id') == $supplier->id)>{{ $supplier->name }}</option>@endforeach</select></div>
+                        <div class="col-md-6"><label class="form-label required">Frecuencia</label><select class="form-select" name="frequency" required>@foreach (['weekly' => 'Semanal', 'biweekly' => 'Cada dos semanas', 'every_three_weeks' => 'Cada tres semanas', 'monthly' => 'Mensual'] as $key => $label)<option value="{{ $key }}" @selected(old('frequency') === $key)>{{ $label }}</option>@endforeach</select></div>
+                        <div class="col-md-4"><label class="form-label required">Fecha inicial</label><input class="form-control" type="date" name="start_date" value="{{ old('start_date') }}" required></div>
+                        <div class="col-md-4"><label class="form-label required">Fecha final</label><input class="form-control" type="date" name="end_date" value="{{ old('end_date') }}" required></div>
+                        <div class="col-md-4"><label class="form-label required">Hora de visita</label><input class="form-control" type="time" name="visit_time" value="{{ old('visit_time', '09:00') }}" required></div>
+                        <div class="col-md-6"><label class="form-label required">Categoría</label><select class="form-select" name="category" required>@foreach ($maintenanceCategoryOptions as $key => $label)<option value="{{ $key }}" @selected(old('category') === $key)>{{ $label }}</option>@endforeach</select></div>
+                        <div class="col-md-6"><label class="form-label required">Prioridad</label><select class="form-select" name="priority" required>@foreach ($maintenancePriorityOptions as $key => $label)<option value="{{ $key }}" @selected(old('priority', 'media') === $key)>{{ $label }}</option>@endforeach</select></div>
+                        <div class="col-md-6"><label class="form-label required">Título</label><input class="form-control" name="title" maxlength="190" value="{{ old('title') }}" required></div>
+                        <div class="col-md-6"><label class="form-label required">Ubicación</label><input class="form-control" name="exact_location" maxlength="255" value="{{ old('exact_location') }}" required></div>
+                        <div class="col-12"><label class="form-label required">Descripción</label><textarea class="form-control" name="description" maxlength="10000" required>{{ old('description') }}</textarea></div>
+                    </div>
+                </div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Crear visitas</button></div>
+            </form></div>
+        </div>
+    @endif
 
     @if ($canCreatePropertyMaintenanceTicket)
         <div class="modal fade" id="createPropertyMaintenanceTicketModal" tabindex="-1" aria-hidden="true">
@@ -1813,6 +1840,17 @@
                     return;
                 }
                 new bootstrap.Modal(modalEl).show();
+            })();
+        </script>
+    @endif
+
+    @if ($errors->scheduledMaintenance->any())
+        <script>
+            (() => {
+                const tab = document.querySelector('#propertyTabs [data-bs-target="#tab-maintenance"]');
+                if (tab) new bootstrap.Tab(tab).show();
+                const modal = document.getElementById('schedulePropertyMaintenanceModal');
+                if (modal) new bootstrap.Modal(modal).show();
             })();
         </script>
     @endif
